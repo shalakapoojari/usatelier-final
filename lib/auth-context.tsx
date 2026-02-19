@@ -1,0 +1,108 @@
+"use client"
+
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+
+type User = {
+  id: string
+  email: string
+  name: string
+  role: "user" | "admin"
+}
+
+type AuthContextType = {
+  user: User | null
+  login: (email: string, password: string) => Promise<{ success: boolean; user?: User }>
+  signup: (email: string, password: string) => Promise<{ success: boolean; user?: User; message?: string }>
+  logout: () => void
+  isAuthenticated: boolean
+  isAdmin: boolean
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+
+  // Load user from localStorage on mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user")
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
+    }
+  }, [])
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; user?: User }> => {
+    // Mock authentication - in production, this would call an API
+    if (email === "admin@atelier.com" && password === "admin123") {
+      const adminUser = { id: "1", email, name: "Admin User", role: "admin" as const }
+      setUser(adminUser)
+      localStorage.setItem("user", JSON.stringify(adminUser))
+      return { success: true, user: adminUser }
+    } else if (email === "user@example.com" && password === "user123") {
+      const regularUser = { id: "2", email, name: "John Doe", role: "user" as const }
+      setUser(regularUser)
+      localStorage.setItem("user", JSON.stringify(regularUser))
+      return { success: true, user: regularUser }
+    }
+    return { success: false }
+  }
+
+  const signup = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; user?: User; message?: string }> => {
+    // Very small client-side mock of signup. In production, call an API.
+    if (!email || !password) {
+      return { success: false, message: "Email and password are required" }
+    }
+
+    if (password.length < 6) {
+      return { success: false, message: "Password must be at least 6 characters" }
+    }
+
+    // Simple uniqueness check against the two mocked users
+    const existingEmails = ["admin@atelier.com", "user@example.com"]
+    if (existingEmails.includes(email)) {
+      return { success: false, message: "An account with this email already exists" }
+    }
+
+    const newUser: User = {
+      id: Date.now().toString(),
+      email,
+      name: email.split("@")[0],
+      role: "user",
+    }
+
+    setUser(newUser)
+    localStorage.setItem("user", JSON.stringify(newUser))
+    return { success: true, user: newUser }
+  }
+
+  const logout = () => {
+    setUser(null)
+    localStorage.removeItem("user")
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        signup,
+        logout,
+        isAuthenticated: !!user,
+        isAdmin: user?.role === "admin",
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
+}

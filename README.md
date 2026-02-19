@@ -274,4 +274,5 @@ For production deployment:
 
 This project is proprietary and confidential.
 #   U . S - A T E L I E R  
+ #   U . S - A T E L I E R  
  

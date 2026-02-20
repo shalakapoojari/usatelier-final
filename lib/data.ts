@@ -77,6 +77,8 @@ export const products: Product[] = [
     inStock: true,
     featured: true,
     bestseller: true,
+    fabric: "100% Premium Wool",
+    care: "Dry clean recommended",
   },
   {
     id: "3",
@@ -101,6 +103,8 @@ export const products: Product[] = [
     sizes: ["XS", "S", "M", "L"],
     inStock: true,
     newArrival: true,
+    fabric: "100% Mulberry Silk",
+    care: "Hand wash or dry clean only",
   },
   {
     id: "5",
@@ -112,6 +116,8 @@ export const products: Product[] = [
     sizes: ["S", "M", "L", "XL"],
     inStock: true,
     featured: true,
+    fabric: "100% Extra-Fine Merino Wool",
+    care: "Machine wash cold, lay flat to dry",
   },
   {
     id: "6",
@@ -122,6 +128,8 @@ export const products: Product[] = [
     images: ["/natural-linen-wide-leg-pants-on-model.jpg", "/linen-pants-texture-detail.jpg"],
     sizes: ["XS", "S", "M", "L"],
     inStock: false,
+    fabric: "100% European Linen",
+    care: "Machine wash cold, tumble dry low",
   },
   {
     id: "7",
@@ -134,6 +142,8 @@ export const products: Product[] = [
     inStock: true,
     featured: true,
     bestseller: true,
+    fabric: "Full-Grain Vegetable-Tanned Leather",
+    care: "Wipe clean with a dry cloth. Condition periodically.",
   },
   {
     id: "8",
@@ -141,10 +151,12 @@ export const products: Product[] = [
     price: 165,
     description: "Soft cashmere scarf in a versatile neutral tone. Essential cold-weather accessory.",
     category: "Accessories",
-    images: ["/beige-cashmere-scarf-styled.jpg", "/placeholder.svg?height=800&width=600"],
+    images: ["/beige-cashmere-scarf-styled.jpg", "/beige-cashmere-sweater-detail-texture-close-up.jpg"],
     sizes: ["One Size"],
     inStock: true,
     newArrival: true,
+    fabric: "100% Mongolian Cashmere",
+    care: "Hand wash cold, dry flat",
   },
 ]
 
@@ -154,19 +166,19 @@ export const collections: Collection[] = [
     id: "essentials",
     name: "Essentials",
     description: "Timeless pieces for everyday elegance",
-    image: "/placeholder.svg?height=600&width=800",
+    image: "/white-cotton-t-shirt-on-model-minimal-clean.jpg",
   },
   {
     id: "knitwear",
     name: "Knitwear",
     description: "Luxurious knits for every season",
-    image: "/placeholder.svg?height=600&width=800",
+    image: "/minimal-beige-cashmere-sweater-on-model.jpg",
   },
   {
     id: "tailoring",
     name: "Tailoring",
     description: "Precision-crafted suiting and trousers",
-    image: "/placeholder.svg?height=600&width=800",
+    image: "/charcoal-grey-wool-trousers-on-model-minimal.jpg",
   },
 ]
 

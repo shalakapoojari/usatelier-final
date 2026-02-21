@@ -16,29 +16,42 @@ export function SiteHeader() {
   const { count: wishlistCount } = useWishlist()
   const router = useRouter()
 
-  // Smart "unseen" cart badge — shows until user visits /cart
+  // Smart "unseen" cart badge
   const [unseenCount, setUnseenCount] = useState(0)
-  const [lastSeenTotal, setLastSeenTotal] = useState(0)
+  const [lastSeenCartTotal, setLastSeenCartTotal] = useState(0)
+
+  // Smart "unseen" wishlist badge
+  const [unseenWishlist, setUnseenWishlist] = useState(0)
+  const [lastSeenWishlistTotal, setLastSeenWishlistTotal] = useState(0)
+
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
 
   const cartTotal = items.reduce((sum, i) => sum + i.quantity, 0)
 
-  // When cart grows, accumulate unseen delta
+  // Accumulate unseen cart items
   useEffect(() => {
-    if (cartTotal > lastSeenTotal) {
-      setUnseenCount((prev) => prev + (cartTotal - lastSeenTotal))
+    if (cartTotal > lastSeenCartTotal) {
+      setUnseenCount((prev) => prev + (cartTotal - lastSeenCartTotal))
     }
-    setLastSeenTotal(cartTotal)
+    setLastSeenCartTotal(cartTotal)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartTotal])
 
-  // Detect when user is on /cart and clear badge
+  // Accumulate unseen wishlist items
+  useEffect(() => {
+    if (wishlistCount > lastSeenWishlistTotal) {
+      setUnseenWishlist((prev) => prev + (wishlistCount - lastSeenWishlistTotal))
+    }
+    setLastSeenWishlistTotal(wishlistCount)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wishlistCount])
+
+  // Clear cart badge when on /cart
   useEffect(() => {
     if (typeof window === "undefined") return
-    if (window.location.pathname === "/cart") {
-      setUnseenCount(0)
-    }
+    if (window.location.pathname === "/cart") setUnseenCount(0)
+    if (window.location.pathname === "/favourites") setUnseenWishlist(0)
   })
 
   // Close profile dropdown on outside click
@@ -64,6 +77,11 @@ export function SiteHeader() {
   const handleCartClick = () => {
     setUnseenCount(0)
     router.push("/cart")
+  }
+
+  const handleFavouritesClick = () => {
+    setUnseenWishlist(0)
+    router.push("/favourites")
   }
 
   const handleLogout = () => {
@@ -102,18 +120,22 @@ export function SiteHeader() {
       <div className="flex items-center gap-5">
 
         {/* Favourites icon */}
-        <Link
-          href="/favourites"
+        <button
+          onClick={handleFavouritesClick}
           className="relative group flex items-center justify-center w-9 h-9 text-gray-400 hover:text-white transition-colors"
           title="Favourites"
         >
-          <Heart size={18} strokeWidth={1.5} className={wishlistCount > 0 ? "fill-red-400 text-red-400" : ""} />
-          {wishlistCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center font-medium leading-none">
-              {wishlistCount > 9 ? "9+" : wishlistCount}
+          <Heart
+            size={18}
+            strokeWidth={1.5}
+            className={unseenWishlist > 0 ? "fill-red-400 text-red-400" : ""}
+          />
+          {unseenWishlist > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center font-medium leading-none animate-bounce">
+              {unseenWishlist > 9 ? "9+" : unseenWishlist}
             </span>
           )}
-        </Link>
+        </button>
 
         {/* Cart icon */}
         <button

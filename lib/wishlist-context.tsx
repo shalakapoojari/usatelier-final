@@ -24,19 +24,24 @@ const WishlistContext = createContext<WishlistContextType | undefined>(undefined
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
     const [items, setItems] = useState<WishlistItem[]>([])
+    const [isHydrated, setIsHydrated] = useState(false)
 
-    // Load from localStorage on mount
+    // Load from localStorage once after mount
     useEffect(() => {
         try {
             const saved = localStorage.getItem("wishlist")
             if (saved) setItems(JSON.parse(saved))
-        } catch { }
+        } catch {
+            // ignore
+        }
+        setIsHydrated(true)
     }, [])
 
-    // Persist to localStorage when changed
+    // Persist — only after hydration to avoid overwriting saved data
     useEffect(() => {
+        if (!isHydrated) return
         localStorage.setItem("wishlist", JSON.stringify(items))
-    }, [items])
+    }, [items, isHydrated])
 
     const addItem = (item: WishlistItem) => {
         setItems((prev) => {

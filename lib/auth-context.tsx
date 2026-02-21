@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string): Promise<{ success: boolean; user?: User }> => {
-    // Mock authentication - in production, this would call an API
+    // Mock authentication - will be replaced with real API in integration phase
     if (email === "admin@atelier.com" && password === "admin123") {
       const adminUser = { id: "1", email, name: "Admin User", role: "admin" as const }
       setUser(adminUser)
@@ -51,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string
   ): Promise<{ success: boolean; user?: User; message?: string }> => {
-    // Very small client-side mock of signup. In production, call an API.
     if (!email || !password) {
       return { success: false, message: "Email and password are required" }
     }
@@ -60,7 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message: "Password must be at least 6 characters" }
     }
 
-    // Simple uniqueness check against the two mocked users
     const existingEmails = ["admin@atelier.com", "user@example.com"]
     if (existingEmails.includes(email)) {
       return { success: false, message: "An account with this email already exists" }

@@ -10,6 +10,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { products } from "@/lib/data"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 
 import { ChevronDown, ChevronUp, ShoppingBag, Heart, Star, Check, Sparkles, Award, ArrowLeft } from "lucide-react"
 
@@ -22,6 +23,7 @@ export default function ProductPage({
   const product = products.find((p) => p.id === id)
   const router = useRouter()
   const { addItem } = useCart()
+  const { toggleItem, isWishlisted } = useWishlist()
 
   const [selectedSize, setSelectedSize] = useState("")
   const [selectedImage, setSelectedImage] = useState(0)
@@ -29,7 +31,6 @@ export default function ProductPage({
   const [showDetails, setShowDetails] = useState(false)
   const [showShipping, setShowShipping] = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
-  const [wishlist, setWishlist] = useState(false)
 
   if (!product) notFound()
 
@@ -118,8 +119,8 @@ export default function ProductPage({
                     key={index}
                     onClick={() => setSelectedImage(index)}
                     className={`relative aspect-square overflow-hidden transition-all ${selectedImage === index
-                        ? "ring-1 ring-white"
-                        : "opacity-50 hover:opacity-90"
+                      ? "ring-1 ring-white"
+                      : "opacity-50 hover:opacity-90"
                       }`}
                   >
                     <Image
@@ -163,7 +164,7 @@ export default function ProductPage({
             </div>
 
             {/* Price */}
-            <p className="text-3xl font-light mb-6">${product.price}</p>
+            <p className="text-3xl font-light mb-6">₹{product.price.toLocaleString('en-IN')}</p>
 
             {/* Short description */}
             <p className="text-gray-400 leading-relaxed text-sm mb-8 max-w-md border-l border-white/10 pl-4">
@@ -215,8 +216,8 @@ export default function ProductPage({
                     disabled={!product.inStock}
                     onClick={() => setSelectedSize(size)}
                     className={`px-4 py-2 text-xs tracking-widest border transition-all duration-200 ${selectedSize === size
-                        ? "border-white bg-white text-black"
-                        : "border-white/20 text-gray-400 hover:border-white/60 hover:text-white"
+                      ? "border-white bg-white text-black"
+                      : "border-white/20 text-gray-400 hover:border-white/60 hover:text-white"
                       } disabled:opacity-30 disabled:cursor-not-allowed`}
                   >
                     {size}
@@ -231,8 +232,8 @@ export default function ProductPage({
                 onClick={handleAddToCart}
                 disabled={!product.inStock}
                 className={`flex-1 py-4 flex items-center justify-center gap-2 uppercase tracking-widest text-xs font-medium transition-all duration-500 ${addedToCart
-                    ? "bg-green-500 text-white border border-green-500"
-                    : "border border-white/40 hover:bg-white hover:text-black"
+                  ? "bg-green-500 text-white border border-green-500"
+                  : "border border-white/40 hover:bg-white hover:text-black"
                   } disabled:opacity-40 disabled:cursor-not-allowed`}
               >
                 {addedToCart ? (
@@ -251,14 +252,14 @@ export default function ProductPage({
               </button>
 
               <button
-                onClick={() => setWishlist(!wishlist)}
-                className={`px-4 py-4 border transition-all duration-300 ${wishlist
-                    ? "border-red-400 text-red-400"
-                    : "border-white/20 text-gray-400 hover:border-white/60 hover:text-white"
+                onClick={() => toggleItem({ id: product.id, name: product.name, price: product.price, image: product.images[0], category: product.category })}
+                className={`px-4 py-4 border transition-all duration-300 ${isWishlisted(product.id)
+                  ? "border-red-400 text-red-400"
+                  : "border-white/20 text-gray-400 hover:border-white/60 hover:text-white"
                   }`}
                 title="Add to Wishlist"
               >
-                <Heart size={16} className={wishlist ? "fill-red-400" : ""} />
+                <Heart size={16} className={isWishlisted(product.id) ? "fill-red-400" : ""} />
               </button>
             </div>
 
@@ -321,7 +322,7 @@ export default function ProductPage({
                 </button>
                 {showShipping && (
                   <div className="pb-5 text-gray-400 text-sm space-y-2 leading-relaxed">
-                    <p>Complimentary standard shipping on all orders over $150.</p>
+                    <p>Complimentary standard shipping on all orders over ₹12,500.</p>
                     <p>Express delivery available at checkout.</p>
                     <p>Returns accepted within 30 days of delivery. Items must be unworn and in original packaging.</p>
                   </div>
@@ -358,7 +359,7 @@ export default function ProductPage({
                   <p className="text-sm uppercase tracking-widest group-hover:text-gray-400 transition-colors">
                     {p.name}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">${p.price}</p>
+                  <p className="text-xs text-gray-500 mt-1">₹{p.price.toLocaleString('en-IN')}</p>
                 </Link>
               ))}
             </div>

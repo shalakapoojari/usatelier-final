@@ -79,7 +79,7 @@ export default function OrdersPage() {
                         {item.quantity}
                       </span>
                       <span>
-                        ${(item.price * item.quantity).toFixed(2)}
+                        ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                       </span>
                     </div>
                   ))}
@@ -89,7 +89,7 @@ export default function OrdersPage() {
                   <span className="uppercase tracking-widest text-xs text-gray-500">
                     Total
                   </span>
-                  <span>${order.total.toFixed(2)}</span>
+                  <span>₹{order.total.toLocaleString('en-IN')}</span>
                 </div>
               </Link>
             ))}

@@ -87,7 +87,7 @@ export default function OrderDetailPage({
                     </p>
                   </div>
                   <p>
-                    ${(item.price * item.quantity).toFixed(2)}
+                    ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                   </p>
                 </div>
               ))}
@@ -96,15 +96,15 @@ export default function OrderDetailPage({
             <div className="border-t border-white/10 pt-8 mt-8 space-y-3 text-sm text-gray-400">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${order.subtotal.toFixed(2)}</span>
+                <span>₹{order.subtotal.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span>${order.shipping.toFixed(2)}</span>
+                <span>₹{order.shipping.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-white pt-4">
                 <span>Total</span>
-                <span>${order.total.toFixed(2)}</span>
+                <span>₹{order.total.toLocaleString('en-IN')}</span>
               </div>
             </div>
           </div>

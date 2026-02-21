@@ -36,9 +36,9 @@ export default function PaymentsPage() {
       {/* STATS */}
       <div className="max-w-[1400px] mx-auto grid md:grid-cols-4 gap-8 mb-24">
         {[
-          ["Revenue", `$${revenue.toLocaleString()}`, `${completed.length} completed`],
-          ["Pending", `$${pendingAmount.toLocaleString()}`, `${pending.length} payments`],
-          ["Failed", `$${failedAmount.toLocaleString()}`, `${failed.length} attempts`],
+          ["Revenue", `₹${revenue.toLocaleString('en-IN')}`, `${completed.length} completed`],
+          ["Pending", `₹${pendingAmount.toLocaleString('en-IN')}`, `${pending.length} payments`],
+          ["Failed", `₹${failedAmount.toLocaleString('en-IN')}`, `${failed.length} attempts`],
           ["Refunded", refunded.length, "transactions"],
         ].map(([label, value, sub]) => (
           <div key={label} className="border border-white/10 p-8">
@@ -61,7 +61,7 @@ export default function PaymentsPage() {
           {Object.entries(byMethod).map(([method, amount]) => (
             <div key={method} className="flex justify-between">
               <span className="tracking-widest text-sm">{method}</span>
-              <span className="font-medium">${amount.toLocaleString()}</span>
+              <span className="font-medium">₹{amount.toLocaleString('en-IN')}</span>
             </div>
           ))}
         </div>
@@ -87,9 +87,8 @@ export default function PaymentsPage() {
             {orders.map((o, i) => (
               <tr
                 key={o.id}
-                className={`border-b border-white/5 hover:bg-white/[0.04] ${
-                  i % 2 === 0 ? "bg-white/[0.02]" : ""
-                }`}
+                className={`border-b border-white/5 hover:bg-white/[0.04] ${i % 2 === 0 ? "bg-white/[0.02]" : ""
+                  }`}
               >
                 <td className="px-8 py-6 font-medium">{o.id}</td>
 
@@ -102,7 +101,7 @@ export default function PaymentsPage() {
 
                 <td className="px-8 py-6 text-sm">{o.paymentMethod}</td>
 
-                <td className="px-8 py-6 font-medium">${o.total}</td>
+                <td className="px-8 py-6 font-medium">₹{o.total.toLocaleString('en-IN')}</td>
 
                 <td className="px-8 py-6 uppercase tracking-widest text-xs text-gray-400">
                   {o.paymentStatus}

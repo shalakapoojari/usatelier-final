@@ -45,11 +45,11 @@ export default function AdminDashboard() {
       {/* METRICS */}
       <div className="max-w-[1400px] mx-auto grid md:grid-cols-5 gap-8 mb-24">
         {[
-          ["Revenue", `$${revenue.toLocaleString()}`],
+          ["Revenue", `₹${revenue.toLocaleString('en-IN')}`],
           ["Orders", totalOrders],
           ["Pending", pendingOrders],
           ["Customers", customers],
-          ["Avg Order", `$${avgOrder.toFixed(2)}`],
+          ["Avg Order", `₹${avgOrder.toFixed(0)}`],
         ].map(([label, value]) => (
           <div key={label} className="border border-white/10 p-8">
             <p className="uppercase tracking-widest text-xs text-gray-500 mb-4">
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">${o.total}</p>
+                  <p className="font-medium">₹{o.total.toLocaleString('en-IN')}</p>
                   <p className="text-xs tracking-widest text-gray-500 uppercase">
                     {o.status}
                   </p>
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
                 <div className="text-right">
                   <p className="font-medium">{p.qty} sold</p>
                   <p className="text-xs tracking-widest text-gray-500">
-                    ${p.product!.price}
+                    ₹{p.product!.price.toLocaleString('en-IN')}
                   </p>
                 </div>
               </div>

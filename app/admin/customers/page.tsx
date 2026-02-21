@@ -62,9 +62,8 @@ export default function CustomersPage() {
             {customers.map((customer, i) => (
               <tr
                 key={customer.id}
-                className={`border-b border-white/5 transition-colors ${
-                  i % 2 === 0 ? "bg-white/[0.02]" : ""
-                } hover:bg-white/[0.05]`}
+                className={`border-b border-white/5 transition-colors ${i % 2 === 0 ? "bg-white/[0.02]" : ""
+                  } hover:bg-white/[0.05]`}
               >
                 {/* Customer */}
                 <td className="px-8 py-6">
@@ -90,7 +89,7 @@ export default function CustomersPage() {
 
                 {/* Total Spent */}
                 <td className="px-8 py-6 font-medium">
-                  ${customer.totalSpent.toLocaleString()}
+                  ₹{customer.totalSpent.toLocaleString('en-IN')}
                 </td>
 
                 {/* Last Order */}

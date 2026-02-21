@@ -39,22 +39,20 @@ export default function OrdersPage() {
       <div className="max-w-[1400px] mx-auto flex gap-12 border-b border-white/10 mb-16">
         <button
           onClick={() => setActiveTab("all")}
-          className={`${tabBase} ${
-            activeTab === "all"
+          className={`${tabBase} ${activeTab === "all"
               ? "text-white border-b border-white"
               : "text-gray-500 hover:text-white"
-          }`}
+            }`}
         >
           All ({orders.length})
         </button>
 
         <button
           onClick={() => setActiveTab("pending")}
-          className={`${tabBase} ${
-            activeTab === "pending"
+          className={`${tabBase} ${activeTab === "pending"
               ? "text-white border-b border-white"
               : "text-gray-500 hover:text-white"
-          }`}
+            }`}
         >
           Pending (
           {
@@ -69,11 +67,10 @@ export default function OrdersPage() {
 
         <button
           onClick={() => setActiveTab("completed")}
-          className={`${tabBase} ${
-            activeTab === "completed"
+          className={`${tabBase} ${activeTab === "completed"
               ? "text-white border-b border-white"
               : "text-gray-500 hover:text-white"
-          }`}
+            }`}
         >
           Completed (
           {
@@ -115,9 +112,8 @@ export default function OrdersPage() {
             {filteredOrders.map((order, i) => (
               <tr
                 key={order.id}
-                className={`border-b border-white/5 hover:bg-white/[0.04] transition-colors ${
-                  i % 2 === 0 ? "bg-white/[0.02]" : ""
-                }`}
+                className={`border-b border-white/5 hover:bg-white/[0.04] transition-colors ${i % 2 === 0 ? "bg-white/[0.02]" : ""
+                  }`}
               >
                 <td className="px-8 py-6 font-medium">
                   {order.id}
@@ -141,7 +137,7 @@ export default function OrdersPage() {
                 </td>
 
                 <td className="px-8 py-6 font-medium">
-                  ${order.total}
+                  ₹{order.total.toLocaleString('en-IN')}
                 </td>
 
                 <td className="px-8 py-6 uppercase tracking-widest text-xs text-gray-400">

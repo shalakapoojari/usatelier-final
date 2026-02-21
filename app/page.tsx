@@ -252,7 +252,7 @@ export default function HomePage() {
                   <h3 className="text-3xl font-serif italic">
                     Vantablack Coat
                   </h3>
-                  <p className="uppercase text-xs mt-2">$2,400</p>
+                  <p className="uppercase text-xs mt-2">₹1,99,200</p>
                 </div>
               </div>
             </div>
@@ -270,7 +270,7 @@ export default function HomePage() {
                   <h3 className="text-3xl font-serif italic">
                     Marble Silk
                   </h3>
-                  <p className="uppercase text-xs mt-2">$1,850</p>
+                  <p className="uppercase text-xs mt-2">₹1,53,550</p>
                 </div>
               </div>
             </div>

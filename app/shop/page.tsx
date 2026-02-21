@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { SlidersHorizontal } from "lucide-react"
 
 export default function ShopPage() {
-  const [priceRange, setPriceRange] = useState([0, 500])
+  const [priceRange, setPriceRange] = useState([0, 50000])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
 
@@ -77,14 +77,14 @@ export default function ShopPage() {
       {/* Price */}
       <div>
         <h3 className="text-white mb-6">
-          Price — ${priceRange[0]} to ${priceRange[1]}
+          Price — ₹{priceRange[0].toLocaleString('en-IN')} to ₹{priceRange[1].toLocaleString('en-IN')}
         </h3>
         <Slider
           value={priceRange}
           onValueChange={setPriceRange}
           min={0}
-          max={500}
-          step={10}
+          max={50000}
+          step={500}
         />
       </div>
 
@@ -102,11 +102,10 @@ export default function ShopPage() {
                     : [...prev, size]
                 )
               }}
-              className={`px-4 py-2 border text-xs tracking-widest transition-all ${
-                selectedSizes.includes(size)
-                  ? "border-white text-white"
-                  : "border-white/20 text-gray-400 hover:text-white"
-              }`}
+              className={`px-4 py-2 border text-xs tracking-widest transition-all ${selectedSizes.includes(size)
+                ? "border-white text-white"
+                : "border-white/20 text-gray-400 hover:text-white"
+                }`}
             >
               {size}
             </button>
@@ -189,7 +188,7 @@ export default function ShopPage() {
                   variant="outline"
                   className="border-white/20 text-white"
                   onClick={() => {
-                    setPriceRange([0, 500])
+                    setPriceRange([0, 50000])
                     setSelectedCategories([])
                     setSelectedSizes([])
                   }}

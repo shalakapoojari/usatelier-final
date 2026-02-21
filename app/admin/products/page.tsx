@@ -55,9 +55,8 @@ export default function ProductsPage() {
             {products.map((p, i) => (
               <tr
                 key={p.id}
-                className={`border-b border-white/5 hover:bg-white/[0.04] ${
-                  i % 2 === 0 ? "bg-white/[0.02]" : ""
-                }`}
+                className={`border-b border-white/5 hover:bg-white/[0.04] ${i % 2 === 0 ? "bg-white/[0.02]" : ""
+                  }`}
               >
                 <td className="px-8 py-6 flex items-center gap-6">
                   <div className="relative w-16 h-20 bg-black">
@@ -77,7 +76,7 @@ export default function ProductsPage() {
                 </td>
 
                 <td className="px-8 py-6 text-sm">{p.category}</td>
-                <td className="px-8 py-6 font-medium">${p.price}</td>
+                <td className="px-8 py-6 font-medium">₹{p.price.toLocaleString('en-IN')}</td>
 
                 <td className="px-8 py-6 text-xs tracking-widest text-gray-500">
                   {[p.featured && "Featured", p.newArrival && "New", p.bestseller && "Bestseller"]

@@ -9,7 +9,7 @@ import { Minus, Plus, X } from "lucide-react"
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, total } = useCart()
-  const shipping = items.length > 0 ? 15 : 0
+  const shipping = items.length > 0 ? 1245 : 0
   const grandTotal = total + shipping
 
   /* ================= EMPTY STATE ================= */
@@ -85,7 +85,7 @@ export default function CartPage() {
                     </p>
 
                     <p className="text-sm mt-4">
-                      ${item.price.toFixed(2)}
+                      ₹{item.price.toLocaleString('en-IN')}
                     </p>
                   </div>
 
@@ -145,17 +145,17 @@ export default function CartPage() {
               <div className="text-sm text-gray-400 space-y-3">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>${shipping.toFixed(2)}</span>
+                  <span>₹{shipping.toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="border-t border-white/10 pt-4 flex justify-between text-white">
                   <span>Total</span>
-                  <span>${grandTotal.toFixed(2)}</span>
+                  <span>₹{grandTotal.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 

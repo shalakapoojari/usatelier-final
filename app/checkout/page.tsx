@@ -15,7 +15,7 @@ export default function CheckoutPage() {
   const { items, total, clearCart } = useCart()
   const router = useRouter()
 
-  const shipping = 15
+  const shipping = 1245
   const grandTotal = total + shipping
 
   const [step, setStep] = useState<"shipping" | "review">("shipping")
@@ -198,7 +198,7 @@ export default function CheckoutPage() {
                         </div>
 
                         <p className="text-sm">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                         </p>
                       </div>
                     ))}
@@ -225,15 +225,15 @@ export default function CheckoutPage() {
               <div className="text-sm text-gray-400 space-y-3">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>${shipping.toFixed(2)}</span>
+                  <span>₹{shipping.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="border-t border-white/10 pt-4 flex justify-between text-white">
                   <span>Total</span>
-                  <span>${grandTotal.toFixed(2)}</span>
+                  <span>₹{grandTotal.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>

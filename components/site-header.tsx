@@ -34,7 +34,7 @@ export function SiteHeader() {
       {/* ================= HEADER ================= */}
       <nav
         ref={navRef}
-        className="fixed top-0 left-0 w-full px-8 py-6 flex justify-between items-center z-50 mix-blend-difference"
+        className="fixed top-0 left-0 w-full px-8 py-6 flex justify-between items-center z-50 bg-[#030303] border-b border-white/5"
       >
         {/* Brand */}
         <Link

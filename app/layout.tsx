@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Cormorant_Garamond, Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
+import { WishlistProvider } from "@/lib/wishlist-context"
 import { CartProvider } from "@/lib/cart-context"
 import { AuthProvider } from "@/lib/auth-context"
 
@@ -37,7 +38,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${cormorant.variable}`}>
       <body className="font-sans antialiased">
         <AuthProvider>
-          <CartProvider>{children}</CartProvider>
+          <WishlistProvider>
+            <CartProvider>{children}</CartProvider>
+          </WishlistProvider>
         </AuthProvider>
         <Analytics />
       </body>

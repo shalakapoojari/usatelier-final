@@ -11,6 +11,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { products } from "@/lib/data"
 import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
+import { useToast } from "@/lib/toast-context"
 
 import { ChevronDown, ChevronUp, ShoppingBag, Heart, Star, Check, Sparkles, Award, ArrowLeft } from "lucide-react"
 
@@ -24,6 +25,7 @@ export default function ProductPage({
   const router = useRouter()
   const { addItem } = useCart()
   const { toggleItem, isWishlisted } = useWishlist()
+  const { showToast } = useToast()
 
   const [selectedSize, setSelectedSize] = useState("")
   const [selectedImage, setSelectedImage] = useState(0)
@@ -42,6 +44,7 @@ export default function ProductPage({
     if (!selectedSize) {
       const sizeSection = document.getElementById("size-section")
       sizeSection?.scrollIntoView({ behavior: "smooth" })
+      showToast("Please select a size first", "info", product.name)
       return
     }
 
@@ -54,7 +57,24 @@ export default function ProductPage({
     })
 
     setAddedToCart(true)
+    showToast("Added to cart", "cart", `${product.name} — Size ${selectedSize}`)
     setTimeout(() => setAddedToCart(false), 2500)
+  }
+
+  const handleWishlistToggle = () => {
+    const wasWishlisted = isWishlisted(product.id)
+    toggleItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images[0],
+      category: product.category,
+    })
+    if (wasWishlisted) {
+      showToast("Removed from favourites", "info", product.name)
+    } else {
+      showToast("Saved to favourites", "wishlist", product.name)
+    }
   }
 
   return (
@@ -252,12 +272,12 @@ export default function ProductPage({
               </button>
 
               <button
-                onClick={() => toggleItem({ id: product.id, name: product.name, price: product.price, image: product.images[0], category: product.category })}
+                onClick={handleWishlistToggle}
                 className={`px-4 py-4 border transition-all duration-300 ${isWishlisted(product.id)
                   ? "border-red-400 text-red-400"
                   : "border-white/20 text-gray-400 hover:border-white/60 hover:text-white"
                   }`}
-                title="Add to Wishlist"
+                title="Add to Favourites"
               >
                 <Heart size={16} className={isWishlisted(product.id) ? "fill-red-400" : ""} />
               </button>

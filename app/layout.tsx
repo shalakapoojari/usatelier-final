@@ -6,6 +6,7 @@ import "./globals.css"
 import { WishlistProvider } from "@/lib/wishlist-context"
 import { CartProvider } from "@/lib/cart-context"
 import { AuthProvider } from "@/lib/auth-context"
+import { ToastProvider } from "@/lib/toast-context"
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -39,7 +40,9 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <AuthProvider>
           <WishlistProvider>
-            <CartProvider>{children}</CartProvider>
+            <CartProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </CartProvider>
           </WishlistProvider>
         </AuthProvider>
         <Analytics />

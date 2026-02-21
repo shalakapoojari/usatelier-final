@@ -45,6 +45,24 @@ export default function CheckoutPage() {
   }
 
   const handlePlaceOrder = () => {
+    // Save order snapshot to sessionStorage so confirmation page can display it
+    const orderId = `ORD-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`
+    const orderSnapshot = {
+      orderId,
+      items: items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        size: item.size,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image,
+      })),
+      subtotal: total,
+      shipping,
+      total: grandTotal,
+      address: formData,
+    }
+    sessionStorage.setItem("lastOrder", JSON.stringify(orderSnapshot))
     clearCart()
     router.push("/checkout/confirmation")
   }

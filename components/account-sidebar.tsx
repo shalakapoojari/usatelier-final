@@ -1,0 +1,89 @@
+"use client"
+
+import type React from "react"
+import Link from "next/link"
+import { useRouter, usePathname } from "next/navigation"
+import { User, Package, Heart, Settings, LogOut, ChevronRight } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+
+type SidebarProps = {
+    children: React.ReactNode
+}
+
+const navItems = [
+    { href: "/account", icon: User, label: "Profile", exact: true },
+    { href: "/account/orders", icon: Package, label: "Order History", exact: false },
+    { href: "/favourites", icon: Heart, label: "Favourites", exact: false },
+    { href: "/account/profile", icon: Settings, label: "Settings", exact: false },
+]
+
+export function AccountSidebar({ children }: SidebarProps) {
+    const { user, logout } = useAuth()
+    const router = useRouter()
+    const pathname = usePathname()
+
+    const handleLogout = () => {
+        logout()
+        router.push("/")
+    }
+
+    const isActive = (href: string, exact: boolean) =>
+        exact ? pathname === href : pathname.startsWith(href)
+
+    return (
+        <div className="flex min-h-[calc(100vh-80px)] bg-[#030303] text-[#e8e8e3]">
+
+            {/* ── SIDEBAR ── */}
+            <aside className="w-64 shrink-0 border-r border-white/10 flex flex-col">
+                {/* User card */}
+                <div className="p-8 border-b border-white/10">
+                    <div className="w-14 h-14 rounded-full border border-white/20 bg-white/5 flex items-center justify-center mb-4">
+                        <User size={22} strokeWidth={1} className="text-gray-400" />
+                    </div>
+                    <p className="font-serif text-lg font-light truncate">{user?.name || "Guest"}</p>
+                    <p className="text-xs text-gray-500 truncate mt-1">{user?.email}</p>
+                </div>
+
+                {/* Nav links */}
+                <nav className="flex-1 py-4">
+                    {navItems.map((item) => {
+                        const active = isActive(item.href, item.exact)
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex items-center gap-3 px-6 py-3.5 text-xs uppercase tracking-widest transition-all group ${active
+                                    ? "text-white border-r-2 border-white bg-white/5"
+                                    : "text-gray-500 hover:text-white hover:bg-white/5"
+                                    }`}
+                            >
+                                <item.icon size={14} strokeWidth={1.5} />
+                                <span>{item.label}</span>
+                                <ChevronRight
+                                    size={12}
+                                    className={`ml-auto transition-opacity ${active ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}
+                                />
+                            </Link>
+                        )
+                    })}
+                </nav>
+
+                {/* Logout at bottom */}
+                <div className="p-4 border-t border-white/10">
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 w-full px-2 py-2.5 text-xs uppercase tracking-widest text-gray-600 hover:text-white transition-colors"
+                    >
+                        <LogOut size={14} strokeWidth={1.5} />
+                        Sign Out
+                    </button>
+                </div>
+            </aside>
+
+            {/* ── MAIN CONTENT ── */}
+            <main className="flex-1 overflow-auto">
+                {children}
+            </main>
+        </div>
+    )
+}

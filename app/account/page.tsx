@@ -2,61 +2,118 @@
 
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { AccountSidebar } from "@/components/account-sidebar"
+import { useAuth } from "@/lib/auth-context"
+import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
+import { Package, Heart, ShoppingBag } from "lucide-react"
 import Link from "next/link"
-import { Package, User } from "lucide-react"
+import { orders } from "@/lib/data"
 
 export default function AccountPage() {
+  const { user } = useAuth()
+  const { items: cartItems } = useCart()
+  const { count: wishlistCount } = useWishlist()
+  const userOrders = orders.slice(0, 2)
+
   return (
     <div className="bg-[#030303] text-[#e8e8e3] min-h-screen">
       <SiteHeader />
 
-      <main className="pt-48 pb-32 px-6 md:px-12">
-        <h1 className="font-serif text-5xl font-light mb-20">
-          My Account
-        </h1>
+      <div className="pt-[72px]">
+        <AccountSidebar>
+          <div className="p-10 max-w-3xl">
 
-        <div className="grid md:grid-cols-2 gap-12 max-w-[1000px]">
-          {/* Orders */}
-          <Link
-            href="/account/orders"
-            className="group border border-white/10 p-12 hover:border-white/30 transition-colors"
-          >
-            <Package className="h-8 w-8 mb-8 text-gray-400 group-hover:text-white transition-colors" />
+            {/* Page Title */}
+            <div className="mb-10 pb-8 border-b border-white/10">
+              <p className="uppercase tracking-[0.4em] text-xs text-gray-500 mb-2">Dashboard</p>
+              <h1 className="font-serif text-4xl font-light">Welcome back{user?.name ? `, ${user.name.split(" ")[0]}` : ""}</h1>
+            </div>
 
-            <h2 className="font-serif text-3xl font-light mb-4">
-              Orders
-            </h2>
+            {/* Stats Row */}
+            <div className="grid grid-cols-3 gap-6 mb-12">
+              <div className="border border-white/10 p-6 text-center">
+                <p className="font-serif text-3xl font-light mb-1">{userOrders.length}</p>
+                <p className="text-xs uppercase tracking-widest text-gray-500">Orders</p>
+              </div>
+              <div className="border border-white/10 p-6 text-center">
+                <p className="font-serif text-3xl font-light mb-1">{wishlistCount}</p>
+                <p className="text-xs uppercase tracking-widest text-gray-500">Favourites</p>
+              </div>
+              <div className="border border-white/10 p-6 text-center">
+                <p className="font-serif text-3xl font-light mb-1">{cartItems.length}</p>
+                <p className="text-xs uppercase tracking-widest text-gray-500">In Cart</p>
+              </div>
+            </div>
 
-            <p className="text-sm tracking-widest text-gray-500 leading-relaxed">
-              View your order history, shipment status, and archived purchases.
-            </p>
+            {/* Recent Orders */}
+            <div className="mb-10">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="uppercase tracking-widest text-xs text-gray-400 flex items-center gap-2">
+                  <Package size={13} />
+                  Recent Orders
+                </h2>
+                <Link href="/account/orders" className="text-[10px] uppercase tracking-widest text-gray-600 hover:text-white transition-colors">
+                  View All →
+                </Link>
+              </div>
 
-            <span className="inline-block mt-10 uppercase tracking-widest text-xs text-gray-400 group-hover:text-white transition-colors">
-              View Orders →
-            </span>
-          </Link>
+              {userOrders.length > 0 ? (
+                <div className="space-y-4">
+                  {userOrders.map((order) => (
+                    <Link
+                      key={order.id}
+                      href={`/account/orders/${order.id}`}
+                      className="flex items-center justify-between border border-white/10 px-6 py-4 hover:border-white/30 transition-colors group"
+                    >
+                      <div>
+                        <p className="text-xs uppercase tracking-widest mb-1">{order.id}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(order.date).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <p className="text-xs uppercase tracking-widest text-gray-400">{order.status}</p>
+                        <p className="text-sm">₹{order.total.toLocaleString("en-IN")}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="border border-white/10 p-8 text-center">
+                  <p className="text-xs text-gray-600 uppercase tracking-widest mb-4">No orders yet</p>
+                  <Link href="/shop" className="text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
+                    Start Shopping →
+                  </Link>
+                </div>
+              )}
+            </div>
 
-          {/* Profile */}
-          <Link
-            href="/account/profile"
-            className="group border border-white/10 p-12 hover:border-white/30 transition-colors"
-          >
-            <User className="h-8 w-8 mb-8 text-gray-400 group-hover:text-white transition-colors" />
-
-            <h2 className="font-serif text-3xl font-light mb-4">
-              Profile
-            </h2>
-
-            <p className="text-sm tracking-widest text-gray-500 leading-relaxed">
-              Manage personal details, contact information, and preferences.
-            </p>
-
-            <span className="inline-block mt-10 uppercase tracking-widest text-xs text-gray-400 group-hover:text-white transition-colors">
-              Edit Profile →
-            </span>
-          </Link>
-        </div>
-      </main>
+            {/* Quick Actions */}
+            <div>
+              <h2 className="uppercase tracking-widest text-xs text-gray-400 mb-6 flex items-center gap-2">
+                <ShoppingBag size={13} />
+                Quick Actions
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                <Link
+                  href="/shop"
+                  className="border border-white/10 px-6 py-4 text-xs uppercase tracking-widest text-gray-400 hover:text-white hover:border-white/30 transition-all"
+                >
+                  Browse Collection →
+                </Link>
+                <Link
+                  href="/favourites"
+                  className="border border-white/10 px-6 py-4 text-xs uppercase tracking-widest text-gray-400 hover:text-white hover:border-white/30 transition-all flex items-center gap-2"
+                >
+                  <Heart size={12} />
+                  My Favourites →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </AccountSidebar>
+      </div>
 
       <SiteFooter />
     </div>

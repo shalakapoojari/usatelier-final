@@ -76,16 +76,24 @@ export default function ShopPage() {
 
       {/* Price */}
       <div>
-        <h3 className="text-white mb-6">
-          Price — ₹{priceRange[0].toLocaleString('en-IN')} to ₹{priceRange[1].toLocaleString('en-IN')}
+        <h3 className="text-white mb-3">
+          Price Range
         </h3>
+        <p className="text-xs text-gray-500 mb-5">
+          ₹{priceRange[0].toLocaleString('en-IN')} — ₹{priceRange[1].toLocaleString('en-IN')}
+        </p>
         <Slider
           value={priceRange}
           onValueChange={setPriceRange}
           min={0}
           max={50000}
-          step={500}
+          step={100}
+          className="w-full"
         />
+        <div className="flex justify-between text-[10px] text-gray-600 mt-2">
+          <span>₹0</span>
+          <span>₹50,000</span>
+        </div>
       </div>
 
       {/* Size */}

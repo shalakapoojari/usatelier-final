@@ -6,6 +6,7 @@ import Link from "next/link"
 
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { AccountSidebar } from "@/components/account-sidebar"
 import { orders } from "@/lib/data"
 
 export default function OrderDetailPage({
@@ -18,13 +19,11 @@ export default function OrderDetailPage({
 
   if (!order) notFound()
 
-  const getStatusBadge = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
-      case "delivered":
-      case "shipped":
-        return "border-white text-white"
-      default:
-        return "border-white/20 text-gray-400"
+      case "delivered": return "border-green-400/50 text-green-400"
+      case "shipped": return "border-white text-white"
+      default: return "border-white/20 text-gray-400"
     }
   }
 
@@ -32,102 +31,80 @@ export default function OrderDetailPage({
     <div className="bg-[#030303] text-[#e8e8e3] min-h-screen">
       <SiteHeader />
 
-      <main className="pt-48 pb-32 px-6 md:px-12">
-        <Link
-          href="/account/orders"
-          className="block mb-12 text-xs uppercase tracking-widest text-gray-500 hover:text-white"
-        >
-          ← Back to Orders
-        </Link>
-
-        <div className="max-w-[900px]">
-          {/* HEADER */}
-          <div className="flex justify-between items-start mb-20">
-            <div>
-              <h1 className="font-serif text-5xl font-light mb-4">
-                Order {order.id}
-              </h1>
-              <p className="text-sm text-gray-500">
-                Placed on{" "}
-                {new Date(order.date).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-            </div>
-
-            <span
-              className={`px-5 py-2 border uppercase tracking-widest text-xs ${getStatusBadge(
-                order.status
-              )}`}
+      <div className="pt-[72px]">
+        <AccountSidebar>
+          <div className="p-10 max-w-3xl">
+            {/* Breadcrumb */}
+            <Link
+              href="/account/orders"
+              className="text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors mb-8 inline-block"
             >
-              {order.status}
-            </span>
-          </div>
+              ← Back to Orders
+            </Link>
 
-          {/* ITEMS */}
-          <div className="border border-white/10 p-10 mb-12">
-            <h2 className="uppercase tracking-widest text-xs text-gray-400 mb-8">
-              Items
-            </h2>
+            {/* Header */}
+            <div className="flex justify-between items-start mb-10 pb-8 border-b border-white/10">
+              <div>
+                <p className="uppercase tracking-[0.4em] text-xs text-gray-500 mb-2">Account</p>
+                <h1 className="font-serif text-4xl font-light">{order.id}</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Placed on{" "}
+                  {new Date(order.date).toLocaleDateString("en-IN", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
+              <span className={`px-4 py-1.5 border uppercase tracking-widest text-xs ${getStatusStyle(order.status)}`}>
+                {order.status}
+              </span>
+            </div>
 
-            <div className="space-y-6">
-              {order.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between pb-6 border-b border-white/10 last:border-0"
-                >
-                  <div>
-                    <p className="uppercase tracking-widest text-sm">
-                      {item.productName}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Size {item.size} · Quantity {item.quantity}
-                    </p>
+            {/* Items */}
+            <div className="border border-white/10 p-8 mb-8">
+              <h2 className="uppercase tracking-widest text-xs text-gray-400 mb-7">Items</h2>
+              <div className="space-y-5">
+                {order.items.map((item, index) => (
+                  <div key={index} className="flex justify-between pb-5 border-b border-white/10 last:border-0 last:pb-0">
+                    <div>
+                      <p className="uppercase tracking-widest text-sm">{item.productName}</p>
+                      <p className="text-xs text-gray-500 mt-1.5">Size {item.size} · Qty {item.quantity}</p>
+                    </div>
+                    <p className="text-sm">₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
                   </div>
-                  <p>
-                    ₹{(item.price * item.quantity).toLocaleString('en-IN')}
-                  </p>
+                ))}
+              </div>
+
+              <div className="border-t border-white/10 pt-6 mt-6 space-y-2.5 text-sm text-gray-400">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>₹{order.subtotal.toLocaleString("en-IN")}</span>
                 </div>
-              ))}
-            </div>
-
-            <div className="border-t border-white/10 pt-8 mt-8 space-y-3 text-sm text-gray-400">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>₹{order.subtotal.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Shipping</span>
-                <span>₹{order.shipping.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between text-white pt-4">
-                <span>Total</span>
-                <span>₹{order.total.toLocaleString('en-IN')}</span>
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span>₹{order.shipping.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-white pt-3 border-t border-white/10">
+                  <span>Total</span>
+                  <span>₹{order.total.toLocaleString("en-IN")}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* ADDRESS */}
-          <div className="border border-white/10 p-10">
-            <h2 className="uppercase tracking-widest text-xs text-gray-400 mb-6">
-              Shipping Address
-            </h2>
-
-            <div className="text-sm text-gray-400 leading-relaxed">
-              <p>{order.customerName}</p>
-              <p>{order.shippingAddress.street}</p>
-              <p>
-                {order.shippingAddress.city},{" "}
-                {order.shippingAddress.state}{" "}
-                {order.shippingAddress.zip}
-              </p>
-              <p>{order.shippingAddress.country}</p>
+            {/* Address */}
+            <div className="border border-white/10 p-8">
+              <h2 className="uppercase tracking-widest text-xs text-gray-400 mb-5">Shipping Address</h2>
+              <div className="text-sm text-gray-400 leading-loose">
+                <p>{order.customerName}</p>
+                <p>{order.shippingAddress.street}</p>
+                <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}</p>
+                <p>{order.shippingAddress.country}</p>
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </AccountSidebar>
+      </div>
 
       <SiteFooter />
     </div>

@@ -2,141 +2,201 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import gsap from "gsap"
+import { Heart, ShoppingBag, User, LogOut, Package, ChevronDown } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 
 export function SiteHeader() {
   const navRef = useRef<HTMLDivElement | null>(null)
   const { user, logout } = useAuth()
   const { items } = useCart()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const { count: wishlistCount } = useWishlist()
+  const router = useRouter()
 
+  // Smart "unseen" cart badge — shows until user visits /cart
+  const [unseenCount, setUnseenCount] = useState(0)
+  const [lastSeenTotal, setLastSeenTotal] = useState(0)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const profileRef = useRef<HTMLDivElement>(null)
+
+  const cartTotal = items.reduce((sum, i) => sum + i.quantity, 0)
+
+  // When cart grows, accumulate unseen delta
+  useEffect(() => {
+    if (cartTotal > lastSeenTotal) {
+      setUnseenCount((prev) => prev + (cartTotal - lastSeenTotal))
+    }
+    setLastSeenTotal(cartTotal)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartTotal])
+
+  // Detect when user is on /cart and clear badge
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (window.location.pathname === "/cart") {
+      setUnseenCount(0)
+    }
+  })
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  // GSAP entrance
   useEffect(() => {
     if (!navRef.current) return
-
     const ctx = gsap.context(() => {
-      gsap.from(navRef.current, {
-        y: -40,
-        opacity: 0,
-        duration: 1,
-        ease: "power3.out",
-      })
+      gsap.from(navRef.current, { y: -40, opacity: 0, duration: 1, ease: "power3.out" })
     })
-
     return () => ctx.revert()
   }, [])
 
-  const cartCount = items.reduce((sum, i) => sum + i.quantity, 0)
+  const handleCartClick = () => {
+    setUnseenCount(0)
+    router.push("/cart")
+  }
+
+  const handleLogout = () => {
+    logout()
+    setProfileOpen(false)
+    router.push("/")
+  }
 
   return (
-    <>
-      {/* ================= HEADER ================= */}
-      <nav
-        ref={navRef}
-        className="fixed top-0 left-0 w-full px-8 py-6 flex justify-between items-center z-50 bg-[#030303] border-b border-white/5"
-      >
-        {/* Brand */}
+    <nav
+      ref={navRef}
+      className="fixed top-0 left-0 w-full px-8 py-5 flex justify-between items-center z-50 bg-[#030303] border-b border-white/5"
+    >
+      {/* ── BRAND ── */}
+      <Link href="/" className="text-2xl font-serif tracking-widest font-bold shrink-0">
+        U.S ATELIER.
+      </Link>
+
+      {/* ── CENTER NAV ── */}
+      <div className="hidden md:flex gap-12 text-xs uppercase tracking-[0.25em] font-medium">
+        <Link href="/collections" className="hover:text-gray-400 transition-colors">
+          Collections
+        </Link>
+        <Link href="/campaign" className="hover:text-gray-400 transition-colors">
+          Campaign
+        </Link>
+        <Link href="/maison" className="hover:text-gray-400 transition-colors">
+          Maison
+        </Link>
+        <Link href="/shop" className="hover:text-gray-400 transition-colors">
+          Shop
+        </Link>
+      </div>
+
+      {/* ── RIGHT ICONS ── */}
+      <div className="flex items-center gap-5">
+
+        {/* Favourites icon */}
         <Link
-          href="/"
-          className="text-2xl font-serif tracking-widest font-bold"
+          href="/favourites"
+          className="relative group flex items-center justify-center w-9 h-9 text-gray-400 hover:text-white transition-colors"
+          title="Favourites"
         >
-          U.S ATELIER.
+          <Heart size={18} strokeWidth={1.5} className={wishlistCount > 0 ? "fill-red-400 text-red-400" : ""} />
+          {wishlistCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center font-medium leading-none">
+              {wishlistCount > 9 ? "9+" : wishlistCount}
+            </span>
+          )}
         </Link>
 
-        {/* Center Links */}
-        <div className="hidden md:flex gap-12 text-xs uppercase tracking-[0.25em] font-medium">
-          <Link href="/collections" className="hover:text-gray-400 transition-colors">
-            Collections
-          </Link>
-          <Link href="/campaign" className="hover:text-gray-400 transition-colors">
-            Campaign
-          </Link>
-          <Link href="/maison" className="hover:text-gray-400 transition-colors">
-            Maison
-          </Link>
-          <Link href="/shop" className="hover:text-gray-400 transition-colors">
-            Shop
-          </Link>
-        </div>
-
-        {/* Right */}
-        <div className="flex items-center gap-6 text-xs uppercase tracking-widest">
-          <Link href="/cart" className="hidden md:block hover:text-gray-400">
-            Cart ({cartCount})
-          </Link>
-
-          {/* Auth */}
-          {!user ? (
-            <Link href="/login" className="hover:text-gray-400">
-              Login
-            </Link>
-          ) : (
-            <div className="hidden md:flex gap-6">
-              <Link href="/account" className="hover:text-gray-400">
-                Account
-              </Link>
-              <button
-                onClick={logout}
-                className="hover:text-gray-400 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          )}
-
-          {/* Menu Button */}
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="w-10 h-10 border border-white/30 rounded-full flex flex-col justify-center items-center gap-1"
-          >
-            <span className="w-4 h-[1px] bg-white"></span>
-            <span className="w-4 h-[1px] bg-white"></span>
-          </button>
-        </div>
-      </nav>
-
-      {/* ================= MOBILE MENU ================= */}
-      {menuOpen && (
-        <div className="fixed inset-0 bg-[#030303] text-[#e8e8e3] z-50 flex flex-col px-8 py-10">
-          <div className="flex justify-between items-center mb-16">
-            <span className="text-xl font-serif tracking-widest">
-              MENU
+        {/* Cart icon */}
+        <button
+          onClick={handleCartClick}
+          className="relative group flex items-center justify-center w-9 h-9 text-gray-400 hover:text-white transition-colors"
+          title="Cart"
+        >
+          <ShoppingBag size={18} strokeWidth={1.5} />
+          {unseenCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-white text-black rounded-full text-[8px] flex items-center justify-center font-medium leading-none animate-bounce">
+              {unseenCount > 9 ? "9+" : unseenCount}
             </span>
+          )}
+        </button>
+
+        {/* Profile / Login */}
+        {!user ? (
+          <Link
+            href="/login"
+            className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-white transition-colors"
+            title="Login"
+          >
+            <User size={18} strokeWidth={1.5} />
+          </Link>
+        ) : (
+          <div className="relative" ref={profileRef}>
             <button
-              onClick={() => setMenuOpen(false)}
-              className="text-sm uppercase tracking-widest"
+              onClick={() => setProfileOpen((o) => !o)}
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
+              title="Account"
             >
-              Close
+              <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center bg-white/5 hover:border-white/50 transition-colors">
+                <User size={14} strokeWidth={1.5} />
+              </div>
+              <ChevronDown
+                size={12}
+                className={`transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
+              />
             </button>
-          </div>
 
-          <div className="flex flex-col gap-10 text-3xl font-serif">
-            <Link href="/collections" onClick={() => setMenuOpen(false)}>Collections</Link>
-            <Link href="/campaign" onClick={() => setMenuOpen(false)}>Campaign</Link>
-            <Link href="/maison" onClick={() => setMenuOpen(false)}>Maison</Link>
-            <Link href="/shop" onClick={() => setMenuOpen(false)}>Shop</Link>
-            <Link href="/cart" onClick={() => setMenuOpen(false)}>
-              Cart ({cartCount})
-            </Link>
-          </div>
+            {/* Dropdown */}
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-3 w-52 bg-[#0e0e0e] border border-white/10 shadow-2xl z-50">
+                {/* User info */}
+                <div className="px-4 py-3 border-b border-white/10">
+                  <p className="text-xs uppercase tracking-widest text-gray-400 truncate">
+                    {user.email}
+                  </p>
+                </div>
 
-          <div className="mt-auto pt-12 border-t border-white/10 text-sm tracking-widest">
-            {!user ? (
-              <Link href="/login" onClick={() => setMenuOpen(false)}>
-                Login
-              </Link>
-            ) : (
-              <div className="flex gap-8">
-                <Link href="/account" onClick={() => setMenuOpen(false)}>
-                  Account
-                </Link>
-                <button onClick={logout}>Logout</button>
+                <div className="py-1">
+                  <Link
+                    href="/account"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <User size={13} />
+                    My Account
+                  </Link>
+                  <Link
+                    href="/account/orders"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <Package size={13} />
+                    Orders
+                  </Link>
+                </div>
+
+                <div className="border-t border-white/10 py-1">
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <LogOut size={13} />
+                    Sign Out
+                  </button>
+                </div>
               </div>
             )}
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </nav>
   )
 }

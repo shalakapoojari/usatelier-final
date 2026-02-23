@@ -26,6 +26,7 @@ export default function ShopPage() {
 
   const searchParams = useSearchParams()
   const urlCategory = searchParams.get("category")
+  const urlSearch = searchParams.get("search")
 
   // Sync with URL category
   useEffect(() => {
@@ -82,9 +83,14 @@ export default function ShopPage() {
         selectedSizes.length === 0 ||
         productSizes.some((size: string) => selectedSizes.includes(size))
 
-      return categoryMatch && sizeMatch
+      const searchMatch =
+        !urlSearch ||
+        product.name.toLowerCase().includes(urlSearch.toLowerCase()) ||
+        product.description.toLowerCase().includes(urlSearch.toLowerCase())
+
+      return categoryMatch && sizeMatch && searchMatch
     })
-  }, [products, selectedCategories, selectedSizes])
+  }, [products, selectedCategories, selectedSizes, urlSearch])
 
   /* ================= FILTER UI ================= */
   const FilterContent = () => (
@@ -156,7 +162,7 @@ export default function ShopPage() {
       </Suspense>
 
       {/* ================= PAGE HEADER ================= */}
-      <section className="pt-40 pb-16 text-center px-6">
+      <section className="pt-52 pb-16 text-center px-6">
         <p className="uppercase tracking-[0.5em] text-xs text-gray-400 mb-6">
           The Collection
         </p>

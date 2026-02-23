@@ -88,7 +88,7 @@ export default function MaisonPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-[#030303]/60 via-transparent to-[#030303]" />
 
-                <div className="relative z-10 text-center px-6">
+                <div className="relative z-10 text-center px-6 pt-40">
                     <p className="maison-hero-line uppercase tracking-[0.6em] text-xs text-gray-400 mb-6">
                         The House
                     </p>

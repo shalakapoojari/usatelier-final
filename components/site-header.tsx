@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import gsap from "gsap"
-import { Heart, ShoppingBag, User, LogOut, Package, ChevronDown, LayoutDashboard } from "lucide-react"
+import { Heart, ShoppingBag, User, LogOut, Package, ChevronDown, LayoutDashboard, Search } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
@@ -20,6 +20,15 @@ export function SiteHeader() {
 
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
+
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`)
+    }
+  }
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -60,28 +69,27 @@ export function SiteHeader() {
   const categories = ["Knitwear", "Trousers", "Basics", "Shirts", "Accessories"]
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50">
-      <nav
-        ref={navRef}
-        className="w-full px-8 py-5 flex justify-between items-center bg-[#030303] border-b border-white/5"
-      >
-        {/* ── BRAND ── */}
+    <header className="fixed top-0 left-0 w-full z-50 bg-[#030303]">
+      {/* ── ROW 1: BRAND | SEARCH | ICONS ── */}
+      <div className="w-full px-8 py-4 flex items-center gap-8 md:gap-12 border-b border-white/5">
         <Link href="/" className="text-2xl font-serif tracking-widest font-bold shrink-0">
           U.S ATELIER.
         </Link>
 
-        {/* ── CENTER NAV ── */}
-        <div className="hidden md:flex gap-12 text-xs uppercase tracking-[0.25em] font-medium">
-          <Link href="/collections" className="hover:text-gray-400 transition-colors">Collections</Link>
-          <Link href="/campaign" className="hover:text-gray-400 transition-colors">Campaign</Link>
-          <Link href="/maison" className="hover:text-gray-400 transition-colors">Maison</Link>
-          <Link href="/shop" className="hover:text-gray-400 transition-colors">Shop</Link>
-          <Link href="/help" className="hover:text-gray-400 transition-colors">Help</Link>
-        </div>
+        {/* Search Box - Growing to fill center */}
+        <form onSubmit={handleSearchSubmit} className="flex-1 max-w-2xl relative group items-center hidden md:flex">
+          <input
+            type="text"
+            placeholder="Search for pieces, collections..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 px-10 py-2.5 text-xs tracking-widest uppercase rounded-sm focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all placeholder:text-gray-600"
+          />
+          <Search size={14} className="absolute left-3 text-gray-500 group-focus-within:text-white transition-colors" />
+          <button type="submit" className="hidden">Search</button>
+        </form>
 
-        {/* ── RIGHT ICONS ── */}
-        <div className="flex items-center gap-5">
-
+        <div className="flex items-center gap-5 ml-auto">
           {/* Favourites icon */}
           <button
             onClick={handleFavouritesClick}
@@ -106,7 +114,7 @@ export function SiteHeader() {
             title="Cart"
           >
             <ShoppingBag size={18} strokeWidth={1.5} />
-            <span className="text-[10px] uppercase tracking-[0.2em] font-medium hidden lg:block">Basket</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] font-medium hidden lg:block">Add to Cart</span>
             {cartUnseen > 0 && (
               <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-white rounded-full border border-black animate-pulse" />
             )}
@@ -186,9 +194,20 @@ export function SiteHeader() {
             </div>
           )}
         </div>
-      </nav>
+      </div>
 
-      {/* ── CATEGORY SUB-NAV ── */}
+      {/* ── ROW 2: PRIMARY NAV ── */}
+      <div className="w-full flex justify-center py-4 border-b border-white/5">
+        <div className="flex gap-12 text-[10px] uppercase tracking-[0.25em] font-medium">
+          <Link href="/collections" className="hover:text-gray-400 transition-colors">Collections</Link>
+          <Link href="/campaign" className="hover:text-gray-400 transition-colors">Campaign</Link>
+          <Link href="/maison" className="hover:text-gray-400 transition-colors">Maison</Link>
+          <Link href="/shop" className="hover:text-gray-400 transition-colors">Shop</Link>
+          <Link href="/help" className="hover:text-gray-400 transition-colors">Help</Link>
+        </div>
+      </div>
+
+      {/* ── ROW 3: CATEGORY NAV ── */}
       <div className="w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/5 py-3 px-8 overflow-x-auto no-scrollbar">
         <div className="max-w-[1400px] mx-auto flex items-center justify-center gap-8 md:gap-12 whitespace-nowrap">
           <Link

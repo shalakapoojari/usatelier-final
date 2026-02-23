@@ -80,7 +80,7 @@ export default function CampaignPage() {
             <SiteHeader />
 
             {/* ── HERO ── */}
-            <section className="relative h-screen flex items-end pb-20 px-8 md:px-16 overflow-hidden">
+            <section className="relative h-screen flex items-end pb-20 px-8 md:px-16 overflow-hidden pt-40">
                 <Image
                     src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564&auto=format&fit=crop"
                     alt="Campaign Hero"

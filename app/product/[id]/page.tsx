@@ -141,7 +141,7 @@ export default function ProductPage({
       <SiteHeader />
 
       {/* ── BACK LINK ── */}
-      <div className="pt-44 px-6 md:px-12 max-w-[1400px] mx-auto">
+      <div className="pt-60 px-6 md:px-12 max-w-[1400px] mx-auto">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors"

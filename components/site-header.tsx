@@ -76,6 +76,7 @@ export function SiteHeader() {
           <Link href="/campaign" className="hover:text-gray-400 transition-colors">Campaign</Link>
           <Link href="/maison" className="hover:text-gray-400 transition-colors">Maison</Link>
           <Link href="/shop" className="hover:text-gray-400 transition-colors">Shop</Link>
+          <Link href="/help" className="hover:text-gray-400 transition-colors">Help</Link>
         </div>
 
         {/* ── RIGHT ICONS ── */}
@@ -84,7 +85,7 @@ export function SiteHeader() {
           {/* Favourites icon */}
           <button
             onClick={handleFavouritesClick}
-            className="relative flex items-center justify-center w-9 h-9 text-gray-400 hover:text-white transition-colors"
+            className="relative flex items-center gap-2 px-3 h-9 text-gray-400 hover:text-white transition-colors group"
             title="Favourites"
           >
             <Heart
@@ -92,6 +93,7 @@ export function SiteHeader() {
               strokeWidth={1.5}
               className={wishlistUnseen > 0 ? "fill-red-400 text-red-400" : ""}
             />
+            <span className="text-[10px] uppercase tracking-[0.2em] font-medium hidden lg:block">Favourites</span>
             {wishlistUnseen > 0 && (
               <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-black animate-pulse" />
             )}
@@ -100,10 +102,11 @@ export function SiteHeader() {
           {/* Cart icon */}
           <button
             onClick={handleCartClick}
-            className="relative flex items-center justify-center w-9 h-9 text-gray-400 hover:text-white transition-colors"
+            className="relative flex items-center gap-2 px-3 h-9 text-gray-400 hover:text-white transition-colors group"
             title="Cart"
           >
             <ShoppingBag size={18} strokeWidth={1.5} />
+            <span className="text-[10px] uppercase tracking-[0.2em] font-medium hidden lg:block">Basket</span>
             {cartUnseen > 0 && (
               <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-white rounded-full border border-black animate-pulse" />
             )}

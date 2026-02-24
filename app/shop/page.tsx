@@ -23,15 +23,17 @@ export default function ShopPage() {
   const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [selectedGenders, setSelectedGenders] = useState<string[]>([])
   const [priceLimit, setPriceLimit] = useState<number>(100000)
 
   const searchParams = useSearchParams()
   const urlCategory = searchParams.get("category")
+  const urlSubcategory = searchParams.get("subcategory")
   const urlSearch = searchParams.get("search")
 
-  // Sync with URL category
+  // Sync with URL category and subcategory
   useEffect(() => {
     if (urlCategory) {
       setSelectedCategories([urlCategory])
@@ -39,6 +41,14 @@ export default function ShopPage() {
       setSelectedCategories([])
     }
   }, [urlCategory])
+
+  useEffect(() => {
+    if (urlSubcategory) {
+      setSelectedSubcategories([urlSubcategory])
+    } else {
+      setSelectedSubcategories([])
+    }
+  }, [urlSubcategory])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,6 +117,10 @@ export default function ShopPage() {
         selectedCategories.length === 0 ||
         selectedCategories.includes(product.category)
 
+      const subcategoryMatch =
+        selectedSubcategories.length === 0 ||
+        selectedSubcategories.includes(product.subcategory)
+
       const productSizes = Array.isArray(product.sizes) ? product.sizes : (() => {
         try { return JSON.parse(product.sizes) } catch { return [] }
       })()
@@ -129,7 +143,7 @@ export default function ShopPage() {
         return queryWords.every(word => searchableText.includes(word))
       })()
 
-      return categoryMatch && sizeMatch && priceMatch && genderMatch && searchMatch
+      return categoryMatch && subcategoryMatch && sizeMatch && priceMatch && genderMatch && searchMatch
     })
   }, [products, selectedCategories, selectedSizes, priceLimit, selectedGenders, urlSearch])
 
@@ -192,6 +206,36 @@ export default function ShopPage() {
                 />
                 <span className={selectedCategories.includes(cat.name) ? "text-white transition-colors" : "transition-colors"}>
                   {cat.name}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Subcategory - Show when category is selected */}
+      {selectedCategories.length === 1 && (
+        <div>
+          <h3 className="text-white mb-6">Subcategory</h3>
+          <div className="space-y-4">
+            {categories.find(c => c.name === selectedCategories[0])?.subcategories?.map((sub: string) => (
+              <label
+                key={sub}
+                className="flex items-center gap-3 cursor-pointer"
+              >
+                <Checkbox
+                  checked={selectedSubcategories.includes(sub)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedSubcategories([...selectedSubcategories, sub])
+                    } else {
+                      setSelectedSubcategories(selectedSubcategories.filter((s) => s !== sub))
+                    }
+                  }}
+                  className="border-white/20 data-[state=checked]:bg-white data-[state=checked]:text-black"
+                />
+                <span className={selectedSubcategories.includes(sub) ? "text-white transition-colors" : "transition-colors"}>
+                  {sub}
                 </span>
               </label>
             ))}

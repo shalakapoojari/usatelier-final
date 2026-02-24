@@ -81,7 +81,7 @@ export default function ShopPage() {
       const timer = setTimeout(() => {
         const element = document.getElementById(`section-${jumpTo.toLowerCase()}`);
         if (element) {
-          const headerOffset = 220; // Further increased to ensure title is fully cleared from navbar
+          const headerOffset = 150; // Reduced to bring title closer to navbar
           const elementPosition = element.getBoundingClientRect().top;
           const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
@@ -318,18 +318,14 @@ export default function ShopPage() {
       </Suspense>
 
       {/* ================= PAGE HEADER ================= */}
-      {!loading && filteredProducts.length > 0 && (
-        <section className="pt-52 pb-16 text-center px-6">
-          {urlCategory && (
-            <h1 className="text-4xl md:text-6xl font-serif font-light mb-4 uppercase tracking-[0.2em]">
-              {urlCategory.toString().toUpperCase()}
-            </h1>
-          )}
-          {urlCategory && (
-            <p className="text-gray-500 text-[10px] tracking-[0.3em] uppercase">
-              {filteredProducts.length} pieces available
-            </p>
-          )}
+      {!loading && (
+        <section className="pt-44 pb-12 text-center px-6">
+          <h1 className="text-4xl md:text-6xl font-serif font-light mb-4 uppercase tracking-[0.2em]">
+            {urlSearch ? `Search: ${urlSearch}` : (urlCategory ? urlCategory.toString().toUpperCase() : "VIEW ALL")}
+          </h1>
+          <p className="text-gray-500 text-[10px] tracking-[0.3em] uppercase">
+            {filteredProducts.length} pieces available
+          </p>
         </section>
       )}
 
@@ -339,7 +335,7 @@ export default function ShopPage() {
           {/* Desktop Filters - Only shown if products exist */}
           {!loading && filteredProducts.length > 0 && (
             <aside className="hidden lg:block w-70 shrink-0">
-              <div className="sticky top-44 h-[calc(100vh-220px)] overflow-y-auto pr-6 custom-scrollbar scroll-smooth">
+              <div className="sticky top-24 h-[calc(100vh-96px)] overflow-y-auto overflow-x-hidden no-scrollbar scroll-smooth">
                 <FilterContent />
               </div>
             </aside>
@@ -478,8 +474,8 @@ export default function ShopPage() {
                         if (sectionProducts.length === 0) return null;
 
                         return (
-                          <div key={subName} className="w-full pt-16 scroll-mt-64" id={`section-${subName.toLowerCase()}`}>
-                            <div className="mb-12">
+                          <div key={subName} className="w-full pt-10 scroll-mt-40" id={`section-${subName.toLowerCase()}`}>
+                            <div className="mb-8">
                               <h2 className="text-3xl font-serif font-light mb-6 uppercase tracking-[0.5em] text-white">
                                 {subName}
                               </h2>

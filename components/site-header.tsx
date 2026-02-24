@@ -294,13 +294,13 @@ export function SiteHeader() {
               {/* Subcategories Dropdown */}
               {cat.subcategories && cat.subcategories.length > 0 && (
                 <div className="absolute left-0 top-[100%] pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[110]">
-                  <div className="bg-[#0e0e0e] border border-white/10 p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-[130px] backdrop-blur-xl">
-                    <div className="flex flex-col gap-1.5">
+                  <div className="bg-[#0e0e0e] border border-white/10 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-[200px] backdrop-blur-xl">
+                    <div className="flex flex-col gap-3">
                       {cat.subcategories.map((sub: string) => (
                         <Link
                           key={sub}
                           href={`/shop?category=${cat.name}&jumpTo=${sub}`}
-                          className="text-gray-500 hover:text-white transition-all text-[9px] tracking-[0.22em] hover:translate-x-1 duration-200"
+                          className="text-gray-500 hover:text-white transition-all text-[11px] tracking-[0.25em] hover:translate-x-2 duration-300"
                         >
                           {sub}
                         </Link>

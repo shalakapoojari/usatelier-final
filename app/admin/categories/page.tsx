@@ -134,7 +134,7 @@ export default function CategoriesPage() {
               </div>
               <Button
                 onClick={handleAddCategory}
-                className="w-full bg-white text-black hover:bg-gray-200 uppercase tracking-widest text-xs h-12 rounded-none"
+                className="w-full bg-[#e8e8e3] text-black hover:bg-gray-200 uppercase tracking-widest text-xs h-12 rounded-none"
               >
                 <Plus className="h-4 w-4 mr-2" /> Add Category
               </Button>
@@ -190,7 +190,7 @@ export default function CategoriesPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleSubcategorySubmit(cat.name)}
-                        className="border-white/20 hover:bg-white hover:text-black rounded-none h-10 px-6 uppercase text-[10px] tracking-widest"
+                        className="border-white/20 hover:bg-[#e8e8e3] hover:text-black rounded-none h-10 px-6 uppercase text-[10px] tracking-widest"
                       >
                         <FolderPlus className="h-3 w-3 mr-2" /> Add
                       </Button>

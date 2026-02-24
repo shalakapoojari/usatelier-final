@@ -72,7 +72,7 @@ export default function AdminLayout({
                 key={href}
                 href={href}
                 className={`flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest rounded-sm transition-all ${isActive
-                  ? "bg-white text-black"
+                  ? "bg-[#e8e8e3] text-black"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
                   }`}
               >

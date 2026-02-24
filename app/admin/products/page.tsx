@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Plus, X, Loader2, Upload, Link as LinkIcon } from "lucide-react"
+import { Plus, X, Loader2, Upload, Link as LinkIcon, Search } from "lucide-react"
 
 import {
   Dialog,
@@ -46,6 +46,9 @@ export default function ProductsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const { showToast } = useToast()
 
+  const [searchTerm, setSearchTerm] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+
   const [formData, setFormData] = useState({
     name: "",
     price: "",
@@ -54,7 +57,7 @@ export default function ProductsPage() {
     description: "",
     images: ["", "", ""],
     sizes: [] as string[],
-    stock: "100",
+    stock: "10",
     featured: false,
     newArrival: false,
     bestseller: false,
@@ -243,7 +246,7 @@ export default function ProductsPage() {
           description: "",
           images: ["", "", ""],
           sizes: [],
-          stock: "100",
+          stock: "10",
           featured: false,
           newArrival: false,
           bestseller: false,
@@ -282,6 +285,18 @@ export default function ProductsPage() {
 
   const selectedCategoryData = categories.find(c => c.name === formData.category)
 
+  const filteredProductsList = products.filter(p => {
+    const term = searchTerm.toLowerCase()
+    const matchesSearch =
+      p.name?.toLowerCase().includes(term) ||
+      p.category?.toLowerCase().includes(term) ||
+      p.subcategory?.toLowerCase().includes(term) ||
+      p.id?.toLowerCase().includes(term)
+
+    const matchesCategory = categoryFilter === "all" || p.category === categoryFilter
+    return matchesSearch && matchesCategory
+  })
+
   return (
     <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 py-16">
       <div className="max-w-[1400px] mx-auto mb-20 flex justify-between items-end">
@@ -305,7 +320,7 @@ export default function ProductsPage() {
               description: "",
               images: ["", "", ""],
               sizes: [],
-              stock: "100",
+              stock: "10",
               featured: false,
               newArrival: false,
               bestseller: false,
@@ -316,7 +331,7 @@ export default function ProductsPage() {
           }
         }}>
           <DialogTrigger asChild>
-            <Button className="border border-white/40 bg-transparent px-8 py-6 uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all rounded-none">
+            <Button className="border border-white/40 bg-transparent px-8 py-6 uppercase tracking-widest text-xs hover:bg-[#e8e8e3] hover:text-black transition-all rounded-none">
               Add Product
             </Button>
           </DialogTrigger>
@@ -477,7 +492,7 @@ export default function ProductsPage() {
                                 <div className="relative">
                                   <Input
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp,.tiff,.jfif"
                                     onChange={(e) => {
                                       const file = e.target.files?.[0]
                                       if (file) handleFileUpload(idx, file)
@@ -533,7 +548,7 @@ export default function ProductsPage() {
                           type="button"
                           onClick={() => toggleSize(size)}
                           className={`px-3 py-2 text-[10px] uppercase tracking-widest border transition-all ${formData.sizes.includes(size)
-                            ? "bg-white text-black border-white"
+                            ? "bg-[#e8e8e3] text-black border-[#e8e8e3]"
                             : "border-white/10 text-gray-500 hover:text-white hover:border-white/30"
                             }`}
                         >
@@ -549,7 +564,7 @@ export default function ProductsPage() {
                 <Button
                   type="submit"
                   disabled={isAdding}
-                  className="w-full bg-white text-black hover:bg-gray-200 uppercase tracking-widest text-xs py-8 rounded-none transition-all"
+                  className="w-full bg-[#e8e8e3] text-black hover:bg-gray-200 uppercase tracking-widest text-xs py-8 rounded-none transition-all"
                 >
                   {isAdding ? <Loader2 className="animate-spin" /> : editingProduct ? "Update Catalog Item" : "Publish to Catalog"}
                 </Button>
@@ -557,6 +572,37 @@ export default function ProductsPage() {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="max-w-[1400px] mx-auto mb-12 flex flex-col md:flex-row gap-8 items-end justify-between border-t border-white/5 pt-12">
+        <div className="space-y-4 w-full md:w-96">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Search Catalog</p>
+          <div className="relative group">
+            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-white transition-colors" />
+            <Input
+              placeholder="Query by name, id or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="bg-transparent border-white/10 pl-11 h-12 uppercase tracking-widest text-[10px] rounded-none focus:border-white/30"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4 w-full md:w-64">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Filter Category</p>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="bg-transparent border-white/10 h-12 uppercase tracking-widest text-[10px] rounded-none focus:border-white/30">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#0a0a0a] border-white/10 text-white">
+              <SelectItem value="all" className="uppercase tracking-widest text-[10px]">View All Items</SelectItem>
+              {categories.map(c => (
+                <SelectItem key={c.id} value={c.name} className="uppercase tracking-widest text-[10px]">{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="max-w-[1400px] mx-auto border border-white/10 overflow-x-auto">
@@ -578,7 +624,13 @@ export default function ProductsPage() {
                   </div>
                 </td>
               </tr>
-            ) : products.map((p, i) => (
+            ) : filteredProductsList.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-8 py-24 text-center">
+                  <p className="text-xs uppercase tracking-[0.3em] text-gray-500">No matching pieces found in catalog.</p>
+                </td>
+              </tr>
+            ) : filteredProductsList.map((p, i) => (
               <tr key={p.id} className={`border-b border-white/5 hover:bg-white/[0.04] ${i % 2 === 0 ? "bg-white/[0.02]" : ""}`}>
                 <td className="px-8 py-6 flex items-center gap-6">
                   <div className="relative w-16 h-20 bg-white/5">

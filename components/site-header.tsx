@@ -9,6 +9,8 @@ import { useAuth } from "@/lib/auth-context"
 import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
 
+const API_BASE = "http://localhost:5000"
+
 export function SiteHeader() {
   const navRef = useRef<HTMLDivElement | null>(null)
   const { user, logout, isAdmin } = useAuth()
@@ -117,7 +119,7 @@ export function SiteHeader() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/categories")
+        const res = await fetch(`${API_BASE}/api/categories`)
         if (res.ok) {
           const data = await res.json()
           setDynamicCategories(data)
@@ -130,7 +132,7 @@ export function SiteHeader() {
   }, [])
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 bg-[#030303]">
+    <header className="fixed top-0 left-0 w-full z-[100] bg-[#030303]">
       {/* ── ROW 1: BRAND | SEARCH | ICONS ── */}
       <div className="w-full px-8 py-4 flex items-center gap-8 md:gap-12 border-b border-white/5">
         <Link href="/" className="text-2xl font-serif tracking-widest font-bold shrink-0">
@@ -266,7 +268,7 @@ export function SiteHeader() {
       </div>
 
       {/* ── ROW 2: COMBINED NAV & CATEGORIES ── */}
-      <div className="w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/5 py-4 px-8 overflow-x-auto no-scrollbar">
+      <div className="w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/5 py-4 px-8 relative">
         <div className="max-w-[1400px] mx-auto flex items-center justify-center gap-8 md:gap-12 whitespace-nowrap text-[10px] uppercase tracking-[0.25em] font-medium font-sans">
           <Link
             href="/shop"
@@ -278,27 +280,27 @@ export function SiteHeader() {
           <div className="h-4 w-px bg-white/10 hidden md:block" />
 
           {dynamicCategories.map((cat) => (
-            <div key={cat.id || cat.name} className="relative group/cat">
+            <div key={cat.id || cat.name} className="relative group">
               <Link
                 href={`/shop?category=${cat.name}`}
-                className="text-gray-400 hover:text-white transition-colors flex items-center gap-1 py-1"
+                className="text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 py-4 px-1"
               >
                 {cat.name}
                 {cat.subcategories && cat.subcategories.length > 0 && (
-                  <ChevronDown size={10} className="group-hover/cat:rotate-180 transition-transform duration-200" />
+                  <ChevronDown size={10} className="group-hover:rotate-180 transition-transform duration-300 opacity-50" />
                 )}
               </Link>
 
               {/* Subcategories Dropdown */}
               {cat.subcategories && cat.subcategories.length > 0 && (
-                <div className="absolute left-1/2 -translate-x-1/2 top-full pt-4 opacity-0 invisible group-hover/cat:opacity-100 group-hover/cat:visible transition-all duration-200 z-50">
-                  <div className="bg-[#0e0e0e] border border-white/10 p-4 shadow-2xl min-w-[200px]">
-                    <div className="flex flex-col gap-3">
+                <div className="absolute left-0 top-[100%] pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[110]">
+                  <div className="bg-[#0e0e0e] border border-white/10 p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-[130px] backdrop-blur-xl">
+                    <div className="flex flex-col gap-1.5">
                       {cat.subcategories.map((sub: string) => (
                         <Link
                           key={sub}
                           href={`/shop?category=${cat.name}&subcategory=${sub}`}
-                          className="text-gray-500 hover:text-white transition-colors text-[9px] tracking-[0.2em]"
+                          className="text-gray-500 hover:text-white transition-all text-[9px] tracking-[0.22em] hover:translate-x-1 duration-200"
                         >
                           {sub}
                         </Link>

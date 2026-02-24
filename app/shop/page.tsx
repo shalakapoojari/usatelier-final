@@ -40,15 +40,13 @@ export default function ShopPage() {
     } else {
       setSelectedCategories([])
     }
-  }, [urlCategory])
 
-  useEffect(() => {
     if (urlSubcategory) {
       setSelectedSubcategories([urlSubcategory])
     } else {
       setSelectedSubcategories([])
     }
-  }, [urlSubcategory])
+  }, [urlCategory, urlSubcategory])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -113,39 +111,50 @@ export default function ShopPage() {
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      const normalizeField = (str: any) => {
+        if (str === null || str === undefined) return ""
+        return str.toString().toLowerCase().trim()
+      }
+
       const categoryMatch =
         selectedCategories.length === 0 ||
-        selectedCategories.includes(product.category)
+        selectedCategories.some(sc => {
+          const normSc = normalizeField(sc)
+          return normSc && normSc === normalizeField(product.category)
+        })
 
       const subcategoryMatch =
         selectedSubcategories.length === 0 ||
-        selectedSubcategories.includes(product.subcategory)
+        selectedSubcategories.some(ss => {
+          const normSs = normalizeField(ss)
+          return normSs && normSs === normalizeField(product.subcategory)
+        })
 
       const productSizes = Array.isArray(product.sizes) ? product.sizes : (() => {
-        try { return JSON.parse(product.sizes) } catch { return [] }
+        try { return JSON.parse(product.sizes || "[]") } catch { return [] }
       })()
 
       const sizeMatch =
         selectedSizes.length === 0 ||
         productSizes.some((size: string) => selectedSizes.includes(size))
 
-      const priceMatch = product.price <= priceLimit
+      const priceMatch = (priceLimit || 0) <= 0 ? true : (product.price || 0) <= priceLimit
 
       const genderMatch =
         selectedGenders.length === 0 ||
-        selectedGenders.includes(product.gender)
+        selectedGenders.some(sg => normalizeField(sg) === normalizeField(product.gender))
 
       const normalize = (str: string) => str.toLowerCase().trim()
 
       const searchMatch = !urlSearch || (() => {
         const queryWords = normalize(urlSearch).split(/\s+/).filter(Boolean)
-        const searchableText = normalize(`${product.name} ${product.description} ${product.category}`)
+        const searchableText = normalize(`${product.name || ""} ${product.description || ""} ${product.category || ""}`)
         return queryWords.every(word => searchableText.includes(word))
       })()
 
       return categoryMatch && subcategoryMatch && sizeMatch && priceMatch && genderMatch && searchMatch
     })
-  }, [products, selectedCategories, selectedSizes, priceLimit, selectedGenders, urlSearch])
+  }, [products, selectedCategories, selectedSubcategories, selectedSizes, priceLimit, selectedGenders, urlSearch])
 
   /* ================= FILTER UI ================= */
   const FilterContent = () => (
@@ -385,7 +394,8 @@ export default function ShopPage() {
 
                 {/* Grid */}
                 {(() => {
-                  if (!urlCategory || urlSearch) {
+                  // If we have a subcategory in the URL OR no category OR search, show plain grid
+                  if (!urlCategory || urlSearch || urlSubcategory) {
                     return (
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">
                         {filteredProducts.map((product) => (

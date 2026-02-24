@@ -90,7 +90,7 @@ export default function ShopPage() {
             behavior: "smooth"
           });
         }
-      }, 700); // Slightly more delay to ensure all products are rendered
+      }, 200); // Reduced delay for faster response
       return () => clearTimeout(timer);
     }
   }, [jumpTo, loading, products])

@@ -42,6 +42,7 @@ function HeroSlideEditor({
     slide,
     index,
     products,
+    categories,
     onUpdate,
     onRemove,
     onUpload
@@ -49,10 +50,16 @@ function HeroSlideEditor({
     slide: HeroSlide,
     index: number,
     products: any[],
+    categories: any[],
     onUpdate: (index: number, data: Partial<HeroSlide>) => void,
     onRemove: (index: number) => void,
     onUpload: (index: number, file: File) => void
 }) {
+    const [categoryFilter, setCategoryFilter] = useState("all")
+    const filteredProducts = categoryFilter === "all"
+        ? products
+        : products.filter(p => p.category === categoryFilter)
+
     return (
         <div className="bg-white/[0.02] p-8 border border-white/5 space-y-8 relative group/slide">
             <div className="flex justify-between items-start">
@@ -118,6 +125,24 @@ function HeroSlideEditor({
                                     <DialogHeader>
                                         <DialogTitle className="font-serif text-2xl uppercase tracking-widest mb-6 px-4 pt-4">Select Product Image</DialogTitle>
                                     </DialogHeader>
+
+                                    <div className="px-4 mb-6 sticky top-0 bg-[#030303] pb-4 border-b border-white/5 z-10">
+                                        <div className="flex items-center gap-4">
+                                            <Label className="text-[9px] uppercase tracking-[0.2em] text-gray-500 whitespace-nowrap">Filter By Category</Label>
+                                            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                                                <SelectTrigger className="bg-transparent border-white/10 rounded-none text-[10px] uppercase tracking-widest h-10 w-64">
+                                                    <SelectValue placeholder="All Categories" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#030303] border-white/10 text-[#e8e8e3]">
+                                                    <SelectItem value="all">ALL CATEGORIES</SelectItem>
+                                                    {categories.map(c => (
+                                                        <SelectItem key={c.id} value={c.name}>{c.name.toUpperCase()}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
                                         {products.map(p => {
                                             const images = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
@@ -132,7 +157,7 @@ function HeroSlideEditor({
                                                 >
                                                     <div className="relative aspect-3/4 border border-white/5 group-hover:border-white/40 transition-all overflow-hidden bg-white/5">
                                                         <Image src={imgUrl} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <div className="absolute inset-0 bg-black/60 opacity-100 transition-opacity flex items-center justify-center">
                                                             <span className="text-[8px] uppercase tracking-widest">Select</span>
                                                         </div>
                                                     </div>
@@ -140,6 +165,11 @@ function HeroSlideEditor({
                                                 </div>
                                             )
                                         })}
+                                        {filteredProducts.length === 0 && (
+                                            <div className="col-span-full py-20 text-center border border-dashed border-white/5">
+                                                <p className="text-[10px] uppercase tracking-widest text-gray-600">No pieces found in this category</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </DialogContent>
                             </Dialog>
@@ -250,7 +280,7 @@ function ProductSelectionRow({
                                 <div
                                     key={p.id}
                                     onClick={() => onToggle(p.id, listKey)}
-                                    className={`relative flex-shrink-0 w-[180px] md:w-[210px] aspect-[3/4] cursor-pointer transition-all border group/card ${isSelected ? 'border-[#e8e8e3]' : 'border-white/5 hover:border-white/20'}`}
+                                    className={`relative flex-shrink-0 w-[180px] md:w-[215px] aspect-[3/4] cursor-pointer transition-all border group/card ${isSelected ? 'border-[#e8e8e3]' : 'border-white/5 hover:border-white/20'}`}
                                 >
                                     <Image
                                         src={imageUrl}
@@ -258,7 +288,7 @@ function ProductSelectionRow({
                                         fill
                                         className={`object-cover transition-all duration-500 ${isSelected ? 'opacity-90' : 'opacity-40 group-hover/card:opacity-60'}`}
                                     />
-                                    <div className="absolute inset-x-0 bottom-0 bg-black/80 p-4 backdrop-blur-sm border-t border-white/5 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                    <div className="absolute inset-x-0 bottom-0 bg-black/80 p-4 backdrop-blur-sm border-t border-white/5 opacity-100 transition-opacity">
                                         <p className="text-[10px] uppercase tracking-[0.2em] font-medium truncate mb-1">{p.name}</p>
                                         <p className="text-[8px] uppercase tracking-widest text-gray-500">₹{p.price.toLocaleString()}</p>
                                     </div>
@@ -494,6 +524,7 @@ export default function HomepageDesignPage() {
                                         index={idx}
                                         slide={slide}
                                         products={products}
+                                        categories={categories}
                                         onUpdate={handleSlideUpdate}
                                         onRemove={handleRemoveSlide}
                                         onUpload={handleFileUpload}

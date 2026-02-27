@@ -108,13 +108,31 @@ export default function HomePage() {
     onSelect()
     emblaApi.on('select', onSelect)
 
-    const interval = setInterval(() => {
-      emblaApi.scrollNext()
-    }, 6000)
+    let intervalId: any
+
+    const startAutoplay = () => {
+      stopAutoplay()
+      intervalId = setInterval(() => {
+        emblaApi.scrollNext()
+      }, 6400) // Slightly increased for better readability
+    }
+
+    const stopAutoplay = () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) stopAutoplay()
+      else startAutoplay()
+    }
+
+    startAutoplay()
+    document.addEventListener("visibilitychange", handleVisibilityChange)
 
     return () => {
       emblaApi.off('select', onSelect)
-      clearInterval(interval)
+      stopAutoplay()
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
     }
   }, [emblaApi, onSelect])
 
@@ -251,15 +269,15 @@ export default function HomePage() {
                         <span className="block">{slide.content || "Editorial Piece"}</span>
                       </h1>
                     </div>
+                  </div>
 
-                    <div className="hero-cta opacity-0 translate-y-8">
-                      <Link
-                        href={`/product/${slide.product_id}`}
-                        className="inline-block px-12 py-4 border border-white/40 rounded-none uppercase tracking-[0.3em] text-[10px] hover:bg-white hover:text-black transition-all duration-500 backdrop-blur-sm"
-                      >
-                        Shop Now
-                      </Link>
-                    </div>
+                  <div className="absolute right-8 md:right-16 bottom-16 md:bottom-20 z-30 hero-cta">
+                    <Link
+                      href={slide.product_id ? `/product/${slide.product_id}` : '/view-all'}
+                      className="inline-block px-12 py-5 bg-[#e8e8e3] text-black border border-white rounded-2xl uppercase tracking-[0.3em] text-[11px] hover:bg-transparent hover:text-white transition-all duration-500 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.3)] font-bold active:scale-95"
+                    >
+                      Shop Now
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -282,16 +300,7 @@ export default function HomePage() {
             </button>
           </div>
 
-          {/* Slide Indicators */}
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-4 z-20">
-            {slides.map((_: any, idx: number) => (
-              <button
-                key={idx}
-                onClick={() => emblaApi?.scrollTo(idx)}
-                className={`h-1 transition-all duration-700 rounded-full ${idx === selectedIndex ? 'w-12 bg-white' : 'w-3 bg-white/10 hover:bg-white/30'}`}
-              />
-            ))}
-          </div>
+
         </section>
 
         {/* VERTICAL SECTIONS */}
@@ -301,15 +310,7 @@ export default function HomePage() {
           <CollectionSection title="New Arrivals" subtitle="Latest Drop" products={newArrivals} />
         </section>
 
-        <div className="py-40 text-center border-t border-white/5 bg-[#030303]">
-          <h2 className="text-8xl font-serif mb-12 text-white/5 uppercase tracking-[0.2em]">U.S ATELIER</h2>
-          <Link
-            href="/view-all"
-            className="inline-block px-14 py-5 border border-white/10 rounded-full uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all"
-          >
-            Shop The Full Collection
-          </Link>
-        </div>
+
 
         <SiteFooter />
       </div>

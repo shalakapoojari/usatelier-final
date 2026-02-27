@@ -826,6 +826,108 @@ def update_homepage_config():
     print("DEBUG: Homepage config updated successfully")
     return jsonify({"success": True, "message": "Homepage updated successfully"}), 200
 
+@app.route('/api/admin/analysis', methods=['GET'])
+def get_business_analysis():
+    is_admin = session.get('is_admin')
+    if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        # 1. Most Sold Products (from orders)
+        sales_pipeline = [
+            {"$unwind": "$items"},
+            {"$group": {
+                "_id": "$items.id",
+                "name": {"$first": "$items.name"},
+                "total_sold": {"$sum": "$items.quantity"},
+                "total_revenue": {"$sum": {"$multiply": ["$items.price", "$items.quantity"]}}
+            }},
+            {"$sort": {"total_sold": -1}},
+            {"$limit": 10}
+        ]
+        most_sold = list(db.orders.aggregate(sales_pipeline))
+
+        # 2. Most Favorited Products (from wishlist)
+        wishlist_pipeline = [
+            {"$group": {
+                "_id": "$product_id",
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ]
+        fav_counts = list(db.wishlist.aggregate(wishlist_pipeline))
+        most_favorited = []
+        for item in fav_counts:
+            product = db.products.find_one({"_id": ObjectId(item['_id'])})
+            if product:
+                most_favorited.append({
+                    "id": str(product['_id']),
+                    "name": product['name'],
+                    "count": item['count']
+                })
+
+        # 3. Most Added to Cart (from cart)
+        cart_pipeline = [
+            {"$group": {
+                "_id": "$product_id",
+                "total_quantity": {"$sum": "$quantity"},
+                "user_count": {"$sum": 1}
+            }},
+            {"$sort": {"total_quantity": -1}},
+            {"$limit": 10}
+        ]
+        cart_counts = list(db.cart.aggregate(cart_pipeline))
+        most_added_to_cart = []
+        for item in cart_counts:
+            product = db.products.find_one({"_id": ObjectId(item['_id'])})
+            if product:
+                most_added_to_cart.append({
+                    "id": str(product['_id']),
+                    "name": product['name'],
+                    "total_quantity": item['total_quantity'],
+                    "user_count": item['user_count']
+                })
+
+        # 4. Stock Inventory Levels
+        # Fetch all products and sort by stock ascending
+        products_stock = list(db.products.find({}, {"name": 1, "stock": 1, "category": 1}).sort("stock", 1))
+        all_stock = []
+        low_stock = []
+        for p in products_stock:
+            p_data = {
+                "id": str(p['_id']),
+                "name": p['name'],
+                "stock": p.get('stock', 0),
+                "category": p.get('category', 'Uncategorized')
+            }
+            all_stock.append(p_data)
+            if p.get('stock', 0) <= 5:
+                low_stock.append(p_data)
+
+        # 5. Category Analysis
+        cat_pipeline = [
+            {"$group": {
+                "_id": "$category",
+                "count": {"$sum": 1},
+                "total_stock": {"$sum": "$stock"}
+            }}
+        ]
+        category_stats = list(db.products.aggregate(cat_pipeline))
+
+        return jsonify({
+            "most_sold": most_sold,
+            "most_favorited": most_favorited,
+            "most_added_to_cart": most_added_to_cart,
+            "low_stock": low_stock,
+            "all_stock": all_stock,
+            "category_stats": category_stats
+        }), 200
+
+    except Exception as e:
+        print(f"Error in business analysis: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 # ==================== SEEDING ====================
 
 def seed_database():

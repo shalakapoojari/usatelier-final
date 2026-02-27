@@ -65,7 +65,7 @@ function HeroSlideEditor({
         : products.filter(p => p.category === categoryFilter)
 
     return (
-        <div className="bg-white/[0.02] border border-white/5 space-y-8 relative group/slide overflow-hidden">
+        <div className="bg-white/2 border border-white/5 space-y-8 relative group/slide overflow-hidden">
             {/* Slide Header with Sorting & Actions */}
             <div className="flex justify-between items-center bg-white/5 px-8 py-4 border-b border-white/5">
                 <div className="flex items-center gap-6">

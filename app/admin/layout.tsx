@@ -14,10 +14,12 @@ import {
   Users,
   ArrowLeft,
   Paintbrush,
+  BarChart3,
 } from "lucide-react"
 
 const navItems = [
   ["/admin", "Dashboard", LayoutDashboard],
+  ["/admin/analysis", "Analysis", BarChart3],
   ["/admin/orders", "Orders", ShoppingCart],
   ["/admin/products", "Products", Package],
   ["/admin/categories", "Categories", FolderOpen],
@@ -99,12 +101,12 @@ export default function AdminLayout({
 
       {/* ── MOBILE BOTTOM NAV ── */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#030303] border-t border-white/10 z-50">
-        <nav className="flex justify-around py-4 text-[10px] uppercase tracking-widest">
-          <Link href="/admin" className={pathname === "/admin" ? "text-white" : "text-gray-500"}>Dashboard</Link>
-          <Link href="/admin/orders" className={pathname === "/admin/orders" ? "text-white" : "text-gray-500"}>Orders</Link>
-          <Link href="/admin/products" className={pathname === "/admin/products" ? "text-white" : "text-gray-500"}>Products</Link>
-          <Link href="/admin/payments" className={pathname === "/admin/payments" ? "text-white" : "text-gray-500"}>Payments</Link>
-          <Link href="/admin/customers" className={pathname === "/admin/customers" ? "text-white" : "text-gray-500"}>Customers</Link>
+        <nav className="flex justify-around py-4 text-[10px] uppercase tracking-widest overflow-x-auto whitespace-nowrap px-4 scrollbar-hide">
+          <Link href="/admin" className={pathname === "/admin" ? "text-white px-2" : "text-gray-500 px-2"}>Dashboard</Link>
+          <Link href="/admin/analysis" className={pathname === "/admin/analysis" ? "text-white px-2" : "text-gray-500 px-2"}>Analysis</Link>
+          <Link href="/admin/orders" className={pathname === "/admin/orders" ? "text-white px-2" : "text-gray-500 px-2"}>Orders</Link>
+          <Link href="/admin/products" className={pathname === "/admin/products" ? "text-white px-2" : "text-gray-500 px-2"}>Products</Link>
+          <Link href="/admin/payments" className={pathname === "/admin/payments" ? "text-white px-2" : "text-gray-500 px-2"}>Payments</Link>
         </nav>
       </div>
 

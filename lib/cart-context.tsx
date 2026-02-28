@@ -52,6 +52,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("cart", JSON.stringify(items))
   }, [items, isHydrated])
 
+  // Reset items when logged out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setItems([])
+    }
+  }, [isAuthenticated])
+
   const addItem = (newItem: Omit<CartItem, "quantity">) => {
     if (!isAuthenticated) {
       router.push("/signup")

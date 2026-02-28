@@ -6,15 +6,35 @@ import { AccountSidebar } from "@/components/account-sidebar"
 import { useAuth } from "@/lib/auth-context"
 import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
+import { useState, useEffect } from "react"
 import { Package, Heart, ShoppingBag } from "lucide-react"
 import Link from "next/link"
-import { orders } from "@/lib/data"
 
 export default function AccountPage() {
   const { user } = useAuth()
   const { items: cartItems } = useCart()
   const { count: wishlistCount } = useWishlist()
-  const userOrders = orders.slice(0, 2)
+  const [userOrders, setUserOrders] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/orders`, {
+          credentials: "include"
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setUserOrders(data.slice(0, 2)) // Show recent 2
+        }
+      } catch (err) {
+        console.error("Failed to fetch orders:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchOrders()
+  }, [])
 
   return (
     <div className="bg-[#030303] text-[#e8e8e3] min-h-screen">
@@ -27,7 +47,10 @@ export default function AccountPage() {
             {/* Page Title */}
             <div className="mb-10 pb-8 border-b border-white/10">
               <p className="uppercase tracking-[0.4em] text-xs text-gray-500 mb-2">Dashboard</p>
-              <h1 className="font-serif text-4xl font-light">Welcome back{user?.firstName ? `, ${user.firstName}` : ""}</h1>
+              <h1 className="font-serif text-4xl font-light">
+                {user?.isNewSignup ? "Hello" : "Welcome back"}
+                {user?.firstName ? `, ${user.firstName}` : ""}
+              </h1>
             </div>
 
             {/* Stats Row */}

@@ -69,6 +69,7 @@ export default function ProductsPage() {
     fabric: "",
     care: "",
     gender: "Unisex",
+    notifyUsers: false,
   })
 
   useEffect(() => {
@@ -236,6 +237,7 @@ export default function ProductsPage() {
         credentials: "include",
         body: JSON.stringify({
           ...formData,
+          notify_users: formData.notifyUsers,
           images: filteredImages,
         }),
       })
@@ -336,6 +338,7 @@ export default function ProductsPage() {
               fabric: "",
               care: "",
               gender: "Unisex",
+              notifyUsers: false,
             })
           }
         }}>
@@ -549,6 +552,18 @@ export default function ProductsPage() {
                           />
                         </div>
                       ))}
+                      <div className="flex flex-col items-center gap-3 p-3 border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all col-span-3">
+                        <Label className="text-[8px] uppercase tracking-widest text-[#e8e8e3]">Notify Users via Email</Label>
+                        <div className="flex items-center gap-4">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-tighter">Off</span>
+                          <Switch
+                            checked={formData.notifyUsers}
+                            onCheckedChange={(v) => setFormData(p => ({ ...p, notifyUsers: v }))}
+                            className="data-[state=checked]:bg-emerald-500/80 border border-white/10"
+                          />
+                          <span className="text-[10px] text-gray-500 uppercase tracking-tighter">On</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

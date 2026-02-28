@@ -4,17 +4,28 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import os
 import json
+import time
 import razorpay
 from datetime import datetime
 from bson.objectid import ObjectId
 from flask_pymongo import PyMongo
+from flask_mail import Mail
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+from authlib.integrations.flask_client import OAuth
+import requests
+from mail_utils import (
+    send_signup_confirmation, 
+    send_password_change_confirmation,
+    send_order_confirmation,
+    send_order_status_update,
+    send_new_arrival_notification
+)
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='public', static_url_path='')
 # CORS must specify origins when supports_credentials=True
 # Wildcard "*" is NOT allowed with credentials.
 CORS(app, supports_credentials=True, origins=[
@@ -50,6 +61,23 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Configuration
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_session_secret_change_me')
+
+# Google OAuth Configuration
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    api_base_url='https://www.googleapis.com/oauth2/v1/',
+    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo',
+    client_kwargs={'scope': 'openid email profile'},
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration'
+)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
 app.config['MONGO_URI'] = "mongodb://localhost:27017/ecommerce_db"
 app.config['SESSION_COOKIE_NAME'] = 'us_atelier_session'
@@ -60,8 +88,17 @@ app.config['SESSION_COOKIE_SECURE'] = False # Set to True in production with HTT
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 7 # 7 days
 
+# Mail Config
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True') == 'True'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+
 mongo = PyMongo(app)
 db = mongo.db
+mail = Mail(app)
 
 # Razorpay Config
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
@@ -168,6 +205,10 @@ def signup():
     session.permanent = True
     session['user_id'] = str(user_id)
     session['is_admin'] = False
+    session['is_new_signup'] = True # Flag for greeting
+    
+    # Send Welcome Email
+    send_signup_confirmation(mail, email, first_name)
     
     return jsonify({
         "success": True,
@@ -229,6 +270,16 @@ def upload_file():
         return jsonify({"error": "No selected file"}), 400
         
     if file and allowed_file(file.filename):
+        # Fallback to local storage if Cloudinary not configured
+        if not os.getenv('CLOUDINARY_CLOUD_NAME') or os.getenv('CLOUDINARY_CLOUD_NAME') == 'your_cloud_name':
+            filename = f"{int(time.time())}_{file.filename}"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+            return jsonify({
+                "success": True,
+                "url": f"/uploads/{filename}"
+            }), 200
+            
         try:
             upload_result = cloudinary.uploader.upload(file, folder="ecommerce_products")
             return jsonify({
@@ -236,8 +287,18 @@ def upload_file():
                 "url": upload_result.get("secure_url")
             }), 200
         except Exception as e:
-            print(f"Error uploading to Cloudinary: {str(e)}")
-            return jsonify({"error": f"Cloudinary upload failed: {str(e)}"}), 500
+            print(f"Error uploading to Cloudinary or local fallback: {str(e)}")
+            try:
+                # Last resort local fallback
+                filename = f"{int(time.time())}_{file.filename}"
+                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                file.save(filepath)
+                return jsonify({
+                    "success": True,
+                    "url": f"/uploads/{filename}" # Use relative path for better frontend compatibility
+                }), 200
+            except Exception as le:
+                return jsonify({"error": f"Upload failed: {str(le)}"}), 500
         
     return jsonify({"error": "File type not allowed"}), 400
 
@@ -265,12 +326,65 @@ def change_password():
         {"$set": {"password_hash": generate_password_hash(new_password)}}
     )
     
+    # Send Password Change Notification
+    send_password_change_confirmation(mail, user['email'], user.get('first_name', 'User'))
+    
     return jsonify({"success": True, "message": "Password updated successfully"}), 200
+
+# ==================== AUTH GOOGLE ====================
+
+@app.route('/api/auth/google/login')
+def google_login():
+    redirect_uri = url_for('google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/api/auth/google/callback')
+def google_callback():
+    token = google.authorize_access_token()
+    resp = google.get('userinfo')
+    user_info = resp.json()
+    
+    email = user_info['email']
+    first_name = user_info.get('given_name', '')
+    last_name = user_info.get('family_name', '')
+    
+    # Check if user exists
+    user = db.users.find_one({"email": email})
+    
+    if not user:
+        # Create new user
+        new_user = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "role": "user",
+            "is_new_signup": True # For custom greeting
+        }
+        db.users.insert_one(new_user)
+        user = db.users.find_one({"email": email})
+        
+        # Send welcome email
+        try:
+            send_signup_confirmation(mail, email, first_name)
+        except Exception as e:
+            print(f"Error sending welcome email: {str(e)}")
+            
+    # Set session
+    session.clear()
+    session['user_id'] = str(user['_id'])
+    session['email'] = user['email']
+    session['name'] = f"{user['first_name']} {user['last_name']}"
+    session['role'] = user.get('role', 'user')
+    session['is_admin'] = user.get('role') == 'admin'
+    
+    # Redirect back to frontend
+    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+    return redirect(f"{frontend_url}/account")
 
 @app.route('/api/auth/user', methods=['GET', 'PUT'])
 def user_profile():
     if 'user_id' not in session:
-         return jsonify({"user": None}), 200
+        return jsonify({"user": None}), 200
 
     if request.method == 'GET':
         user = db.users.find_one({"_id": ObjectId(session['user_id'])})
@@ -281,6 +395,7 @@ def user_profile():
                 "lastName": user.get('last_name', ''),
                 "phone": user.get('phone', ''),
                 "isAdmin": user.get('is_admin', False),
+                "isNewSignup": session.get('is_new_signup', False),
                 "id": str(user['_id']),
                 "addresses": user.get('addresses', [])
             }), 200
@@ -422,6 +537,19 @@ def add_product():
         }
         
         result = db.products.insert_one(new_product)
+        
+        # Send New Arrival Email to all users if it's marked as new and notification is requested
+        if new_product.get('is_new') and data.get('notify_users'):
+            users = list(db.users.find({}, {"email": 1}))
+            for u in users:
+                send_new_arrival_notification(
+                    mail, 
+                    u['email'], 
+                    new_product['name'], 
+                    new_product['price'], 
+                    str(result.inserted_id)
+                )
+        
         return jsonify({
             "success": True, 
             "message": "Product added successfully",
@@ -683,6 +811,17 @@ def create_order():
             {"_id": ObjectId(item['id'])},
             {"$inc": {"stock": -item['quantity']}}
         )
+
+    # Send Order Confirmation Email
+    user = db.users.find_one({"_id": ObjectId(session['user_id'])})
+    if user:
+        send_order_confirmation(
+            mail, 
+            user['email'], 
+            order_doc['id'], 
+            order_doc['total'], 
+            order_doc['items']
+        )
     
     return jsonify({"success": True, "orderId": order_doc['id']}), 201
 
@@ -693,6 +832,35 @@ def get_orders():
         
     orders = list(db.orders.find({"user_id": session['user_id']}).sort("created_at", -1))
     return jsonify([serialize_doc(o) for o in orders])
+
+@app.route('/api/admin/orders/<order_id>/status', methods=['PUT'])
+def update_order_status(order_id):
+    is_admin = session.get('is_admin')
+    if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    data = request.get_json()
+    new_status = data.get('status')
+    tracking_link = data.get('tracking_link')
+    
+    if not new_status:
+        return jsonify({"error": "Status required"}), 400
+        
+    order = db.orders.find_one({"id": order_id})
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+        
+    db.orders.update_one(
+        {"id": order_id},
+        {"$set": {"status": new_status}}
+    )
+    
+    # Send Status Update Email
+    user = db.users.find_one({"_id": ObjectId(order['user_id'])})
+    if user:
+        send_order_status_update(mail, user['email'], order_id, new_status, tracking_link)
+        
+    return jsonify({"success": True, "message": f"Order status updated to {new_status}"}), 200
 
 # ==================== CATEGORIES ====================
 

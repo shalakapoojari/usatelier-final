@@ -56,6 +56,13 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("wishlist", JSON.stringify(items))
     }, [items, isHydrated])
 
+    // Reset items when logged out
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setItems([])
+        }
+    }, [isAuthenticated])
+
     const addItem = (item: WishlistItem) => {
         if (!isAuthenticated) {
             router.push("/signup")

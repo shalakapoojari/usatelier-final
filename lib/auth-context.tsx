@@ -11,6 +11,7 @@ type User = {
   lastName: string
   phone: string
   role: "user" | "admin"
+  isNewSignup?: boolean
 }
 
 type AuthContextType = {
@@ -19,6 +20,7 @@ type AuthContextType = {
   signup: (email: string, password: string, firstName: string, lastName: string, phone: string) => Promise<{ success: boolean; user?: User; message?: string }>
   updateProfile: (data: { firstName: string; lastName: string; phone: string }) => Promise<{ success: boolean; message: string }>
   logout: () => void
+  loginWithGoogle: () => void
   isAuthenticated: boolean
   isAdmin: boolean
 }
@@ -45,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               lastName: data.lastName || "",
               phone: data.phone || "",
               role: data.isAdmin ? "admin" : "user",
+              isNewSignup: data.isNewSignup || false,
             }
             setUser(restored)
           }
@@ -78,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           lastName: data.lastName || "",
           phone: data.phone || "",
           role: data.isAdmin ? "admin" : "user",
+          isNewSignup: data.isNewSignup || false,
         }
         setUser(loggedIn)
         return { success: true, user: loggedIn }
@@ -123,6 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: "user",
         }
         setUser(newUser)
+        // Clear stale local data for new user
+        localStorage.removeItem("cart")
+        localStorage.removeItem("wishlist")
         return { success: true, user: newUser }
       }
 
@@ -164,6 +171,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignore network errors on logout
     }
     setUser(null)
+    // Clear stale local data on logout
+    localStorage.removeItem("cart")
+    localStorage.removeItem("wishlist")
+  }
+
+  const loginWithGoogle = () => {
+    window.location.href = `${API_BASE}/api/auth/google/login`
   }
 
   return (
@@ -174,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         updateProfile,
         logout,
+        loginWithGoogle,
         isAuthenticated: !!user,
         isAdmin: user?.role === "admin",
       }}

@@ -14,6 +14,28 @@ export default function OrderDetailPage({
   const order = orders.find((o) => o.id === id)
   const [status, setStatus] = useState(order?.status)
 
+  const handleUpdateStatus = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/orders/${id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert("Status updated and email sent.");
+      } else {
+        alert("Error: " + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update status.");
+    }
+  };
+
   if (!order) {
     return (
       <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 py-16">
@@ -131,9 +153,13 @@ export default function OrderDetailPage({
                 <option value="processing">Processing</option>
                 <option value="shipped">Shipped</option>
                 <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
               </select>
 
-              <button className="w-full mt-6 border border-white/40 py-4 uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all">
+              <button
+                onClick={handleUpdateStatus}
+                className="w-full mt-6 border border-white/40 py-4 uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all"
+              >
                 Update Status
               </button>
             </div>

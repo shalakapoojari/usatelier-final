@@ -22,6 +22,7 @@ from mail_utils import (
     send_order_status_update,
     send_new_arrival_notification
 )
+from models_mysql import db_mysql, User, Product as ProductSQL, Category as CategorySQL, Order as OrderSQL, OrderItem, CartItem, WishlistItem
 
 load_dotenv()
 
@@ -99,6 +100,18 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 mongo = PyMongo(app)
 db = mongo.db
 mail = Mail(app)
+
+# MySQL Initialization
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db_mysql.init_app(app)
+
+with app.app_context():
+    try:
+        db_mysql.create_all()
+        print("MySQL Tables Created/Verified")
+    except Exception as e:
+        print(f"Error creating MySQL tables: {e}")
 
 # Razorpay Config
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
@@ -202,6 +215,23 @@ def signup():
         "created_at": datetime.utcnow()
     }).inserted_id
     
+    # Save to MySQL
+    try:
+        new_user_sql = User(
+            email=email,
+            password_hash=generate_password_hash(password),
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            is_admin=False
+        )
+        db_mysql.session.add(new_user_sql)
+        db_mysql.session.commit()
+        print(f"DEBUG: User {email} saved to MySQL")
+    except Exception as e:
+        db_mysql.session.rollback()
+        print(f"Error saving user to MySQL: {e}")
+
     session.permanent = True
     session['user_id'] = str(user_id)
     session['is_admin'] = False
@@ -255,9 +285,6 @@ def logout():
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
-    print(f"DEBUG: upload_file session: {list(session.keys())}")
-    print(f"DEBUG: is_admin: {session.get('is_admin')} (Type: {type(session.get('is_admin'))})")
-    
     is_admin = session.get('is_admin')
     if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
         return jsonify({"error": "Unauthorized"}), 401
@@ -270,35 +297,25 @@ def upload_file():
         return jsonify({"error": "No selected file"}), 400
         
     if file and allowed_file(file.filename):
-        # Fallback to local storage if Cloudinary not configured
-        if not os.getenv('CLOUDINARY_CLOUD_NAME') or os.getenv('CLOUDINARY_CLOUD_NAME') == 'your_cloud_name':
-            filename = f"{int(time.time())}_{file.filename}"
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(filepath)
-            return jsonify({
-                "success": True,
-                "url": f"/uploads/{filename}"
-            }), 200
-            
         try:
-            upload_result = cloudinary.uploader.upload(file, folder="ecommerce_products")
+            # Local Storage Only
+            filename = f"{int(time.time())}_{file.filename}"
+            # Ensure products folder exists
+            products_dir = os.path.join(UPLOAD_FOLDER, 'products')
+            if not os.path.exists(products_dir):
+                os.makedirs(products_dir)
+                
+            filepath = os.path.join(products_dir, filename)
+            file.save(filepath)
+            
+            # Return relative path for frontend
             return jsonify({
                 "success": True,
-                "url": upload_result.get("secure_url")
+                "url": f"/uploads/products/{filename}"
             }), 200
         except Exception as e:
-            print(f"Error uploading to Cloudinary or local fallback: {str(e)}")
-            try:
-                # Last resort local fallback
-                filename = f"{int(time.time())}_{file.filename}"
-                filepath = os.path.join(UPLOAD_FOLDER, filename)
-                file.save(filepath)
-                return jsonify({
-                    "success": True,
-                    "url": f"/uploads/{filename}" # Use relative path for better frontend compatibility
-                }), 200
-            except Exception as le:
-                return jsonify({"error": f"Upload failed: {str(le)}"}), 500
+            print(f"Error saving file locally: {str(e)}")
+            return jsonify({"error": f"Upload failed: {str(e)}"}), 500
         
     return jsonify({"error": "File type not allowed"}), 400
 
@@ -484,7 +501,7 @@ def get_product(product_id):
     product = db.products.find_one({"_id": ObjectId(product_id)})
     if product:
         return jsonify(serialize_doc(product)), 200
-    return jsonify({"error": "Product not found"}), 404
+    return jsonify({"error": "Product not available"}), 404
 
 @app.route('/api/products/<product_id>', methods=['DELETE'])
 def delete_product(product_id):
@@ -498,7 +515,7 @@ def delete_product(product_id):
     result = db.products.delete_one({"_id": ObjectId(product_id)})
     if result.deleted_count > 0:
         return jsonify({"success": True, "message": "Product deleted"}), 200
-    return jsonify({"error": "Product not found"}), 404
+    return jsonify({"error": "Product not available"}), 404
 
 @app.route('/api/products', methods=['POST'])
 def add_product():
@@ -538,15 +555,44 @@ def add_product():
         
         result = db.products.insert_one(new_product)
         
+        # Save to MySQL
+        try:
+            new_product_sql = ProductSQL(
+                name=new_product['name'],
+                price=new_product['price'],
+                category=new_product['category'],
+                subcategory=new_product['subcategory'],
+                gender=new_product['gender'],
+                description=new_product['description'],
+                images=json.loads(new_product['images']) if isinstance(new_product['images'], str) else new_product['images'],
+                sizes=json.loads(new_product['sizes']) if isinstance(new_product['sizes'], str) else new_product['sizes'],
+                stock=new_product['stock'],
+                is_featured=new_product['is_featured'],
+                is_new=new_product['is_new'],
+                is_bestseller=new_product['is_bestseller'],
+                fabric=new_product['fabric'],
+                care=new_product['care']
+            )
+            db_mysql.session.add(new_product_sql)
+            db_mysql.session.commit()
+            print(f"DEBUG: Product {new_product['name']} saved to MySQL")
+        except Exception as e:
+            db_mysql.session.rollback()
+            print(f"Error saving product to MySQL: {e}")
+
         # Send New Arrival Email to all users if it's marked as new and notification is requested
         if new_product.get('is_new') and data.get('notify_users'):
-            users = list(db.users.find({}, {"email": 1}))
+            users = list(db.users.find({}, {"email": 1, "first_name": 1}))
             for u in users:
+                user_name = u.get('first_name', u.get('email', '').split('@')[0])
                 send_new_arrival_notification(
                     mail, 
                     u['email'], 
+                    user_name,
                     new_product['name'], 
                     new_product['price'], 
+                    new_product['category'],
+                    new_product['description'],
                     str(result.inserted_id)
                 )
         
@@ -602,7 +648,7 @@ def update_product(product_id):
                 "message": "Product updated successfully"
             }), 200
         else:
-            return jsonify({"error": "Product not found"}), 404
+            return jsonify({"error": "Product not available"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -649,6 +695,14 @@ def add_to_cart():
                 {"_id": existing['_id']},
                 {"$inc": {"quantity": quantity}}
             )
+            # MySQL Update
+            try:
+                sql_item = CartItem.query.filter_by(user_id=session['user_id'], product_id_str=product_id, size=size).first()
+                if sql_item:
+                    sql_item.quantity += quantity
+                    db_mysql.session.commit()
+            except:
+                db_mysql.session.rollback()
         else:
             db.cart.insert_one({
                 "user_id": session['user_id'],
@@ -656,6 +710,18 @@ def add_to_cart():
                 "quantity": quantity,
                 "size": size
             })
+            # MySQL Insert
+            try:
+                new_sql_cart = CartItem(
+                    user_id=session['user_id'],
+                    product_id_str=product_id,
+                    quantity=quantity,
+                    size=size
+                )
+                db_mysql.session.add(new_sql_cart)
+                db_mysql.session.commit()
+            except:
+                db_mysql.session.rollback()
     else:
         # Session Cart
         cart = session.get('cart', [])
@@ -721,6 +787,17 @@ def add_to_wishlist():
         "product_id": product_id,
         "created_at": datetime.utcnow()
     })
+    
+    # MySQL Insert
+    try:
+        new_wishlist_sql = WishlistItem(
+            user_id=session['user_id'],
+            product_id_str=product_id
+        )
+        db_mysql.session.add(new_wishlist_sql)
+        db_mysql.session.commit()
+    except:
+        db_mysql.session.rollback()
     
     return jsonify({"success": True}), 201
 
@@ -803,6 +880,38 @@ def create_order():
     }
     
     db.orders.insert_one(order_doc)
+    
+    # Save to MySQL
+    try:
+        user_sql = User.query.filter_by(email=user['email']).first() if user else None
+        new_order_sql = OrderSQL(
+            order_number=order_doc['id'],
+            user_id=user_sql.id if user_sql else None,
+            total=order_doc['total'],
+            status=order_doc['status'],
+            payment_status=order_doc['payment_status'],
+            shipping_address_json=json.dumps(order_doc['shipping_address'])
+        )
+        db_mysql.session.add(new_order_sql)
+        db_mysql.session.flush() # To get the order ID for items
+        
+        for item in order_doc['items']:
+            new_item_sql = OrderItem(
+                order_id=new_order_sql.id,
+                product_id_str=item['id'],
+                product_name=item['name'],
+                quantity=item['quantity'],
+                price=item['price'],
+                size=item.get('size')
+            )
+            db_mysql.session.add(new_item_sql)
+        
+        db_mysql.session.commit()
+        print(f"DEBUG: Order {order_doc['id']} saved to MySQL")
+    except Exception as e:
+        db_mysql.session.rollback()
+        print(f"Error saving order to MySQL: {e}")
+
     db.cart.delete_many({"user_id": session['user_id']})
     
     # Update Stock
@@ -898,6 +1007,19 @@ def add_category():
         "created_at": datetime.utcnow()
     }
     db.categories.insert_one(new_cat)
+    
+    # Save to MySQL
+    try:
+        new_cat_sql = CategorySQL(
+            name=name,
+            subcategories=[subcategory] if subcategory else []
+        )
+        db_mysql.session.add(new_cat_sql)
+        db_mysql.session.commit()
+    except Exception as e:
+        db_mysql.session.rollback()
+        print(f"Error saving category to MySQL: {e}")
+        
     return jsonify({"success": True, "message": "Category created"}), 201
 
 @app.route('/api/categories/<cat_id>', methods=['DELETE'])
@@ -1093,8 +1215,12 @@ def get_business_analysis():
         }), 200
 
     except Exception as e:
-        print(f"Error in business analysis: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        error_msg = f"Error in business analysis: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        with open("analysis_error.log", "a") as f:
+            f.write(f"\n--- {datetime.utcnow()} ---\n{error_msg}\n")
+        return jsonify({"error": str(e), "details": "Check analysis_error.log on server"}), 500
 
 # ==================== SEEDING ====================
 

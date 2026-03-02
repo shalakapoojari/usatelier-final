@@ -58,13 +58,19 @@ def send_order_status_update(mail, user_email, order_id, status, tracking_link=N
         tracking_link=tracking_link
     )
 
-def send_new_arrival_notification(mail, user_email, product_name, product_price, product_id):
+def send_new_arrival_notification(mail, user_email, user_name, product_name, product_price, category, description, product_id):
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return send_email(
         mail,
-        f"NEW ARRIVAL: {product_name}",
+        "🆕 New Product Added!",
         user_email,
         "new_arrival.html",
+        user_name=user_name,
         product_name=product_name,
         product_price=product_price,
-        product_id=product_id
+        category=category,
+        description=description,
+        product_id=product_id,
+        timestamp=timestamp
     )

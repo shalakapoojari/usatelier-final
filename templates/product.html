@@ -85,7 +85,7 @@
             const product = await res.json();
 
             if (product.error) {
-                document.getElementById('product-root').innerHTML = '<p style="padding: 2rem;">Product not found</p>';
+                document.getElementById('product-root').innerHTML = '<p style="padding: 2rem;">Product not available</p>';
                 return;
             }
             productData = product;

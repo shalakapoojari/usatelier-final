@@ -290,7 +290,7 @@ export default function ShopPage() {
           >
             ₹{priceLimit.toLocaleString('en-IN')}
             {/* Tooltip arrow */}
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-white"></div>
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-white"></div>
           </div>
 
           <input
@@ -350,7 +350,7 @@ export default function ShopPage() {
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-in fade-in duration-700">
-                <h2 className="text-3xl font-serif text-gray-400">Product Not Found</h2>
+                <h2 className="text-3xl font-serif text-gray-400">Product Not Available</h2>
               </div>
             ) : (
               <>

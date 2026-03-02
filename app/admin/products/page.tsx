@@ -209,6 +209,7 @@ export default function ProductsPage() {
       fabric: product.fabric || "",
       care: product.care || "",
       gender: product.gender || "Unisex",
+      notifyUsers: false,
     })
     setEditingProduct(product)
     setDialogOpen(true)
@@ -262,6 +263,7 @@ export default function ProductsPage() {
           fabric: "",
           care: "",
           gender: "Unisex",
+          notifyUsers: false,
         })
       } else {
         const data = await res.json()
@@ -655,7 +657,7 @@ export default function ProductsPage() {
             ) : filteredProductsList.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-8 py-24 text-center">
-                  <p className="text-xs uppercase tracking-[0.3em] text-gray-500">No matching pieces found in catalog.</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-gray-500">No matching pieces available in catalog.</p>
                 </td>
               </tr>
             ) : filteredProductsList.map((p, i) => (

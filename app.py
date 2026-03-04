@@ -26,16 +26,15 @@ from models_mysql import db_mysql, User, Product as ProductSQL, Category as Cate
 
 load_dotenv()
 
-app = Flask(__name__, static_folder='public', static_url_path='')
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 # CORS must specify origins when supports_credentials=True
 # Wildcard "*" is NOT allowed with credentials.
 CORS(app, supports_credentials=True, origins=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://192.168.31.120:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
-    "http://localhost:3002",
-    "http://127.0.0.1:3002",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ])
@@ -62,7 +61,8 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Configuration
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_session_secret_change_me')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' # Re-enabled for local test
 
 # Google OAuth Configuration
 oauth = OAuth(app)
@@ -79,13 +79,13 @@ google = oauth.register(
     client_kwargs={'scope': 'openid email profile'},
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration'
 )
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
+
 app.config['MONGO_URI'] = "mongodb://localhost:27017/ecommerce_db"
 app.config['SESSION_COOKIE_NAME'] = 'us_atelier_session'
 app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = False # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('NODE_ENV') == 'production' or os.getenv('FLASK_ENV') == 'production'
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 7 # 7 days
 
@@ -96,6 +96,12 @@ app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True') == 'True'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+
+# Razorpay Configuration
+def get_razorpay_client():
+    return razorpay.Client(auth=(os.getenv('RAZORPAY_KEY_ID'), os.getenv('RAZORPAY_KEY_SECRET')))
+
+razorpay_client = get_razorpay_client()
 
 mongo = PyMongo(app)
 db = mongo.db
@@ -124,6 +130,18 @@ def serialize_doc(doc):
     if not doc: return None
     if '_id' in doc:
         doc['id'] = str(doc.pop('_id'))
+    
+    # Ensure images, sizes, and subcategories are lists, parsing if they are strings
+    for field in ['images', 'sizes', 'subcategories']:
+        if field in doc:
+            if isinstance(doc[field], str):
+                try:
+                    doc[field] = json.loads(doc[field])
+                except:
+                    doc[field] = []
+            elif not isinstance(doc[field], list):
+                doc[field] = []
+            
     return doc
 
 # ==================== ROUTES ====================
@@ -211,6 +229,7 @@ def signup():
         "last_name": last_name,
         "phone": phone,
         "password_hash": generate_password_hash(password),
+        "profile_pic": "",
         "is_admin": False,
         "created_at": datetime.utcnow()
     }).inserted_id
@@ -270,6 +289,7 @@ def login():
             "firstName": user.get('first_name', user.get('name', email.split('@')[0])),
             "lastName": user.get('last_name', ''),
             "phone": user.get('phone', ''),
+            "profilePic": user.get('profile_pic', ''),
             "id": str(user['_id']),
             "isAdmin": user.get('is_admin', False)
         }), 200
@@ -319,6 +339,58 @@ def upload_file():
         
     return jsonify({"error": "File type not allowed"}), 400
 
+@app.route('/api/upload/profile', methods=['POST'])
+def upload_profile_pic():
+    if 'user_id' not in session:
+        return jsonify({"error": "Login required"}), 401
+        
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    if file and allowed_file(file.filename):
+        try:
+            # Try Cloudinary first if configured
+            if os.getenv('CLOUDINARY_CLOUD_NAME') and os.getenv('CLOUDINARY_CLOUD_NAME') != 'your_cloud_name':
+                upload_result = cloudinary.uploader.upload(
+                    file,
+                    folder="profiles",
+                    public_id=f"user_{session['user_id']}_{int(time.time())}",
+                    overwrite=True,
+                    resource_type="image"
+                )
+                return jsonify({
+                    "success": True,
+                    "url": upload_result.get('secure_url')
+                }), 200
+            else:
+                raise Exception("Cloudinary not configured")
+        except Exception as e:
+            print(f"Cloudinary upload failed or skipped, trying local: {str(e)}")
+            try:
+                # Local Fallback
+                filename = f"profile_{session['user_id']}_{int(time.time())}_{file.filename}"
+                profiles_dir = os.path.join(UPLOAD_FOLDER, 'profiles')
+                if not os.path.exists(profiles_dir):
+                    os.makedirs(profiles_dir)
+                    
+                filepath = os.path.join(profiles_dir, filename)
+                file.seek(0) # Reset file pointer
+                file.save(filepath)
+                
+                return jsonify({
+                    "success": True,
+                    "url": f"/uploads/profiles/{filename}"
+                }), 200
+            except Exception as local_err:
+                print(f"Local upload failed: {str(local_err)}")
+                return jsonify({"error": f"Upload failed: {str(local_err)}"}), 500
+            
+    return jsonify({"error": "File type not allowed"}), 400
+
 @app.route('/api/auth/change-password', methods=['POST'])
 def change_password():
     if 'user_id' not in session:
@@ -343,16 +415,34 @@ def change_password():
         {"$set": {"password_hash": generate_password_hash(new_password)}}
     )
     
-    # Send Password Change Notification
-    send_password_change_confirmation(mail, user['email'], user.get('first_name', 'User'))
+    # Sync to MySQL
+    try:
+        user_sql = User.query.filter_by(email=user['email']).first()
+        if user_sql:
+            user_sql.password_hash = generate_password_hash(new_password)
+            db_mysql.session.commit()
+    except Exception as e:
+        print(f"DEBUG: Error syncing password to MySQL: {e}")
+        db_mysql.session.rollback()
     
-    return jsonify({"success": True, "message": "Password updated successfully"}), 200
+    # Send Password Change Notification
+    email_sent = send_password_change_confirmation(mail, user['email'], user.get('first_name', 'User'))
+    
+    if not email_sent:
+        return jsonify({
+            "success": True, 
+            "message": "Password updated, but there was an error sending the confirmation email. Please check your contact details."
+        }), 200
+        
+    return jsonify({"success": True, "message": "Password updated successfully. A confirmation email has been sent."}), 200
 
 # ==================== AUTH GOOGLE ====================
 
 @app.route('/api/auth/google/login')
 def google_login():
-    redirect_uri = url_for('google_callback', _external=True)
+    redirect_uri = f"{os.getenv('BACKEND_URL', 'http://localhost:5000')}/api/auth/google/callback"
+    # Ensure session is saved before redirecting
+    session.modified = True
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/api/auth/google/callback')
@@ -361,42 +451,73 @@ def google_callback():
     resp = google.get('userinfo')
     user_info = resp.json()
     
-    email = user_info['email']
+    email = user_info.get('email', '').lower()
     first_name = user_info.get('given_name', '')
     last_name = user_info.get('family_name', '')
+    picture = user_info.get('picture', '')
     
-    # Check if user exists
+    if not email:
+        return redirect(f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/login?error=google_email_missing")
+
+    # Check MongoDB
     user = db.users.find_one({"email": email})
     
     if not user:
-        # Create new user
-        new_user = {
+        # Create new user in MongoDB
+        new_mongo_user = {
+            "email": email,
             "first_name": first_name,
             "last_name": last_name,
-            "email": email,
-            "role": "user",
-            "is_new_signup": True # For custom greeting
+            "profile_pic": picture,
+            "is_admin": False,
+            "created_at": datetime.utcnow()
         }
-        db.users.insert_one(new_user)
-        user = db.users.find_one({"email": email})
+        user_id = db.users.insert_one(new_mongo_user).inserted_id
+        user = db.users.find_one({"_id": user_id})
         
-        # Send welcome email
+        # Create in MySQL
+        try:
+            new_mysql_user = User(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                profile_pic=picture,
+                is_admin=False
+            )
+            db_mysql.session.add(new_mysql_user)
+            db_mysql.session.commit()
+            print(f"DEBUG: Google user {email} synced to MySQL")
+        except Exception as e:
+            db_mysql.session.rollback()
+            print(f"Error syncing Google user to MySQL: {e}")
+            
+        # Welcome Email
         try:
             send_signup_confirmation(mail, email, first_name)
         except Exception as e:
             print(f"Error sending welcome email: {str(e)}")
-            
+    else:
+        # Update existing user profile pic if it changed
+        if not user.get('profile_pic') or user.get('profile_pic') != picture:
+            db.users.update_one({"email": email}, {"$set": {"profile_pic": picture}})
+            # Sync to MySQL
+            try:
+                mysql_user = User.query.filter_by(email=email).first()
+                if mysql_user:
+                    mysql_user.profile_pic = picture
+                    db_mysql.session.commit()
+            except Exception as e:
+                db_mysql.session.rollback()
+                print(f"Error updating MySQL profile pic: {e}")
+
     # Set session
     session.clear()
+    session.permanent = True
     session['user_id'] = str(user['_id'])
-    session['email'] = user['email']
-    session['name'] = f"{user['first_name']} {user['last_name']}"
-    session['role'] = user.get('role', 'user')
-    session['is_admin'] = user.get('role') == 'admin'
+    session['is_admin'] = bool(user.get('is_admin', False))
     
-    # Redirect back to frontend
-    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-    return redirect(f"{frontend_url}/account")
+    # Redirect to account page
+    return redirect(f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/account")
 
 @app.route('/api/auth/user', methods=['GET', 'PUT'])
 def user_profile():
@@ -411,6 +532,7 @@ def user_profile():
                 "firstName": user.get('first_name', user.get('name', user['email'].split('@')[0])),
                 "lastName": user.get('last_name', ''),
                 "phone": user.get('phone', ''),
+                "profilePic": user.get('profile_pic', ''),
                 "isAdmin": user.get('is_admin', False),
                 "isNewSignup": session.get('is_new_signup', False),
                 "id": str(user['_id']),
@@ -423,12 +545,28 @@ def user_profile():
         if 'firstName' in data: update_fields['first_name'] = data['firstName']
         if 'lastName' in data: update_fields['last_name'] = data['lastName']
         if 'phone' in data: update_fields['phone'] = data['phone']
+        if 'profilePic' in data: update_fields['profile_pic'] = data['profilePic']
         
         if update_fields:
             db.users.update_one(
                 {"_id": ObjectId(session['user_id'])},
                 {"$set": update_fields}
             )
+            
+            # Sync to MySQL
+            try:
+                user_mongo = db.users.find_one({"_id": ObjectId(session['user_id'])})
+                if user_mongo:
+                    user_sql = User.query.filter_by(email=user_mongo['email']).first()
+                    if user_sql:
+                        if 'first_name' in update_fields: user_sql.first_name = update_fields['first_name']
+                        if 'last_name' in update_fields: user_sql.last_name = update_fields['last_name']
+                        if 'phone' in update_fields: user_sql.phone = update_fields['phone']
+                        if 'profile_pic' in update_fields: user_sql.profile_pic = update_fields['profile_pic']
+                        db_mysql.session.commit()
+            except Exception as e:
+                print(f"Error syncing profile to MySQL: {e}")
+                db_mysql.session.rollback()
         return jsonify({"success": True, "message": "Profile updated"}), 200
 
     return jsonify({"user": None}), 200
@@ -859,6 +997,116 @@ def reset_password():
     # Mock logic
     return jsonify({"success": True, "message": "Password reset link sent to email"}), 200
 
+# ==================== PAYMENTS ====================
+
+@app.route('/api/payments/create-order', methods=['POST'])
+def create_razorpay_order():
+    if 'user_id' not in session:
+        return jsonify({"error": "Login required"}), 401
+    
+    data = request.get_json()
+    amount = data.get('amount') # In Rupees
+    
+    if not amount:
+        return jsonify({"error": "Amount required"}), 400
+        
+    try:
+        print(f"DEBUG: Creating Razorpay order for amount: {amount}")
+        client = get_razorpay_client()
+        # Amount in paise (1 INR = 100 paise)
+        razorpay_order = client.order.create({
+            "amount": int(float(amount) * 100),
+            "currency": "INR",
+            "payment_capture": "1"
+        })
+        print(f"DEBUG: Razorpay order created: {razorpay_order.get('id')}")
+        return jsonify(razorpay_order), 200
+    except Exception as e:
+        print(f"DEBUG: Razorpay error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/payments/create-qr', methods=['POST'])
+def create_payment_qr():
+    if 'user_id' not in session:
+        return jsonify({"error": "Login required"}), 401
+    
+    data = request.get_json()
+    amount = data.get('amount')
+    
+    try:
+        client = get_razorpay_client()
+        # Create a Virtual Account for single payment via QR
+        # This is the modern way to show a QR directly
+        va = client.virtual_account.create({
+            "receiver_types": ["qr_code"],
+            "description": "Order Payment",
+            "amount": int(float(amount) * 100),
+            "currency": "INR",
+            "notes": {
+                "user_id": session['user_id']
+            }
+        })
+        
+        # Razorpay Virtual Account returns receivers list
+        qr_data = va['receivers'][0]
+        return jsonify({
+            "success": True,
+            "qr_id": va['id'],
+            "qr_url": qr_data.get('url'), # This is the image URL
+            "vpa": qr_data.get('vpa')
+        }), 200
+    except Exception as e:
+        print(f"DEBUG: QR Creation Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/payments/verify', methods=['POST'])
+def verify_payment():
+    data = request.get_json()
+    
+    params_dict = {
+        'razorpay_order_id': data.get('razorpay_order_id'),
+        'razorpay_payment_id': data.get('razorpay_payment_id'),
+        'razorpay_signature': data.get('razorpay_signature')
+    }
+    
+    try:
+        razorpay_client.utility.verify_payment_signature(params_dict)
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+@app.route('/api/payments/check-qr-status', methods=['POST'])
+def check_qr_status():
+    if 'user_id' not in session:
+        return jsonify({"error": "Login required"}), 401
+    
+    data = request.get_json()
+    qr_id = data.get('qr_id') # This is the Virtual Account ID
+    
+    if not qr_id:
+        return jsonify({"error": "QR ID required"}), 400
+        
+    try:
+        client = get_razorpay_client()
+        # Fetch payments for this virtual account
+        payments = client.virtual_account.payments(qr_id)
+        
+        if payments['count'] > 0:
+            # Payment received!
+            # We take the first successful payment
+            payment = next((p for p in payments['items'] if p['status'] in ['captured', 'authorized']), None)
+            if payment:
+                return jsonify({
+                    "success": True,
+                    "status": "Paid",
+                    "payment_id": payment['id']
+                }), 200
+            
+        return jsonify({"success": False, "status": "Pending"}), 200
+    except Exception as e:
+        print(f"DEBUG: QR Status Check Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # ==================== ORDERS ====================
 
 @app.route('/api/orders', methods=['POST'])
@@ -868,12 +1116,37 @@ def create_order():
         
     data = request.get_json()
     
+    # Razorpay Verification
+    razorpay_payment_id = data.get('razorpay_payment_id')
+    razorpay_order_id = data.get('razorpay_order_id')
+    razorpay_signature = data.get('razorpay_signature')
+    
+    payment_status = "Pending"
+    if razorpay_payment_id and razorpay_order_id and razorpay_signature:
+        params_dict = {
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        }
+        try:
+            razorpay_client.utility.verify_payment_signature(params_dict)
+            payment_status = "Paid"
+        except Exception as e:
+            print(f"Payment Verification Failed: {e}")
+            return jsonify({"error": "Payment verification failed"}), 400
+    
+    user = db.users.find_one({"_id": ObjectId(session['user_id'])})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
     order_doc = {
         "id": f"ORD-{datetime.now().strftime('%Y%m%d%H%M%S')}",
         "user_id": session['user_id'],
         "total": data.get('total'),
-        "status": "Pending",
-        "payment_status": data.get('paymentStatus', 'Pending'),
+        "status": "Processing",
+        "payment_status": payment_status,
+        "razorpay_payment_id": razorpay_payment_id,
+        "razorpay_order_id": razorpay_order_id,
         "created_at": datetime.utcnow(),
         "items": data.get('items', []),
         "shipping_address": data.get('shippingAddress', {})
@@ -912,27 +1185,25 @@ def create_order():
         db_mysql.session.rollback()
         print(f"Error saving order to MySQL: {e}")
 
-    db.cart.delete_many({"user_id": session['user_id']})
-    
-    # Update Stock
-    for item in data.get('items', []):
-        db.products.update_one(
-            {"_id": ObjectId(item['id'])},
-            {"$inc": {"stock": -item['quantity']}}
-        )
+    # Update Stock and Clear Cart
+    try:
+        db.cart.delete_many({"user_id": session['user_id']})
+        for item in order_doc['items']:
+            db.products.update_one(
+                {"_id": ObjectId(item['id'])},
+                {"$inc": {"stock": -item['quantity']}}
+            )
+    except Exception as e:
+        print(f"DEBUG: Error updating stock/cart: {e}")
 
     # Send Order Confirmation Email
-    user = db.users.find_one({"_id": ObjectId(session['user_id'])})
-    if user:
-        send_order_confirmation(
-            mail, 
-            user['email'], 
-            order_doc['id'], 
-            order_doc['total'], 
-            order_doc['items']
-        )
+    send_order_confirmation(mail, user['email'], order_doc['id'], order_doc['total'], order_doc['items'])
     
-    return jsonify({"success": True, "orderId": order_doc['id']}), 201
+    return jsonify({
+        "success": True, 
+        "message": "Order placed successfully!", 
+        "orderId": order_doc['id']
+    }), 201
 
 @app.route('/api/orders', methods=['GET'])
 def get_orders():

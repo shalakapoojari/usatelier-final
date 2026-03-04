@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { AccountSidebar } from "@/components/account-sidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, User as UserIcon, Camera, Loader2 } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
 
 import { useAuth } from "@/lib/auth-context"
@@ -25,7 +25,10 @@ export default function ProfilePage() {
     lastName: "",
     email: "",
     phone: "",
+    profilePic: "",
   })
+
+  const [isUploading, setIsUploading] = useState(false)
 
   // Sync form data when user is loaded/restored
   useEffect(() => {
@@ -35,9 +38,42 @@ export default function ProfilePage() {
         lastName: user.lastName || "",
         email: user.email || "",
         phone: user.phone || "",
+        profilePic: user.profilePic || "",
       })
     }
   }, [user])
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      // Use existing cloudinary upload endpoint if available, but for profile we might need a general one
+      // Re-using the /api/upload but that's for admins currently. 
+      // Let's create a specific profile pic upload or ensure /api/upload works for users
+      const response = await fetch(`${API_BASE}/api/upload/profile`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        setFormData(prev => ({ ...prev, profilePic: data.url }))
+        showToast("Image uploaded. Save changes to finalize.", "info")
+      } else {
+        showToast(data.error || "Upload failed", "info")
+      }
+    } catch (err) {
+      showToast("Network error", "info")
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -66,6 +102,7 @@ export default function ProfilePage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
+        profilePic: formData.profilePic,
       })
 
       if (success) {
@@ -104,7 +141,7 @@ export default function ProfilePage() {
 
       const data = await response.json()
       if (response.ok) {
-        showToast("Password updated successfully", "info")
+        showToast(data.message || "Password updated successfully", "info")
         setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
       } else {
         showToast(data.error || "Failed to update password", "info")
@@ -132,7 +169,44 @@ export default function ProfilePage() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-8">
               <div>
-                <p className="uppercase tracking-widest text-xs text-gray-400 mb-5">Personal Information</p>
+                <p className="uppercase tracking-widest text-xs text-gray-400 mb-8">Personal Information</p>
+
+                {/* Profile Picture Upload */}
+                <div className="flex items-center gap-8 mb-10">
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-full overflow-hidden border border-white/10 bg-white/5 flex items-center justify-center">
+                      {formData.profilePic ? (
+                        <img src={formData.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <UserIcon size={32} className="text-gray-600" />
+                      )}
+
+                      {isUploading && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Loader2 className="animate-spin text-white" size={20} />
+                        </div>
+                      )}
+                    </div>
+
+                    <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white text-black flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors shadow-lg">
+                      <Camera size={14} />
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={isUploading}
+                      />
+                    </label>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm uppercase tracking-widest mb-1">Your Avatar</h3>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest">
+                      Upload a square image for best results.
+                    </p>
+                  </div>
+                </div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>

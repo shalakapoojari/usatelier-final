@@ -99,7 +99,7 @@ export default function ProductPage({
 
   const relatedProducts = allProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, 4)
+    .slice(0, 8)
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {
@@ -148,6 +148,31 @@ export default function ProductPage({
     }
   }
 
+  const handleBuyNow = () => {
+    if (!isAuthenticated) {
+      router.push("/login")
+      return
+    }
+
+    if (!selectedSize) {
+      const sizeSection = document.getElementById("size-section")
+      sizeSection?.scrollIntoView({ behavior: "smooth" })
+      showToast("Please select a size first", "info", product.name)
+      return
+    }
+
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      size: selectedSize,
+      image: formatImageUrl(images[0]),
+    })
+
+    showToast("Redirecting to checkout...", "cart", product.name)
+    router.push("/checkout")
+  }
+
   return (
     <div className="bg-[#030303] text-[#e8e8e3] min-h-screen">
       <SiteHeader />
@@ -170,7 +195,7 @@ export default function ProductPage({
           {/* ── IMAGES COLUMN ── */}
           <div className="space-y-4">
             {/* Main image */}
-            <div className="relative aspect-[3/4] overflow-hidden bg-[#111]">
+            <div className="relative aspect-3/4 overflow-hidden bg-[#111]">
               <Image
                 src={formatImageUrl(images[selectedImage])}
                 alt={product.name}
@@ -178,7 +203,7 @@ export default function ProductPage({
                 priority
                 className="object-cover transition-opacity duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/10" />
+              <div className="absolute inset-0 bg-linear-to-b from-transparent to-black/10" />
 
               {/* Badges top-left */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -227,7 +252,7 @@ export default function ProductPage({
           </div>
 
           {/* ── DETAILS COLUMN ── */}
-          <div className="sticky top-28 space-y-0">
+          <div className="space-y-0">
 
             {/* Category breadcrumb */}
             <Link
@@ -318,40 +343,51 @@ export default function ProductPage({
             </div>
 
             {/* CTAs */}
-            <div className="flex gap-3 mb-10">
-              <button
-                onClick={handleAddToCart}
-                disabled={!isInStock}
-                className={`flex-1 py-4 flex items-center justify-center gap-2 uppercase tracking-widest text-xs font-medium transition-all duration-500 ${addedToCart
-                  ? "bg-green-500 text-white border border-green-500"
-                  : "border border-white/40 hover:bg-white hover:text-black"
-                  } disabled:opacity-40 disabled:cursor-not-allowed`}
-              >
-                {addedToCart ? (
-                  <>
-                    <Check size={14} />
-                    Added to Cart
-                  </>
-                ) : isInStock ? (
-                  <>
-                    <ShoppingBag size={14} />
-                    Add to Cart
-                  </>
-                ) : (
-                  "Out of Stock"
-                )}
-              </button>
+            <div className="space-y-3 mb-10">
+              <div className="flex gap-3">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!isInStock}
+                  className={`flex-1 py-4 flex items-center justify-center gap-2 uppercase tracking-widest text-xs font-medium transition-all duration-500 ${addedToCart
+                    ? "bg-green-500 text-white border border-green-500"
+                    : "border border-white/40 hover:bg-white hover:text-black"
+                    } disabled:opacity-40 disabled:cursor-not-allowed`}
+                >
+                  {addedToCart ? (
+                    <>
+                      <Check size={14} />
+                      Added to Cart
+                    </>
+                  ) : isInStock ? (
+                    <>
+                      <ShoppingBag size={14} />
+                      Add to Cart
+                    </>
+                  ) : (
+                    "Out of Stock"
+                  )}
+                </button>
 
-              <button
-                onClick={handleWishlistToggle}
-                className={`px-4 py-4 border transition-all duration-300 ${isWishlisted(product.id)
-                  ? "border-red-400 text-red-400"
-                  : "border-white/20 text-gray-400 hover:border-white/60 hover:text-white"
-                  }`}
-                title="Add to Favourites"
-              >
-                <Heart size={16} className={isWishlisted(product.id) ? "fill-red-400" : ""} />
-              </button>
+                <button
+                  onClick={handleWishlistToggle}
+                  className={`px-4 py-4 border transition-all duration-300 ${isWishlisted(product.id)
+                    ? "border-red-400 text-red-400"
+                    : "border-white/20 text-gray-400 hover:border-white/60 hover:text-white"
+                    }`}
+                  title="Add to Favourites"
+                >
+                  <Heart size={16} className={isWishlisted(product.id) ? "fill-red-400" : ""} />
+                </button>
+              </div>
+
+              {isInStock && (
+                <button
+                  onClick={handleBuyNow}
+                  className="w-full py-4 bg-[#facc15] text-black border border-[#facc15] uppercase tracking-widest text-xs font-bold transition-all duration-300 hover:bg-transparent hover:text-[#facc15]"
+                >
+                  Buy Now
+                </button>
+              )}
             </div>
 
             {/* Accordions */}
@@ -428,7 +464,7 @@ export default function ProductPage({
           <section className="mt-40 max-w-[1400px] mx-auto">
             <div className="text-center mb-14">
               <p className="uppercase tracking-[0.4em] text-xs text-gray-500 mb-4">You may also like</p>
-              <h2 className="font-serif text-4xl font-light">Complete the Look</h2>
+              <h2 className="font-serif text-4xl font-light">Related Products</h2>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -436,7 +472,7 @@ export default function ProductPage({
                 const pImages = Array.isArray(p.images) ? p.images : (() => { try { return JSON.parse(p.images) } catch { return [p.images] } })()
                 return (
                   <Link key={p.id} href={`/product/${p.id}`} className="group block">
-                    <div className="relative aspect-[3/4] overflow-hidden mb-4 bg-[#111]">
+                    <div className="relative aspect-3/4 overflow-hidden mb-4 bg-[#111]">
                       <Image
                         src={formatImageUrl(pImages[0])}
                         alt={p.name}

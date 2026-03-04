@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
 
-const API_BASE = "http://localhost:5000"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
 
 export function SiteHeader() {
   const navRef = useRef<HTMLDivElement | null>(null)

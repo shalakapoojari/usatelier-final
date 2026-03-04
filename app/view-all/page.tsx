@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/sheet"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SlidersHorizontal, Loader2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
 
-const API_BASE = "http://localhost:5000"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
 
 export default function ShopPage() {
   const [products, setProducts] = useState<any[]>([])
@@ -26,7 +28,7 @@ export default function ShopPage() {
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [selectedGenders, setSelectedGenders] = useState<string[]>([])
-  const [priceLimit, setPriceLimit] = useState<number>(100000)
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
 
   const searchParams = useSearchParams()
   const urlCategory = searchParams.get("category")
@@ -128,7 +130,7 @@ export default function ShopPage() {
 
   // Reset price limit when category changes
   useEffect(() => {
-    setPriceLimit(categoryMaxPrice)
+    setPriceRange([0, categoryMaxPrice])
   }, [categoryMaxPrice])
 
   const filteredProducts = useMemo(() => {
@@ -160,7 +162,7 @@ export default function ShopPage() {
         selectedSizes.length === 0 ||
         productSizes.some((size: string) => selectedSizes.includes(size))
 
-      const priceMatch = (priceLimit || 0) <= 0 ? true : (product.price || 0) <= priceLimit
+      const priceMatch = (product.price || 0) >= priceRange[0] && (product.price || 0) <= priceRange[1]
 
       const genderMatch =
         selectedGenders.length === 0 ||
@@ -176,7 +178,7 @@ export default function ShopPage() {
 
       return categoryMatch && subcategoryMatch && sizeMatch && priceMatch && genderMatch && searchMatch
     })
-  }, [products, selectedCategories, selectedSubcategories, selectedSizes, priceLimit, selectedGenders, urlSearch])
+  }, [products, selectedCategories, selectedSubcategories, selectedSizes, priceRange, selectedGenders, urlSearch])
 
   /* ================= FILTER UI ================= */
   const FilterContent = () => (
@@ -274,37 +276,55 @@ export default function ShopPage() {
 
       {/* Price Range */}
       <div className="pt-10 border-t border-white/5">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-[10px] uppercase tracking-[0.4em] font-medium">Price Range</h3>
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="text-[10px] uppercase tracking-[0.4em] font-medium text-white">Price Range</h3>
           <span className="text-[10px] text-gray-500 font-mono tracking-widest">
-            ₹0 — ₹{priceLimit.toLocaleString('en-IN')}
+            ₹{priceRange[0].toLocaleString('en-IN')} — ₹{priceRange[1].toLocaleString('en-IN')}
           </span>
         </div>
-        <div className="px-2 relative pt-6">
-          {/* Floating Tooltip */}
-          <div
-            className="absolute -top-2 px-2 py-1 bg-white text-black text-[9px] font-bold rounded-sm whitespace-nowrap transition-all duration-75 pointer-events-none shadow-lg -translate-x-1/2"
-            style={{
-              left: `${(priceLimit / categoryMaxPrice) * 100}%`,
-            }}
-          >
-            ₹{priceLimit.toLocaleString('en-IN')}
-            {/* Tooltip arrow */}
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-white"></div>
-          </div>
 
-          <input
-            type="range"
-            min="0"
+        <div className="space-y-8 px-1">
+          <Slider
+            value={priceRange}
+            min={0}
             max={categoryMaxPrice}
-            step="100"
-            value={priceLimit > categoryMaxPrice ? categoryMaxPrice : priceLimit}
-            onChange={(e) => setPriceLimit(parseInt(e.target.value))}
-            className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white hover:accent-gray-300 transition-all"
+            step={100}
+            onValueChange={(val) => setPriceRange(val as [number, number])}
+            className="py-4"
           />
-          <div className="flex justify-between mt-4 text-[9px] text-gray-600 tracking-widest font-mono">
-            <span>₹0</span>
-            <span>₹{categoryMaxPrice.toLocaleString('en-IN')}</span>
+
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative group">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-white transition-colors text-[10px]">₹</span>
+              <Input
+                type="number"
+                value={priceRange[0]}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value) || 0
+                  setPriceRange([val, priceRange[1]])
+                }}
+                className="h-9 pl-7 bg-white/5 border-white/10 text-white rounded-none border-0 border-b focus-visible:ring-0 focus-visible:border-white/30 transition-all text-xs font-mono"
+                placeholder="0"
+              />
+              <span className="text-[8px] text-gray-600 uppercase tracking-tighter absolute -bottom-5 left-0">From</span>
+            </div>
+
+            <div className="text-gray-700 text-xs">—</div>
+
+            <div className="flex-1 relative group">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-white transition-colors text-[10px]">₹</span>
+              <Input
+                type="number"
+                value={priceRange[1]}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value) || 0
+                  setPriceRange([priceRange[0], val])
+                }}
+                className="h-9 pl-7 bg-white/5 border-white/10 text-white rounded-none border-0 border-b focus-visible:ring-0 focus-visible:border-white/30 transition-all text-xs font-mono"
+                placeholder={categoryMaxPrice.toString()}
+              />
+              <span className="text-[8px] text-gray-600 uppercase tracking-tighter absolute -bottom-5 left-0">To</span>
+            </div>
           </div>
         </div>
       </div>

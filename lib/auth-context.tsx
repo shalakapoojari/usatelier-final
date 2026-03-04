@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
-const API_BASE = "http://localhost:5000"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
 
 type User = {
   id: string
@@ -10,15 +10,17 @@ type User = {
   firstName: string
   lastName: string
   phone: string
+  profilePic?: string
   role: "user" | "admin"
   isNewSignup?: boolean
+  addresses?: any[]
 }
 
 type AuthContextType = {
   user: User | null
   login: (email: string, password: string) => Promise<{ success: boolean; user?: User; message?: string }>
   signup: (email: string, password: string, firstName: string, lastName: string, phone: string) => Promise<{ success: boolean; user?: User; message?: string }>
-  updateProfile: (data: { firstName: string; lastName: string; phone: string }) => Promise<{ success: boolean; message: string }>
+  updateProfile: (data: { firstName: string; lastName: string; phone: string; profilePic?: string }) => Promise<{ success: boolean; message: string }>
   logout: () => void
   loginWithGoogle: () => void
   isAuthenticated: boolean
@@ -46,8 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               firstName: data.firstName || data.user.split("@")[0],
               lastName: data.lastName || "",
               phone: data.phone || "",
+              profilePic: data.profilePic || "",
               role: data.isAdmin ? "admin" : "user",
               isNewSignup: data.isNewSignup || false,
+              addresses: data.addresses || [],
             }
             setUser(restored)
           }
@@ -80,8 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           firstName: data.firstName || email.split("@")[0],
           lastName: data.lastName || "",
           phone: data.phone || "",
+          profilePic: data.profilePic || "",
           role: data.isAdmin ? "admin" : "user",
           isNewSignup: data.isNewSignup || false,
+          addresses: data.addresses || [],
         }
         setUser(loggedIn)
         return { success: true, user: loggedIn }
@@ -139,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const updateProfile = async (data: { firstName: string; lastName: string; phone: string }): Promise<{ success: boolean; message: string }> => {
+  const updateProfile = async (data: { firstName: string; lastName: string; phone: string; profilePic?: string }): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await fetch(`${API_BASE}/api/auth/user`, {
         method: "PUT",

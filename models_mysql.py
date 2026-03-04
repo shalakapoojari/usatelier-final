@@ -12,6 +12,7 @@ class User(db_mysql.Model):
     first_name = db_mysql.Column(db_mysql.String(100))
     last_name = db_mysql.Column(db_mysql.String(100))
     phone = db_mysql.Column(db_mysql.String(20))
+    profile_pic = db_mysql.Column(db_mysql.Text) # Add this line
     is_admin = db_mysql.Column(db_mysql.Boolean, default=False)
     created_at = db_mysql.Column(db_mysql.DateTime, default=datetime.utcnow)
 

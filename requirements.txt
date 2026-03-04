@@ -9,3 +9,4 @@ cloudinary
 Flask-Mail==0.9.1
 authlib
 requests
+pyOpenSSL

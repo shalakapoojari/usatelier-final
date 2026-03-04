@@ -24,6 +24,7 @@ type CartContextType = {
   // "Unseen" badge — clears when user visits /cart
   unseenCount: number
   clearUnseen: () => void
+  isHydrated: boolean
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -114,6 +115,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         total,
         unseenCount,
         clearUnseen,
+        isHydrated,
       }}
     >
       {children}

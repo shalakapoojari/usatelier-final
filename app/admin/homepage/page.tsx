@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Save, Image as ImageIcon, Upload, Check, Filter, GripVertical, ChevronUp, ChevronDown, Eye } from "lucide-react"
+import { Loader2, Save, Image as ImageIcon, Upload, Check, Filter, GripVertical, ChevronUp, ChevronDown } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
 import Image from "next/image"
 import {
@@ -63,6 +63,8 @@ function HeroSlideEditor({
     const filteredProducts = categoryFilter === "all"
         ? products
         : products.filter(p => p.category === categoryFilter)
+
+    const [isOpen, setIsOpen] = useState(false)
 
     return (
         <div className="bg-white/2 border border-white/5 space-y-8 relative group/slide overflow-hidden">
@@ -147,13 +149,13 @@ function HeroSlideEditor({
                         </div>
 
                         <div className="flex flex-wrap gap-4">
-                            <Dialog>
+                            <Dialog open={isOpen} onOpenChange={setIsOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" className="bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20 rounded-none uppercase text-[9px] tracking-widest px-6 h-10 transition-all">
                                         <Search size={14} className="mr-2 text-gray-400" /> Select From Products
                                     </Button>
                                 </DialogTrigger>
-                                <DialogContent className="bg-[#030303] border-white/10 text-white max-w-4xl max-h-[80vh] overflow-y-auto custom-scrollbar">
+                                <DialogContent className="bg-[#030303] border-white/10 text-white max-w-4xl max-h-[80vh] overflow-y-auto visible-scrollbar">
                                     <DialogHeader>
                                         <DialogTitle className="font-serif text-2xl uppercase tracking-widest mb-6 px-4 pt-4">Select Product Image</DialogTitle>
                                     </DialogHeader>
@@ -184,6 +186,7 @@ function HeroSlideEditor({
                                                     key={p.id}
                                                     onClick={() => {
                                                         onUpdate(index, { image: imgUrl, product_id: p.id })
+                                                        setIsOpen(false)
                                                     }}
                                                     className="group cursor-pointer space-y-2"
                                                 >
@@ -527,25 +530,6 @@ export default function HomepageDesignPage() {
                     </div>
 
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" className="bg-white/5 border-white/10 hover:bg-white/8 text-[#e8e8e3] px-8 py-7 md:py-8 uppercase tracking-widest text-xs rounded-none transition-all flex items-center gap-3">
-                                    <Eye size={18} /> Preview
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-[#030303] border-white/10 text-white max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden rounded-none shadow-2xl">
-                                <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                                    <h2 className="font-serif text-xl uppercase tracking-widest">Live Preview (Unsaved)</h2>
-                                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-gray-500">
-                                        <div className="size-2 rounded-full bg-emerald-500 animate-pulse" /> Live Status
-                                    </div>
-                                </div>
-                                <div className="h-full bg-gray-900 flex items-center justify-center">
-                                    <p className="font-serif text-gray-500 italic">Preview window simulating storefront...</p>
-                                </div>
-                            </DialogContent>
-                        </Dialog>
-
                         <Button
                             onClick={handleSave}
                             disabled={saving}
@@ -676,6 +660,24 @@ export default function HomepageDesignPage() {
                 .no-scrollbar {
                     -ms-overflow-style: none;
                     scrollbar-width: none;
+                }
+                .visible-scrollbar::-webkit-scrollbar {
+                    display: block;
+                    width: 4px;
+                }
+                .visible-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.05);
+                }
+                .visible-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 10px;
+                }
+                .visible-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                }
+                .visible-scrollbar {
+                    -ms-overflow-style: auto;
+                    scrollbar-width: thin;
                 }
             `}</style>
         </div>

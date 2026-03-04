@@ -4,17 +4,19 @@ import os
 
 def send_email(mail, subject, recipient, template, **kwargs):
     """Base function to send an email."""
+    sender = os.getenv('MAIL_DEFAULT_SENDER') or mail.app.config.get('MAIL_DEFAULT_SENDER')
     try:
         msg = Message(
             subject,
             recipients=[recipient],
-            sender=os.getenv('MAIL_DEFAULT_SENDER')
+            sender=sender
         )
         msg.html = render_template(f"emails/{template}", **kwargs)
         mail.send(msg)
+        print(f"DEBUG: Email sent successfully to {recipient}")
         return True
     except Exception as e:
-        print(f"Error sending email: {str(e)}")
+        print(f"DEBUG: Error sending email to {recipient}: {str(e)}")
         return False
 
 def send_signup_confirmation(mail, user_email, first_name):

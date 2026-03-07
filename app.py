@@ -28,17 +28,24 @@ from borzo_utils import create_delivery_order
 load_dotenv()
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
+# Parse allowed origins from environment (comma separated) or use default local config
+allowed_origins_env = os.getenv('ALLOWED_ORIGINS')
+if allowed_origins_env:
+    origins = [origin.strip() for origin in allowed_origins_env.split(',')]
+else:
+    origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://192.168.31.120:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
 # CORS must specify origins when supports_credentials=True
 # Wildcard "*" is NOT allowed with credentials.
-CORS(app, supports_credentials=True, origins=[
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://192.168.31.120:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-])
+CORS(app, supports_credentials=True, origins=origins)
 
 # Cloudinary Configuration
 cloudinary.config(
@@ -81,7 +88,7 @@ google = oauth.register(
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration'
 )
 
-app.config['MONGO_URI'] = "mongodb://localhost:27017/ecommerce_db"
+app.config['MONGO_URI'] = os.getenv('MONGO_URI', "mongodb://localhost:27017/ecommerce_db")
 app.config['SESSION_COOKIE_NAME'] = 'us_atelier_session'
 app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'

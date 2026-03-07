@@ -138,7 +138,7 @@ export default function CheckoutPage() {
     try {
       // CASE 1: UPI QR Mode (Verify existing QR payment)
       if (paymentMethod === "upi_qr" && qrData) {
-        const verifyRes = await fetch("http://localhost:5000/api/payments/check-qr-status", {
+        const verifyRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/payments/check-qr-status`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -148,7 +148,7 @@ export default function CheckoutPage() {
         const verifyData = await verifyRes.json()
         if (verifyRes.ok && verifyData.success) {
           // Payment found! Finalize the order
-          const finalizeRes = await fetch("http://localhost:5000/api/orders", {
+          const finalizeRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/orders`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -192,7 +192,7 @@ export default function CheckoutPage() {
       }
 
       // CASE 2: Standard Flow (Open Popup)
-      const res = await fetch("http://localhost:5000/api/payments/create-order", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/payments/create-order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -210,7 +210,7 @@ export default function CheckoutPage() {
         description: "Order Payment",
         order_id: rzpOrder.id,
         handler: async function (response: any) {
-          const finalizeRes = await fetch("http://localhost:5000/api/orders", {
+          const finalizeRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/orders`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -269,7 +269,7 @@ export default function CheckoutPage() {
     setIsProcessing(true)
     setQrData(null)
     try {
-      const res = await fetch("http://localhost:5000/api/payments/create-qr", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/payments/create-qr`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -20,7 +20,7 @@ import { Slider } from "@/components/ui/slider"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
 
-export default function ShopPage() {
+function ShopContent() {
   const [products, setProducts] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -332,11 +332,7 @@ export default function ShopPage() {
   )
 
   return (
-    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen overflow-x-hidden">
-      <Suspense fallback={<div>Loading...</div>}>
-        <SiteHeader />
-      </Suspense>
-
+    <>
       {/* ================= PAGE HEADER ================= */}
       {!loading && (
         <section className="pt-44 pb-12 text-center px-6">
@@ -555,8 +551,23 @@ export default function ShopPage() {
           </div>
         </div>
       </main>
+    </>
+  )
+}
 
+export default function ShopPage() {
+  return (
+    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen overflow-x-hidden">
+      <Suspense fallback={
+        <div className="bg-[#030303] min-h-screen flex items-center justify-center">
+          <Loader2 className="animate-spin text-gray-400" />
+        </div>
+      }>
+        <SiteHeader />
+        <ShopContent />
+      </Suspense>
       <SiteFooter />
     </div>
   )
 }
+

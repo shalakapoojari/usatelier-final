@@ -107,6 +107,7 @@ export default function AdminLayout({
           <Link href="/admin/orders" className={pathname === "/admin/orders" ? "text-white px-2" : "text-gray-500 px-2"}>Orders</Link>
           <Link href="/admin/products" className={pathname === "/admin/products" ? "text-white px-2" : "text-gray-500 px-2"}>Products</Link>
           <Link href="/admin/payments" className={pathname === "/admin/payments" ? "text-white px-2" : "text-gray-500 px-2"}>Payments</Link>
+          <Link href="/admin/customers" className={pathname === "/admin/customers" ? "text-white px-2" : "text-gray-500 px-2"}>Customers</Link>
         </nav>
       </div>
 

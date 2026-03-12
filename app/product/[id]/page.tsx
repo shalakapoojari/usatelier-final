@@ -559,6 +559,35 @@ export default function ProductPage({
                   </div>
                 )}
               </div>
+
+              {/* Size Guide */}
+              {product.sizeGuideImage && (
+                <div className="border-t border-white/10">
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById("size-guide-content");
+                      if (el) el.classList.toggle("hidden");
+                    }}
+                    className="flex items-center justify-between w-full py-5"
+                  >
+                    <span className="uppercase tracking-widest text-xs text-amber-500">Size Guide</span>
+                    <ChevronDown size={16} className="text-amber-500" />
+                  </button>
+                  <div id="size-guide-content" className="pb-10 hidden animate-in fade-in duration-500">
+                    <div className="relative aspect-square md:aspect-video w-full bg-white/5 border border-white/5 overflow-hidden">
+                      <Image 
+                        src={formatImageUrl(product.sizeGuideImage)} 
+                        alt="Size Guide" 
+                        fill 
+                        className="object-contain"
+                      />
+                    </div>
+                    <p className="mt-4 text-[10px] text-gray-500 uppercase tracking-widest text-center">
+                      Reference measurements for the perfect fit.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

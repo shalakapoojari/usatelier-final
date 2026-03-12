@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Users, MoreVertical, Edit2, Ban, Eye } from "lucide-react"
+import { Users, MoreVertical, Edit2, Ban, Eye, UserCheck } from "lucide-react"
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([])
@@ -26,6 +26,31 @@ export default function CustomersPage() {
       console.error(err)
     } finally {
       setIsLoading(false)
+    }
+  }
+  const toggleBlockStatus = async (customerId: string, currentStatus: boolean) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/customers/${customerId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_blocked: !currentStatus }),
+        credentials: "include"
+      })
+
+      if (res.ok) {
+        setCustomers(prev => prev.map(c =>
+          c.id === customerId ? { ...c, is_blocked: !currentStatus } : c
+        ))
+        setOpenMenuId(null)
+      } else {
+        const errData = await res.json()
+        alert(errData.error || "Failed to update status")
+      }
+    } catch (err) {
+      console.error("Error toggling block status:", err)
+      alert("An error occurred. Please try again.")
     }
   }
 
@@ -72,8 +97,15 @@ export default function CustomersPage() {
                   className={`border-b border-white/5 hover:bg-white/[0.04] transition-colors ${i % 2 === 0 ? "bg-white/[0.02]" : ""}`}
                 >
                   <td className="px-8 py-6">
-                    <p className="font-medium text-white">{customer.name}</p>
-                    <p className="text-[10px] tracking-widest text-gray-500 uppercase mt-1">ID: {customer.id.substring(customer.id.length - 6)}</p>
+                    <div className="flex items-center gap-3">
+                      <p className="font-medium text-white">{customer.name}</p>
+                      {customer.is_blocked && (
+                        <span className="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] uppercase tracking-widest border border-red-500/20 rounded-full">
+                          Blocked
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] tracking-widest text-gray-500 uppercase mt-1">ID: {String(customer.id).slice(-6)}</p>
                   </td>
 
                   <td className="px-8 py-6">
@@ -111,6 +143,22 @@ export default function CustomersPage() {
                         >
                           <Eye size={14} /> View Profile
                         </Link>
+
+                        <button
+                          onClick={() => toggleBlockStatus(customer.id, customer.is_blocked)}
+                          className={`flex items-center gap-3 px-4 py-2 hover:bg-white/5 text-xs tracking-widest uppercase transition-colors w-full text-left ${customer.is_blocked ? "text-green-500" : "text-red-500"
+                            }`}
+                        >
+                          {customer.is_blocked ? (
+                            <>
+                              <UserCheck size={14} /> Unblock User
+                            </>
+                          ) : (
+                            <>
+                              <Ban size={14} /> Block User
+                            </>
+                          )}
+                        </button>
 
                       </div>
                     )}

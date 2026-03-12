@@ -69,6 +69,7 @@ export default function ProductsPage() {
     fabric: "",
     care: "",
     gender: "Unisex",
+    sizeGuideImage: "",
     notifyUsers: false,
   })
 
@@ -209,6 +210,7 @@ export default function ProductsPage() {
       fabric: product.fabric || "",
       care: product.care || "",
       gender: product.gender || "Unisex",
+      sizeGuideImage: product.sizeGuideImage || "",
       notifyUsers: false,
     })
     setEditingProduct(product)
@@ -263,6 +265,7 @@ export default function ProductsPage() {
           fabric: "",
           care: "",
           gender: "Unisex",
+          sizeGuideImage: "",
           notifyUsers: false,
         })
       } else {
@@ -302,7 +305,7 @@ export default function ProductsPage() {
       p.name?.toLowerCase().includes(term) ||
       p.category?.toLowerCase().includes(term) ||
       p.subcategory?.toLowerCase().includes(term) ||
-      p.id?.toLowerCase().includes(term)
+      String(p.id).toLowerCase().includes(term)
 
     const matchesCategory = categoryFilter === "all" || p.category === categoryFilter
     return matchesSearch && matchesCategory
@@ -340,6 +343,7 @@ export default function ProductsPage() {
               fabric: "",
               care: "",
               gender: "Unisex",
+              sizeGuideImage: "",
               notifyUsers: false,
             })
           }
@@ -535,6 +539,74 @@ export default function ProductsPage() {
                         <Plus size={12} className="mr-2" /> Add More Image
                       </Button>
                     </div>
+
+                    {/* Size Guide Image */}
+                    <div className="pt-6 border-t border-white/5 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-[10px] uppercase tracking-[0.3em] text-amber-500">Product Size Guide Image</Label>
+                        {formData.sizeGuideImage && (
+                          <button type="button" onClick={() => setFormData(p => ({ ...p, sizeGuideImage: "" }))} className="text-gray-600 hover:text-white">
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex gap-4 p-4 border border-amber-500/10 bg-amber-500/[0.02] hover:bg-amber-500/[0.04] transition-all">
+                        <div className="relative w-16 h-20 bg-white/5 border border-white/10 flex-shrink-0 overflow-hidden">
+                          {formData.sizeGuideImage ? (
+                            <Image src={getImageUrl(formData.sizeGuideImage)} alt="Size Guide" fill className="object-cover" />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center text-gray-700">
+                              <Upload size={16} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <LinkIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+                              <Input
+                                value={formData.sizeGuideImage}
+                                onChange={(e) => setFormData(p => ({ ...p, sizeGuideImage: e.target.value }))}
+                                placeholder="Size guide URL..."
+                                className="bg-transparent border-white/10 h-10 pl-9 text-xs rounded-none"
+                              />
+                            </div>
+                            <div className="relative">
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) {
+                                    const data = new FormData()
+                                    data.append("file", file)
+                                    try {
+                                      const res = await fetch(`${API_BASE}/api/upload`, {
+                                        method: "POST",
+                                        credentials: "include",
+                                        body: data,
+                                      })
+                                      const result = await res.json()
+                                      if (res.ok && result.success) {
+                                        setFormData(p => ({ ...p, sizeGuideImage: result.url }))
+                                        showToast("Size guide uploaded", "info")
+                                      }
+                                    } catch {
+                                      showToast("Upload error", "info")
+                                    }
+                                  }
+                                }}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-10"
+                              />
+                              <Button type="button" variant="outline" size="icon" className="h-10 w-10 bg-white/5 border-white/10 hover:bg-white/10 rounded-none">
+                                <Upload size={14} />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-[8px] text-gray-500 uppercase tracking-widest">Recommended for shoes or fitted apparel.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
@@ -668,7 +740,7 @@ export default function ProductsPage() {
                   </div>
                   <div>
                     <p className="font-medium text-sm">{p.name}</p>
-                    <p className="text-[10px] tracking-[0.3em] text-gray-600 uppercase mt-1">ID {p.id.slice(-6)}</p>
+                    <p className="text-[10px] tracking-[0.3em] text-gray-600 uppercase mt-1">ID {String(p.id).slice(-6)}</p>
                   </div>
                 </td>
                 <td className="px-8 py-6 text-xs tracking-widest">

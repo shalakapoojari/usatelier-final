@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for, send_from_directory
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
@@ -132,6 +132,11 @@ RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET')
 
 razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)) if RAZORPAY_KEY_ID else None
 
+# ==================== STATIC ASSETS ====================
+@app.route('/static/uploads/<path:filename>')
+def serve_uploads(filename):
+    return send_from_directory(os.path.join(os.getcwd(), 'public', 'uploads'), filename)
+
 # ==================== ROUTES ====================
 
 @app.route('/')
@@ -214,7 +219,7 @@ def signup():
     try:
         new_user = User(
             email=email,
-            password_hash=generate_password_hash(password),
+            password=password, # PLAIN TEXT AS REQUESTED
             first_name=first_name,
             last_name=last_name,
             phone=phone,
@@ -252,7 +257,7 @@ def login():
     
     user = User.query.filter_by(email=email).first()
     
-    if user and check_password_hash(user.password_hash, password):
+    if user and user.password == password: # PLAIN TEXT AS REQUESTED
         if user.is_blocked:
             return jsonify({"error": "Your account has been blocked. Please contact support."}), 403
 
@@ -389,7 +394,7 @@ def change_password():
         return jsonify({"error": "Incorrect current password"}), 400
         
     try:
-        user.password_hash = generate_password_hash(new_password)
+        user.password = new_password # PLAIN TEXT AS REQUESTED
         db_mysql.session.commit()
     except Exception as e:
         print(f"DEBUG: Error updating password in MySQL: {e}")
@@ -436,7 +441,7 @@ def google_callback():
         try:
             user = User(
                 email=email,
-                password_hash=generate_password_hash(os.urandom(24).hex()), # Random pass for OAuth users
+                password=os.urandom(24).hex(), # Random pass for OAuth users
                 first_name=first_name,
                 last_name=last_name,
                 profile_pic=picture,
@@ -638,7 +643,8 @@ def add_product():
             is_new=bool(data.get('newArrival', False)),
             is_bestseller=bool(data.get('bestseller', False)),
             fabric=data.get('fabric', ''),
-            care=data.get('care', '')
+            care=data.get('care', ''),
+            size_guide_image=data.get('sizeGuideImage', '')
         )
         
         db_mysql.session.add(new_product)
@@ -696,6 +702,7 @@ def update_product(product_id):
         if 'bestseller' in data: product.is_bestseller = bool(data['bestseller'])
         if 'fabric' in data: product.fabric = data['fabric']
         if 'care' in data: product.care = data['care']
+        if 'sizeGuideImage' in data: product.size_guide_image = data['sizeGuideImage']
         
         db_mysql.session.commit()
         return jsonify({
@@ -1213,7 +1220,8 @@ def get_customers():
     if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
         return jsonify({"error": "Unauthorized"}), 401
     
-    users = User.query.filter(User.is_admin != True).all()
+    users = User.query.filter_by(is_admin=False).all()
+    print(f"DEBUG: Found {len(users)} customers for admin panel")
     
     customer_data = []
     for user in users:
@@ -1301,6 +1309,82 @@ def update_customer_status(customer_id):
         return jsonify({"error": "Customer not found"}), 404
     except Exception as e:
         db_mysql.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+# ==================== ANALYSIS ====================
+
+@app.route('/api/admin/analysis', methods=['GET'])
+def get_analysis_data():
+    is_admin = session.get('is_admin')
+    if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        # 1. Most Sold (Summing quantities from OrderItems)
+        all_orders = OrderSQL.query.all()
+        product_sales = {} # product_id -> count
+        
+        for order in all_orders:
+            try:
+                # order.items is a SQLAlchemy relationship (list of OrderItem objects)
+                for item in order.items:
+                    pid = item.product_id_str
+                    qty = item.quantity or 1
+                    if pid:
+                        product_sales[pid] = product_sales.get(pid, 0) + qty
+            except Exception as e:
+                print(f"Error processing order {order.id}: {e}")
+                continue
+
+        # Get top 5 sold products
+        sorted_sales = sorted(product_sales.items(), key=lambda x: x[1], reverse=True)[:5]
+        most_sold_list = []
+        for pid, qty in sorted_sales:
+            try:
+                # Convert string ID to int for MySQL lookup
+                numeric_id = int(pid)
+                product = ProductSQL.query.get(numeric_id)
+                if product:
+                    most_sold_list.append({
+                        "id": str(product.id),
+                        "name": product.name,
+                        "total_sold": qty,
+                        "image": product.images[0] if product.images else "/placeholder.jpg"
+                    })
+            except (ValueError, TypeError):
+                continue
+
+        # 2. Low Stock
+        low_stock = ProductSQL.query.filter(ProductSQL.stock < 5).all()
+        low_stock_list = [{
+            "id": str(p.id),
+            "name": p.name,
+            "stock": p.stock
+        } for p in low_stock]
+
+        # 3. Category Stats
+        categories = CategorySQL.query.all()
+        category_stats = []
+        for cat in categories:
+            count = ProductSQL.query.filter_by(category=cat.name).count()
+            category_stats.append({
+                "_id": cat.name,
+                "count": count
+            })
+
+        analysis_data = {
+            "most_sold": most_sold_list,
+            "most_favorited": [], 
+            "most_added_to_cart": [], 
+            "low_stock": low_stock_list,
+            "all_stock": [], 
+            "category_stats": category_stats
+        }
+
+        return jsonify(analysis_data), 200
+    except Exception as e:
+        print(f"Analysis error: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ==================== CATEGORIES ====================
@@ -1550,7 +1634,7 @@ def seed_database():
     if not admin:
         admin = User(
             email=admin_email,
-            password_hash=generate_password_hash("admin123"),
+            password="admin123", # PLAIN TEXT AS REQUESTED
             is_admin=True,
             first_name="Admin",
             last_name="User"
@@ -1558,7 +1642,7 @@ def seed_database():
         db_mysql.session.add(admin)
         print(f"Created new admin: {admin_email}")
     else:
-        admin.password_hash = generate_password_hash("admin123")
+        admin.password = "admin123" # PLAIN TEXT AS REQUESTED
         admin.is_admin = True
         print(f"Synced credentials for admin: {admin_email}")
 
@@ -1580,123 +1664,11 @@ def seed_database():
             db_mysql.session.add(new_cat)
         print("Categories Seeded!")
 
-    # ── SEED PRODUCTS ONLY IF EMPTY ──
-    if ProductSQL.query.count() == 0:
-        products_data = [
-            {
-                "name": "Essential Cashmere Sweater",
-                "price": 295,
-                "description": "Luxuriously soft cashmere sweater with a relaxed fit.",
-                "category": "Knitwear",
-                "subcategory": "Sweaters",
-                "gender": "Women",
-                "images": ["/minimal-beige-cashmere-sweater-on-model.jpg"],
-                "sizes": ["XS", "S", "M", "L", "XL"],
-                "stock": 100,
-                "is_featured": True
-            },
-            {
-                "name": "Tailored Wool Trousers",
-                "price": 245,
-                "description": "Classic tailored trousers crafted from premium wool.",
-                "category": "Trousers",
-                "subcategory": "Tailored",
-                "gender": "Men",
-                "images": ["/charcoal-grey-wool-trousers-on-model-minimal.jpg"],
-                "sizes": ["28", "30", "32", "34", "36"],
-                "stock": 50,
-                "is_featured": True
-            },
-            {
-                "name": "Organic Cotton Tee",
-                "price": 85,
-                "description": "Essential crew neck tee made from premium organic cotton.",
-                "category": "Basics",
-                "subcategory": "Tees",
-                "gender": "Men",
-                "images": ["/white-cotton-t-shirt-on-model-minimal-clean.jpg"],
-                "sizes": ["XS", "S", "M", "L", "XL"],
-                "stock": 200,
-                "is_new": True
-            },
-            {
-                "name": "Silk Button-Down Shirt",
-                "price": 325,
-                "description": "Elegant silk shirt with mother-of-pearl buttons.",
-                "category": "Shirts",
-                "subcategory": "Formal",
-                "gender": "Women",
-                "images": ["/ivory-silk-shirt-on-model-minimal-elegant.jpg"],
-                "sizes": ["XS", "S", "M", "L"],
-                "stock": 30,
-                "is_new": True
-            },
-            {
-                "name": "Merino Wool Cardigan",
-                "price": 275,
-                "description": "Lightweight merino wool cardigan.",
-                "category": "Knitwear",
-                "subcategory": "Cardigans",
-                "gender": "Men",
-                "images": ["/navy-merino-wool-cardigan-on-model.jpg"],
-                "sizes": ["S", "M", "L", "XL"],
-                "stock": 60,
-                "is_featured": True
-            },
-            {
-                "name": "Linen Wide-Leg Pants",
-                "price": 195,
-                "description": "Flowing wide-leg pants in breathable linen.",
-                "category": "Trousers",
-                "subcategory": "Casual",
-                "gender": "Women",
-                "images": ["/natural-linen-wide-leg-pants-on-model.jpg"],
-                "sizes": ["XS", "S", "M", "L"],
-                "stock": 40
-            },
-            {
-                "name": "Leather Minimal Tote",
-                "price": 425,
-                "description": "Handcrafted leather tote with clean lines.",
-                "category": "Accessories",
-                "subcategory": "Bags",
-                "gender": "Women",
-                "images": ["/tan-leather-tote-bag-minimal.jpg"],
-                "sizes": ["One Size"],
-                "stock": 15,
-                "is_featured": True,
-                "is_bestseller": True
-            },
-            {
-                "name": "Cashmere Scarf",
-                "price": 165,
-                "description": "Soft cashmere scarf in a versatile neutral tone.",
-                "category": "Accessories",
-                "subcategory": "Scarf",
-                "gender": "Men",
-                "images": ["/beige-cashmere-scarf-styled.jpg"],
-                "sizes": ["One Size"],
-                "stock": 40,
-                "is_new": True
-            }
-        ]
-        for p_data in products_data:
-            new_prod = ProductSQL(
-                name=p_data['name'],
-                price=p_data['price'],
-                description=p_data['description'],
-                category=p_data['category'],
-                subcategory=p_data['subcategory'],
-                gender=p_data['gender'],
-                images=p_data['images'],
-                sizes=p_data['sizes'],
-                stock=p_data['stock'],
-                is_featured=p_data.get('is_featured', False),
-                is_new=p_data.get('is_new', False),
-                is_bestseller=p_data.get('is_bestseller', False)
-            )
-            db_mysql.session.add(new_prod)
-        print("MySQL Products Seeded!")
+    try:
+        db_mysql.session.commit()
+    except Exception as e:
+        db_mysql.session.rollback()
+        print(f"Commit failed: {e}")
 
     try:
         db_mysql.session.commit()

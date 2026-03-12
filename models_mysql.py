@@ -8,7 +8,7 @@ class User(db_mysql.Model):
     __tablename__ = 'users'
     id = db_mysql.Column(db_mysql.Integer, primary_key=True)
     email = db_mysql.Column(db_mysql.String(255), unique=True, nullable=False)
-    password_hash = db_mysql.Column(db_mysql.String(255), nullable=False)
+    password = db_mysql.Column(db_mysql.String(255), nullable=False)
     first_name = db_mysql.Column(db_mysql.String(100))
     last_name = db_mysql.Column(db_mysql.String(100))
     phone = db_mysql.Column(db_mysql.String(20))
@@ -80,6 +80,7 @@ class Product(db_mysql.Model):
     is_bestseller = db_mysql.Column(db_mysql.Boolean, default=False)
     fabric = db_mysql.Column(db_mysql.String(255))
     care = db_mysql.Column(db_mysql.Text)
+    size_guide_image = db_mysql.Column(db_mysql.Text) # Stored as URL or path
     created_at = db_mysql.Column(db_mysql.DateTime, default=datetime.utcnow)
 
     @property
@@ -115,6 +116,7 @@ class Product(db_mysql.Model):
             'isBestseller': self.is_bestseller,
             'fabric': self.fabric,
             'care': self.care,
+            'sizeGuideImage': self.size_guide_image,
             'createdAt': self.created_at.isoformat() if self.created_at else None
         }
 

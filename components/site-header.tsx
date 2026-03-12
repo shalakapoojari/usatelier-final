@@ -154,6 +154,14 @@ export function SiteHeader() {
         </form>
 
         <div className="flex items-center gap-3 ml-auto">
+          {/* About Link */}
+          <Link
+            href="/about"
+            className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-white transition-colors mr-2 hidden lg:block"
+          >
+            About
+          </Link>
+
           {/* Help Link Moved Here */}
           <Link
             href="/help"

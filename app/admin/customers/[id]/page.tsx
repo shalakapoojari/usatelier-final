@@ -19,7 +19,7 @@ export default function CustomerProfilePage({
 
     const fetchCustomerProfile = async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/customers/${id}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/admin/customers/${id}`, {
                 credentials: "include"
             })
             if (res.ok) {
@@ -168,7 +168,7 @@ export default function CustomerProfilePage({
                                     </thead>
                                     <tbody>
                                         {customer.orders.map((order: any, i: number) => (
-                                            <tr key={order.id} className={`border-b border-white/5 hover:bg-white/[0.04] transition-colors ${i % 2 === 0 ? "bg-[#050505]" : ""}`}>
+                                            <tr key={order.id} className={`border-b border-white/5 hover:bg-white/4 transition-colors ${i % 2 === 0 ? "bg-[#050505]" : ""}`}>
                                                 <td className="px-6 py-4">
                                                     <Link href={`/admin/orders/${order.id}`} className="text-white hover:underline uppercase tracking-widest text-[10px]">
                                                         {order.id}

@@ -35,11 +35,7 @@ interface AnalysisData {
 const COLORS = ["#e8e8e3", "#a1a1aa", "#71717a", "#52525b", "#3f3f46"]
 
 export default function BusinessAnalysisPage() {
-    const [API_BASE, setApiBase] = useState("")
-
-    useEffect(() => {
-        setApiBase(`http://${window.location.hostname}:5000`)
-    }, [])
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
 
     const [data, setData] = useState<AnalysisData | null>(null)
     const [loading, setLoading] = useState(true)
@@ -61,7 +57,7 @@ export default function BusinessAnalysisPage() {
             const enhancedData: AnalysisData = {
                 ...result,
                 most_sold: [
-                    ...result.most_sold.map(p => ({
+                    ...result.most_sold.map((p: any) => ({
                         ...p,
                         price: basePrice,
                         image: '/placeholder.jpg',
@@ -128,10 +124,8 @@ export default function BusinessAnalysisPage() {
     }
 
     useEffect(() => {
-        if (API_BASE) {
-            fetchData()
-        }
-    }, [API_BASE])
+        fetchData()
+    }, [])
 
     if (loading) {
         return (
@@ -225,6 +219,102 @@ export default function BusinessAnalysisPage() {
                     </table>
                 </div>
             </section>
+            
+            {/* Category Analysis and Stock Distribution */}
+            <div className="grid lg:grid-cols-2 gap-12">
+                {/* Category Doughnut Chart */}
+                <div className="bg-white/5 border border-white/10 rounded-sm p-8 shadow-2xl">
+                    <div className="flex items-center gap-4 mb-10">
+                        <TrendingUp className="w-5 h-5 text-[#e8e8e3]" />
+                        <h2 className="text-sm uppercase tracking-[0.3em] font-bold text-[#e8e8e3]">Category Distribution</h2>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row items-center gap-12">
+                        {/* Doughnut Chart */}
+                        <div className="w-full h-64 md:w-1/2">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={data.category_stats}
+                                        dataKey="count"
+                                        nameKey="_id"
+                                        innerRadius={60}
+                                        outerRadius={100}
+                                        paddingAngle={5}
+                                        stroke="none"
+                                    >
+                                        {data.category_stats.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                                        itemStyle={{ color: '#e8e8e3' }}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Legend / List */}
+                        <div className="w-full md:w-1/2 space-y-4">
+                            {data.category_stats.map((category, idx) => (
+                                <div key={idx} className="flex items-center justify-between group">
+                                    <div className="flex items-center gap-3">
+                                        <div 
+                                            className="w-2.5 h-2.5 rounded-full" 
+                                            style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                                        />
+                                        <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 group-hover:text-[#e8e8e3] transition-colors font-medium">
+                                            {category._id}
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#e8e8e3] font-bold group-hover:scale-110 transition-transform origin-right">
+                                        {category.count} {category.count === 1 ? 'ITEM' : 'ITEMS'}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stock Distribution Indicator */}
+                <div className="bg-white/5 border border-white/10 rounded-sm p-8 shadow-2xl">
+                    <div className="flex items-center gap-4 mb-8">
+                        <Package className="w-5 h-5 text-[#e8e8e3]" />
+                        <h2 className="text-sm uppercase tracking-[0.3em] font-bold text-[#e8e8e3]">Stock Analytics</h2>
+                    </div>
+                    
+                    <div className="space-y-6 overflow-y-auto max-h-[250px] pr-4 custom-scrollbar">
+                        {data.all_stock.map((item, idx) => (
+                            <div key={idx} className="space-y-2">
+                                <div className="flex justify-between items-end text-[9px] uppercase tracking-widest">
+                                    <span className="text-gray-400 truncate max-w-[150px]">{item.name}</span>
+                                    <span className={item.stock <= 5 ? "text-red-500" : "text-gray-500"}>{item.stock} in stock</span>
+                                </div>
+                                <div className="h-[2px] w-full bg-white/5 overflow-hidden">
+                                    <div 
+                                        className={`h-full transition-all duration-1000 ${
+                                            item.stock <= 5 ? "bg-red-500/40" : 
+                                            item.stock <= 15 ? "bg-orange-400/30" : "bg-white/20"
+                                        }`}
+                                        style={{ width: `${Math.min((item.stock/50)*100, 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className={`w-3 h-3 ${data.low_stock.length > 0 ? "text-red-500 animate-pulse" : "text-gray-700"}`} />
+                            <span className="text-[8px] uppercase tracking-widest text-gray-500">
+                                {data.low_stock.length} critically low items
+                            </span>
+                        </div>
+                        <span className="text-[8px] uppercase tracking-widest text-gray-700">Managed Inventory System v1.2</span>
+                    </div>
+                </div>
+            </div>
 
             {/* Aesthetic Footer Note */}
             <div className="pt-12 border-t border-white/5 flex justify-between items-center text-[9px] uppercase tracking-[0.4em] text-gray-700">

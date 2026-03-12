@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, Suspense } from "react"
+import { useState, useMemo, useEffect, Suspense, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
@@ -31,6 +31,7 @@ function ShopContent() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
   const [localMin, setLocalMin] = useState<string>("0")
   const [localMax, setLocalMax] = useState<string>("100000")
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
   const searchParams = useSearchParams()
   const urlCategory = searchParams.get("category")
@@ -137,10 +138,12 @@ function ShopContent() {
     setLocalMax(categoryMaxPrice.toString())
   }, [categoryMaxPrice])
 
-  // Sync local inputs when slider moves priceRange
+  // Sync local inputs when slider moves priceRange (slider moves are direct)
   useEffect(() => {
-    setLocalMin(priceRange[0].toString())
-    setLocalMax(priceRange[1].toString())
+    // Only sync if not currently being typed in by checking focus or a flag if needed, 
+    // but for now simple sync is fine if slider is used.
+    if (Math.abs(parseInt(localMin) - priceRange[0]) > 1) setLocalMin(priceRange[0].toString())
+    if (Math.abs(parseInt(localMax) - priceRange[1]) > 1) setLocalMax(priceRange[1].toString())
   }, [priceRange])
 
   const filteredProducts = useMemo(() => {
@@ -312,12 +315,11 @@ function ShopContent() {
                 onChange={(e) => {
                   const val = e.target.value
                   setLocalMin(val)
-                  // Simple debounce
-                  const timeout = setTimeout(() => {
+                  if (debounceTimer.current) clearTimeout(debounceTimer.current)
+                  debounceTimer.current = setTimeout(() => {
                     const num = parseInt(val) || 0
-                    setPriceRange([num, priceRange[1]])
-                  }, 500)
-                  return () => clearTimeout(timeout)
+                    setPriceRange(prev => [num, prev[1]])
+                  }, 400)
                 }}
                 className="h-9 pl-7 bg-white/5 border-white/10 text-white rounded-none border-0 border-b focus-visible:ring-0 focus-visible:border-white/30 transition-all text-xs font-mono"
                 placeholder="0"
@@ -335,12 +337,11 @@ function ShopContent() {
                 onChange={(e) => {
                   const val = e.target.value
                   setLocalMax(val)
-                  // Simple debounce
-                  const timeout = setTimeout(() => {
+                  if (debounceTimer.current) clearTimeout(debounceTimer.current)
+                  debounceTimer.current = setTimeout(() => {
                     const num = parseInt(val) || 0
-                    setPriceRange([priceRange[0], num])
-                  }, 500)
-                  return () => clearTimeout(timeout)
+                    setPriceRange(prev => [prev[0], num])
+                  }, 400)
                 }}
                 className="h-9 pl-7 bg-white/5 border-white/10 text-white rounded-none border-0 border-b focus-visible:ring-0 focus-visible:border-white/30 transition-all text-xs font-mono"
                 placeholder={categoryMaxPrice.toString()}
@@ -370,8 +371,8 @@ function ShopContent() {
       {/* ================= CONTENT ================= */}
       <main className={`px-6 md:px-12 pb-32 ${filteredProducts.length === 0 && !loading ? 'flex justify-center' : ''}`}>
         <div className={`flex gap-16 ${filteredProducts.length === 0 && !loading ? 'w-full max-w-4xl justify-center' : 'w-full'}`}>
-          {/* Desktop Filters - Only shown if products exist */}
-          {!loading && filteredProducts.length > 0 && (
+          {/* Desktop Filters */}
+          {!loading && (
             <aside className="hidden lg:block w-70 shrink-0">
               <div className="sticky top-24 pb-12">
                 <FilterContent />

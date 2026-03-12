@@ -8,9 +8,6 @@ import time
 import razorpay
 from datetime import datetime
 from flask_mail import Mail
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
 from authlib.integrations.flask_client import OAuth
 import requests
 from mail_utils import (
@@ -22,7 +19,8 @@ from mail_utils import (
 )
 from models_mysql import (
     db_mysql, User, Product as ProductSQL, Category as CategorySQL, 
-    Order as OrderSQL, OrderItem, CartItem, WishlistItem, Review, HomepageConfig
+    Order as OrderSQL, OrderItem, CartItem, WishlistItem, Review, HomepageConfig,
+    Payment
 )
 from borzo_utils import create_delivery_order
 
@@ -49,14 +47,6 @@ else:
 # Wildcard "*" is NOT allowed with credentials.
 CORS(app, supports_credentials=True, origins=origins)
 
-# Cloudinary Configuration
-cloudinary.config(
-  cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'),
-  api_key = os.getenv('CLOUDINARY_API_KEY'),
-  api_secret = os.getenv('CLOUDINARY_API_SECRET'),
-  secure = True
-)
-
 # Upload Configuration
 # UPLOAD_FOLDER is kept for compatibility if needed, but we'll use Cloudinary
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'public', 'uploads')
@@ -72,7 +62,10 @@ def allowed_file(filename):
 
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' # Re-enabled for local test
+if os.getenv('FLASK_ENV') != 'production':
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+else:
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '0'
 
 # Google OAuth Configuration
 oauth = OAuth(app)
@@ -107,10 +100,13 @@ app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 
 # Razorpay Configuration
-def get_razorpay_client():
-    return razorpay.Client(auth=(os.getenv('RAZORPAY_KEY_ID'), os.getenv('RAZORPAY_KEY_SECRET')))
+RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
+RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET')
 
-razorpay_client = get_razorpay_client()
+def get_razorpay_client():
+    return razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+
+razorpay_client = get_razorpay_client() if RAZORPAY_KEY_ID else None
 
 mail = Mail(app)
 
@@ -125,12 +121,6 @@ with app.app_context():
         print("MySQL Tables Created/Verified")
     except Exception as e:
         print(f"Error creating MySQL tables: {e}")
-
-# Razorpay Config
-RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
-RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET')
-
-razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)) if RAZORPAY_KEY_ID else None
 
 # ==================== STATIC ASSETS ====================
 @app.route('/static/uploads/<path:filename>')
@@ -219,7 +209,7 @@ def signup():
     try:
         new_user = User(
             email=email,
-            password=password, # PLAIN TEXT AS REQUESTED
+            password=generate_password_hash(password), # Hashed password
             first_name=first_name,
             last_name=last_name,
             phone=phone,
@@ -228,7 +218,7 @@ def signup():
         db_mysql.session.add(new_user)
         db_mysql.session.commit()
 
-        session.permanent = True
+        session.permanent = False # Change to False for session-only persistence
         session['user_id'] = str(new_user.id)
         session['is_admin'] = False
         session['is_new_signup'] = True 
@@ -257,11 +247,28 @@ def login():
     
     user = User.query.filter_by(email=email).first()
     
-    if user and user.password == password: # PLAIN TEXT AS REQUESTED
+    password_ok = False
+    if user:
+        # 1. Try hashed check
+        if check_password_hash(user.password, password):
+            password_ok = True
+        # 2. Fallback to plain-text for legacy users
+        elif user.password == password:
+            password_ok = True
+            # Automatically upgrade to hash for next time
+            try:
+                user.password = generate_password_hash(password)
+                db_mysql.session.commit()
+                print(f"DEBUG: Password upgraded to hash for {email}")
+            except Exception as e:
+                db_mysql.session.rollback()
+                print(f"DEBUG: Failed to upgrade password for {email}: {e}")
+
+    if user and password_ok:
         if user.is_blocked:
             return jsonify({"error": "Your account has been blocked. Please contact support."}), 403
 
-        session.permanent = True
+        session.permanent = False # Change to False for session-only persistence
         session['user_id'] = str(user.id)
         session['is_admin'] = bool(user.is_admin)
         print(f"DEBUG: Login success for {email}. is_admin: {session['is_admin']}")
@@ -278,6 +285,43 @@ def login():
         }), 200
         
     return jsonify({"error": "Invalid credentials"}), 401
+
+@app.route('/api/auth/user', methods=['GET', 'PUT'])
+def get_user_profile():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"user": None}), 200
+        
+    user = User.query.get(int(user_id))
+    if not user:
+        session.clear()
+        return jsonify({"user": None}), 200
+
+    if request.method == 'PUT':
+        data = request.get_json()
+        user.first_name = data.get('firstName', user.first_name)
+        user.last_name = data.get('lastName', user.last_name)
+        user.phone = data.get('phone', user.phone)
+        user.profile_pic = data.get('profilePic', user.profile_pic)
+        try:
+            db_mysql.session.commit()
+            return jsonify({"success": True, "message": "Profile updated", "user": user.email, "id": str(user.id)})
+        except Exception as e:
+            db_mysql.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    return jsonify({
+        "user": user.email,
+        "id": str(user.id),
+        "firstName": user.first_name,
+        "lastName": user.last_name,
+        "phone": user.phone,
+        "profilePic": user.profile_pic,
+        "isAdmin": user.is_admin,
+        "isBlocked": user.is_blocked,
+        "addresses": user.JSON_addresses,
+        "isNewSignup": session.get('is_new_signup', False)
+    }), 200
 
 @app.route('/api/auth/logout', methods=['POST'])
 def logout():
@@ -301,7 +345,7 @@ def upload_file():
         
     if file and allowed_file(file.filename):
         try:
-            # Local Storage Only
+            # Local Storage Only (as requested)
             filename = f"{int(time.time())}_{file.filename}"
             # Ensure products folder exists
             products_dir = os.path.join(UPLOAD_FOLDER, 'products')
@@ -317,7 +361,7 @@ def upload_file():
                 "url": f"/uploads/products/{filename}"
             }), 200
         except Exception as e:
-            print(f"Error saving file locally: {str(e)}")
+            print(f"Error saving product file locally: {str(e)}")
             return jsonify({"error": f"Upload failed: {str(e)}"}), 500
         
     return jsonify({"error": "File type not allowed"}), 400
@@ -336,41 +380,24 @@ def upload_profile_pic():
         
     if file and allowed_file(file.filename):
         try:
-            # Try Cloudinary first if configured
-            if os.getenv('CLOUDINARY_CLOUD_NAME') and os.getenv('CLOUDINARY_CLOUD_NAME') != 'your_cloud_name':
-                upload_result = cloudinary.uploader.upload(
-                    file,
-                    folder="profiles",
-                    public_id=f"user_{session['user_id']}_{int(time.time())}",
-                    overwrite=True,
-                    resource_type="image"
-                )
-                return jsonify({
-                    "success": True,
-                    "url": upload_result.get('secure_url')
-                }), 200
-            else:
-                raise Exception("Cloudinary not configured")
-        except Exception as e:
-            print(f"Cloudinary upload failed or skipped, trying local: {str(e)}")
-            try:
-                # Local Fallback
-                filename = f"profile_{session['user_id']}_{int(time.time())}_{file.filename}"
-                profiles_dir = os.path.join(UPLOAD_FOLDER, 'profiles')
-                if not os.path.exists(profiles_dir):
-                    os.makedirs(profiles_dir)
-                    
-                filepath = os.path.join(profiles_dir, filename)
-                file.seek(0) # Reset file pointer
-                file.save(filepath)
+            # Local Storage Only (as requested)
+            user_id = session['user_id']
+            filename = f"profile_{user_id}_{int(time.time())}.{file.filename.rsplit('.', 1)[1].lower()}"
+            
+            profiles_dir = os.path.join(UPLOAD_FOLDER, 'profiles')
+            if not os.path.exists(profiles_dir):
+                os.makedirs(profiles_dir)
                 
-                return jsonify({
-                    "success": True,
-                    "url": f"/uploads/profiles/{filename}"
-                }), 200
-            except Exception as local_err:
-                print(f"Local upload failed: {str(local_err)}")
-                return jsonify({"error": f"Upload failed: {str(local_err)}"}), 500
+            filepath = os.path.join(profiles_dir, filename)
+            file.save(filepath)
+            
+            return jsonify({
+                "success": True,
+                "url": f"/uploads/profiles/{filename}"
+            }), 200
+        except Exception as e:
+            print(f"Error saving profile pic locally: {str(e)}")
+            return jsonify({"error": f"Upload failed: {str(e)}"}), 500
             
     return jsonify({"error": "File type not allowed"}), 400
 
@@ -394,7 +421,7 @@ def change_password():
         return jsonify({"error": "Incorrect current password"}), 400
         
     try:
-        user.password = new_password # PLAIN TEXT AS REQUESTED
+        user.password = generate_password_hash(new_password) # Hashed password
         db_mysql.session.commit()
     except Exception as e:
         print(f"DEBUG: Error updating password in MySQL: {e}")
@@ -925,6 +952,22 @@ def create_razorpay_order():
             "payment_capture": "1"
         })
         print(f"DEBUG: Razorpay order created: {razorpay_order.get('id')}")
+        
+        # Log Payment attempt
+        try:
+            payment = Payment(
+                user_id=int(session['user_id']),
+                razorpay_order_id=razorpay_order.get('id'),
+                amount=float(amount),
+                currency="INR",
+                status='pending'
+            )
+            db_mysql.session.add(payment)
+            db_mysql.session.commit()
+        except Exception as log_err:
+            print(f"DEBUG: Error logging payment: {log_err}")
+            db_mysql.session.rollback()
+
         return jsonify(razorpay_order), 200
     except Exception as e:
         print(f"DEBUG: Razorpay error: {str(e)}")
@@ -977,6 +1020,111 @@ def verify_payment():
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 400
+
+@app.route('/api/webhooks/razorpay', methods=['POST'])
+def razorpay_webhook():
+    webhook_secret = os.getenv('RAZORPAY_WEBHOOK_SECRET')
+    if not webhook_secret:
+        return jsonify({"error": "Webhook secret not configured"}), 500
+        
+    payload = request.get_data()
+    signature = request.headers.get('X-Razorpay-Signature')
+    
+    try:
+        client = get_razorpay_client()
+        client.utility.verify_webhook_signature(payload, signature, webhook_secret)
+    except Exception as e:
+        print(f"Webhook Signature Verification Failed: {e}")
+        return jsonify({"error": "Invalid signature"}), 400
+        
+    data = request.get_json()
+    event = data.get('event')
+    
+    if event in ['payment.captured', 'order.paid']:
+        payment_payload = data['payload']['payment']['entity']
+        razorpay_payment_id = payment_payload['id']
+        razorpay_order_id = payment_payload['order_id']
+        amount = payment_payload['amount'] / 100
+        
+        # Update or create payment record
+        payment = Payment.query.filter_by(razorpay_order_id=razorpay_order_id).first()
+        if not payment:
+            payment = Payment(
+                razorpay_order_id=razorpay_order_id,
+                razorpay_payment_id=razorpay_payment_id,
+                amount=amount,
+                status='captured',
+                method=payment_payload.get('method'),
+                email=payment_payload.get('email'),
+                phone=payment_payload.get('contact')
+            )
+            db_mysql.session.add(payment)
+        else:
+            payment.razorpay_payment_id = razorpay_payment_id
+            payment.status = 'captured'
+            payment.method = payment_payload.get('method')
+            payment.email = payment_payload.get('email')
+            payment.phone = payment_payload.get('contact')
+            
+        # Update order if exists
+        order = OrderSQL.query.filter_by(razorpay_order_id=razorpay_order_id).first()
+        if order:
+            order.payment_status = 'Paid'
+            order.razorpay_payment_id = razorpay_payment_id
+            
+        db_mysql.session.commit()
+    
+    return jsonify({"success": True}), 200
+
+@app.route('/api/admin/payments', methods=['GET'])
+def get_admin_payments():
+    is_admin = session.get('is_admin')
+    if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    payments = Payment.query.order_by(Payment.created_at.desc()).all()
+    return jsonify([p.to_dict() for p in payments]), 200
+
+@app.route('/api/admin/payments/refund', methods=['POST'])
+def refund_payment():
+    is_admin = session.get('is_admin')
+    if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    rzp_payment_id = data.get('razorpay_payment_id')
+    amount = data.get('amount')
+    
+    if not rzp_payment_id:
+        return jsonify({"error": "Razorpay Payment ID is required"}), 400
+        
+    try:
+        client = get_razorpay_client()
+        refund_data = {}
+        if amount:
+            refund_data['amount'] = int(float(amount) * 100)
+            
+        refund = client.payment.refund(rzp_payment_id, refund_data)
+        
+        # Update local payment record
+        payment = Payment.query.filter_by(razorpay_payment_id=rzp_payment_id).first()
+        if payment:
+            payment.status = 'refunded'
+            
+        # Update order if it was a full refund? Or maybe just keep it separate.
+        # Usually order status would be "Refunded"
+        if payment and payment.order_id:
+            order = OrderSQL.query.get(payment.order_id)
+            if order:
+                order.payment_status = 'Refunded'
+                order.status = 'Cancelled'
+                
+        db_mysql.session.commit()
+            
+        return jsonify({"success": True, "refund": refund}), 200
+    except Exception as e:
+        db_mysql.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/payments/check-qr-status', methods=['POST'])
 def check_qr_status():
@@ -1050,8 +1198,20 @@ def create_order():
             payment_status=payment_status,
             shipping_address_json=json.dumps(data.get('shippingAddress', {}))
         )
+        if razorpay_order_id:
+            new_order.razorpay_order_id = razorpay_order_id
+        if razorpay_payment_id:
+            new_order.razorpay_payment_id = razorpay_payment_id
+            
         db_mysql.session.add(new_order)
         db_mysql.session.flush()
+        
+        # Link payment record to order
+        if razorpay_order_id:
+            payment = Payment.query.filter_by(razorpay_order_id=razorpay_order_id).first()
+            if payment:
+                payment.order_id = new_order.id
+                payment.status = 'captured' if payment_status == 'Paid' else payment.status
         
         for item in data.get('items', []):
             new_item = OrderItem(
@@ -1094,8 +1254,45 @@ def get_orders():
     if 'user_id' not in session:
         return jsonify({"error": "Login required"}), 401
         
-    orders = list(db.orders.find({"user_id": session['user_id']}).sort("created_at", -1))
-    return jsonify([serialize_doc(o) for o in orders])
+    orders = OrderSQL.query.filter_by(user_id=session['user_id']).order_by(OrderSQL.created_at.desc()).all()
+    return jsonify([o.to_dict() for o in orders])
+
+@app.route('/api/admin/orders/<order_id>', methods=['GET'])
+def get_admin_order_detail(order_id):
+    is_admin = session.get('is_admin')
+    if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Try ID first, then order_number
+    order = OrderSQL.query.get(order_id)
+    if not order:
+        order = OrderSQL.query.filter_by(order_number=order_id).first()
+        
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+        
+    user = User.query.get(order.user_id)
+    order_dict = order.to_dict()
+    
+    # Add customer info
+    order_dict['customerName'] = f"{user.first_name or ''} {user.last_name or ''}".strip() if user else "Unknown"
+    order_dict['customerEmail'] = user.email if user else "Unknown"
+    order_dict['date'] = order.created_at.isoformat() if order.created_at else None
+    
+    # Map to frontend expectations
+    frontend_items = []
+    for item in order.items:
+        frontend_items.append({
+            "productName": item.product_name,
+            "quantity": item.quantity,
+            "price": item.price,
+            "size": item.size
+        })
+    order_dict['items'] = frontend_items
+    order_dict['subtotal'] = sum(i['price'] * i['quantity'] for i in frontend_items)
+    order_dict['shipping'] = order.total - order_dict['subtotal']
+    
+    return jsonify(order_dict), 200
 
 @app.route('/api/admin/orders/<order_id>/status', methods=['PUT'])
 def update_order_status(order_id):
@@ -1110,20 +1307,20 @@ def update_order_status(order_id):
     if not new_status:
         return jsonify({"error": "Status required"}), 400
         
-    order = db.orders.find_one({"id": order_id})
+    order = OrderSQL.query.get(order_id)
+    if not order:
+        order = OrderSQL.query.filter_by(order_number=order_id).first()
+        
     if not order:
         return jsonify({"error": "Order not found"}), 404
         
-    db.orders.update_one(
-        {"id": order_id},
-        {"$set": {"status": new_status}}
-    )
+    order.status = new_status
+    db_mysql.session.commit()
     
     # Send Status Update Email
-    user = db.users.find_one({"_id": ObjectId(order['user_id'])})
     user = User.query.get(order.user_id)
     if user:
-        send_order_status_update(mail, user.email, order_id, new_status, tracking_link)
+        send_order_status_update(mail, user.email, order.order_number, new_status, tracking_link)
         
     return jsonify({"success": True, "message": f"Order status updated to {new_status}"}), 200
 
@@ -1314,78 +1511,6 @@ def update_customer_status(customer_id):
 
 # ==================== ANALYSIS ====================
 
-@app.route('/api/admin/analysis', methods=['GET'])
-def get_analysis_data():
-    is_admin = session.get('is_admin')
-    if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
-        return jsonify({"error": "Unauthorized"}), 401
-
-    try:
-        # 1. Most Sold (Summing quantities from OrderItems)
-        all_orders = OrderSQL.query.all()
-        product_sales = {} # product_id -> count
-        
-        for order in all_orders:
-            try:
-                # order.items is a SQLAlchemy relationship (list of OrderItem objects)
-                for item in order.items:
-                    pid = item.product_id_str
-                    qty = item.quantity or 1
-                    if pid:
-                        product_sales[pid] = product_sales.get(pid, 0) + qty
-            except Exception as e:
-                print(f"Error processing order {order.id}: {e}")
-                continue
-
-        # Get top 5 sold products
-        sorted_sales = sorted(product_sales.items(), key=lambda x: x[1], reverse=True)[:5]
-        most_sold_list = []
-        for pid, qty in sorted_sales:
-            try:
-                # Convert string ID to int for MySQL lookup
-                numeric_id = int(pid)
-                product = ProductSQL.query.get(numeric_id)
-                if product:
-                    most_sold_list.append({
-                        "id": str(product.id),
-                        "name": product.name,
-                        "total_sold": qty,
-                        "image": product.images[0] if product.images else "/placeholder.jpg"
-                    })
-            except (ValueError, TypeError):
-                continue
-
-        # 2. Low Stock
-        low_stock = ProductSQL.query.filter(ProductSQL.stock < 5).all()
-        low_stock_list = [{
-            "id": str(p.id),
-            "name": p.name,
-            "stock": p.stock
-        } for p in low_stock]
-
-        # 3. Category Stats
-        categories = CategorySQL.query.all()
-        category_stats = []
-        for cat in categories:
-            count = ProductSQL.query.filter_by(category=cat.name).count()
-            category_stats.append({
-                "_id": cat.name,
-                "count": count
-            })
-
-        analysis_data = {
-            "most_sold": most_sold_list,
-            "most_favorited": [], 
-            "most_added_to_cart": [], 
-            "low_stock": low_stock_list,
-            "all_stock": [], 
-            "category_stats": category_stats
-        }
-
-        return jsonify(analysis_data), 200
-    except Exception as e:
-        print(f"Analysis error: {e}")
-        return jsonify({"error": str(e)}), 500
 
 # ==================== CATEGORIES ====================
 

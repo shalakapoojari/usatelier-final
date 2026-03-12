@@ -120,6 +120,41 @@ class Product(db_mysql.Model):
             'createdAt': self.created_at.isoformat() if self.created_at else None
         }
 
+class Payment(db_mysql.Model):
+    __tablename__ = 'payments'
+    id = db_mysql.Column(db_mysql.Integer, primary_key=True)
+    user_id = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey('users.id'), nullable=True)
+    order_id = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey('orders.id'), nullable=True)
+    razorpay_order_id = db_mysql.Column(db_mysql.String(255), unique=True, nullable=True)
+    razorpay_payment_id = db_mysql.Column(db_mysql.String(255), unique=True, nullable=True)
+    amount = db_mysql.Column(db_mysql.Float, nullable=False)
+    currency = db_mysql.Column(db_mysql.String(10), default='INR')
+    status = db_mysql.Column(db_mysql.String(50), default='pending') # pending, captured, failed, refunded
+    method = db_mysql.Column(db_mysql.String(50), nullable=True) # card, upi, etc.
+    email = db_mysql.Column(db_mysql.String(255), nullable=True)
+    phone = db_mysql.Column(db_mysql.String(50), nullable=True)
+    error_code = db_mysql.Column(db_mysql.String(100), nullable=True)
+    error_description = db_mysql.Column(db_mysql.Text, nullable=True)
+    created_at = db_mysql.Column(db_mysql.DateTime, default=datetime.utcnow)
+    updated_at = db_mysql.Column(db_mysql.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "order_id": self.order_id,
+            "razorpay_order_id": self.razorpay_order_id,
+            "razorpay_payment_id": self.razorpay_payment_id,
+            "amount": self.amount,
+            "currency": self.currency,
+            "status": self.status,
+            "method": self.method,
+            "email": self.email,
+            "phone": self.phone,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
 class Order(db_mysql.Model):
     __tablename__ = 'orders'
     id = db_mysql.Column(db_mysql.Integer, primary_key=True)
@@ -131,6 +166,8 @@ class Order(db_mysql.Model):
     shipping_address_json = db_mysql.Column(db_mysql.Text)
     borzo_order_id = db_mysql.Column(db_mysql.String(100))
     borzo_tracking_url = db_mysql.Column(db_mysql.String(500))
+    razorpay_order_id = db_mysql.Column(db_mysql.String(255), unique=True, nullable=True)
+    razorpay_payment_id = db_mysql.Column(db_mysql.String(255), unique=True, nullable=True)
     created_at = db_mysql.Column(db_mysql.DateTime, default=datetime.utcnow)
 
     items = db_mysql.relationship('OrderItem', backref='order', lazy=True)
@@ -150,6 +187,7 @@ class Order(db_mysql.Model):
             'total': self.total,
             'status': self.status,
             'payment_status': self.payment_status,
+            'razorpay_payment_id': self.razorpay_payment_id,
             'shipping_address': self.shipping_address,
             'createdAt': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.items]

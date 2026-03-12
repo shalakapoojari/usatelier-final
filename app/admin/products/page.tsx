@@ -37,11 +37,7 @@ type Category = {
 }
 
 export default function ProductsPage() {
-  const [API_BASE, setApiBase] = useState("")
-
-  useEffect(() => {
-    setApiBase(`http://${window.location.hostname}:5000`)
-  }, [])
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:5000`
 
   const [products, setProducts] = useState<any[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -349,7 +345,7 @@ export default function ProductsPage() {
           }
         }}>
           <DialogTrigger asChild>
-            <Button className="bg-white text-black px-8 py-6 uppercase tracking-widest text-xs transition-all rounded-none">
+            <Button className="bg-white text-black hover:bg-white hover:text-black px-8 py-6 uppercase tracking-widest text-xs transition-all rounded-none">
               Add Product
             </Button>
           </DialogTrigger>

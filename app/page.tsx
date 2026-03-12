@@ -42,6 +42,8 @@ function SectionProductCard({ product }: { product: any }) {
 import { ProductSkeleton } from "@/components/product-skeleton"
 
 function CollectionSection({ title, subtitle, products }: { title: string, subtitle: string, products: any[] }) {
+  if (!products || products.length === 0) return null;
+
   return (
     <div className="flex flex-col justify-center px-6 md:px-24">
       <div className="max-w-[1600px] w-full mx-auto">
@@ -51,19 +53,9 @@ function CollectionSection({ title, subtitle, products }: { title: string, subti
         </div>
 
         <div className="flex gap-8 md:gap-12 pb-12 overflow-x-auto no-scrollbar scroll-smooth">
-          {products.length > 0 ? (
-            products.map((p) => (
-              <SectionProductCard key={p.id} product={p} />
-            ))
-          ) : (
-            <div className="flex gap-8 md:gap-12 w-full">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-[200px] md:w-[280px] shrink-0">
-                  <ProductSkeleton />
-                </div>
-              ))}
-            </div>
-          )}
+          {products.map((p, idx) => (
+            <SectionProductCard key={`${p.id}-${idx}`} product={p} />
+          ))}
         </div>
 
         <div className="mt-8">

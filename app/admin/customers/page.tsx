@@ -15,7 +15,7 @@ export default function CustomersPage() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/customers`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/admin/customers`, {
         credentials: "include"
       })
       if (res.ok) {
@@ -30,7 +30,7 @@ export default function CustomersPage() {
   }
   const toggleBlockStatus = async (customerId: string, currentStatus: boolean) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/customers/${customerId}/status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/admin/customers/${customerId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export default function CustomersPage() {
               {customers.map((customer, i) => (
                 <tr
                   key={customer.id}
-                  className={`border-b border-white/5 hover:bg-white/[0.04] transition-colors ${i % 2 === 0 ? "bg-white/[0.02]" : ""}`}
+                  className={`border-b border-white/5 hover:bg-white/4 transition-colors ${i % 2 === 0 ? "bg-white/2" : ""}`}
                 >
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-3">

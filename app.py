@@ -1,5 +1,6 @@
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for, send_from_directory
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import os
@@ -7,6 +8,7 @@ import json
 import time
 import re
 import razorpay
+from urllib.parse import urlparse, urlunparse
 from datetime import datetime
 from flask_mail import Mail
 from authlib.integrations.flask_client import OAuth
@@ -28,8 +30,42 @@ from borzo_utils import create_delivery_order
 PASSWORD_POLICY_REGEX = re.compile(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$')
 
 load_dotenv()
+is_production = os.getenv('NODE_ENV') == 'production' or os.getenv('FLASK_ENV') == 'production'
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
+if os.getenv('TRUST_PROXY_HEADERS', '1') == '1':
+    # Respect X-Forwarded-* headers when app runs behind a reverse proxy.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+
+def normalize_base_url(url: str, default_url: str) -> str:
+    raw = (url or "").strip().rstrip('/') or default_url
+    parsed = urlparse(raw)
+    if not parsed.scheme:
+        raw = f"https://{raw}" if is_production else f"http://{raw}"
+        parsed = urlparse(raw)
+
+    if is_production and parsed.scheme == 'http':
+        parsed = parsed._replace(scheme='https')
+
+    return urlunparse(parsed).rstrip('/')
+
+
+def get_backend_base_url() -> str:
+    configured = os.getenv('BACKEND_URL', '')
+    if configured:
+        return normalize_base_url(configured, 'http://localhost:5000')
+
+    request_root = request.url_root.rstrip('/') if request else ''
+    fallback = request_root or 'http://localhost:5000'
+    return normalize_base_url(fallback, 'http://localhost:5000')
+
+
+def get_frontend_base_url() -> str:
+    configured = os.getenv('FRONTEND_URL', '')
+    default_frontend = 'http://localhost:3000'
+    return normalize_base_url(configured, default_frontend)
+
 # Parse allowed origins from environment (comma separated) or use default local config
 allowed_origins_env = os.getenv('ALLOWED_ORIGINS')
 if allowed_origins_env:
@@ -68,7 +104,8 @@ def allowed_file(filename):
 
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
-if os.getenv('FLASK_ENV') != 'production':
+app.config['PREFERRED_URL_SCHEME'] = 'https' if is_production else 'http'
+if not is_production:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 else:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '0'
@@ -91,9 +128,11 @@ google = oauth.register(
 
 app.config['SESSION_COOKIE_NAME'] = 'us_atelier_session'
 app.config['SESSION_COOKIE_PATH'] = '/'
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# For cross-domain frontend/backend deployments (e.g. Vercel + PythonAnywhere),
+# cookies must be SameSite=None and Secure=True.
+app.config['SESSION_COOKIE_SAMESITE'] = 'None' if is_production else 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('NODE_ENV') == 'production' or os.getenv('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_SECURE'] = is_production
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 7 # 7 days
 
@@ -460,16 +499,25 @@ def change_password():
 
 @app.route('/api/auth/google/login')
 def google_login():
-    redirect_uri = f"{os.getenv('BACKEND_URL', 'http://localhost:5000')}/api/auth/google/callback"
+    if not os.getenv('GOOGLE_CLIENT_ID') or not os.getenv('GOOGLE_CLIENT_SECRET'):
+        return redirect(f"{get_frontend_base_url()}/login?error=google_oauth_not_configured")
+
+    redirect_uri = f"{get_backend_base_url()}/api/auth/google/callback"
     # Ensure session is saved before redirecting
     session.modified = True
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/api/auth/google/callback')
 def google_callback():
-    token = google.authorize_access_token()
-    resp = google.get('userinfo')
-    user_info = resp.json()
+    frontend_base = get_frontend_base_url()
+
+    try:
+        google.authorize_access_token()
+        resp = google.get('userinfo')
+        user_info = resp.json()
+    except Exception as e:
+        print(f"Google OAuth callback failed: {e}")
+        return redirect(f"{frontend_base}/login?error=google_auth_failed")
     
     email = user_info.get('email', '').lower()
     first_name = user_info.get('given_name', '')
@@ -477,7 +525,7 @@ def google_callback():
     picture = user_info.get('picture', '')
     
     if not email:
-        return redirect(f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/login?error=google_email_missing")
+        return redirect(f"{frontend_base}/login?error=google_email_missing")
 
     user = User.query.filter_by(email=email).first()
     
@@ -502,7 +550,7 @@ def google_callback():
         except Exception as e:
             db_mysql.session.rollback()
             print(f"Error creating Google user in MySQL: {e}")
-            return redirect(f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/login?error=db_error")
+            return redirect(f"{frontend_base}/login?error=db_error")
     else:
         # Update existing user profile pic if it changed
         if not user.profile_pic or user.profile_pic != picture:
@@ -520,7 +568,7 @@ def google_callback():
     session['is_admin'] = bool(user.is_admin)
     
     # Redirect to Landing Page
-    return redirect(f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/")
+    return redirect(f"{frontend_base}/")
 
 @app.route('/api/auth/user', methods=['GET', 'PUT'])
 def user_profile():

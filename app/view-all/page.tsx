@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, Suspense, useRef } from "react"
+import { useState, useMemo, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
@@ -51,9 +51,9 @@ function ShopContent() {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [selectedGenders, setSelectedGenders] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
+  const [sliderRange, setSliderRange] = useState<[number, number]>([0, 100000])
   const [localMin, setLocalMin] = useState<string>("0")
   const [localMax, setLocalMax] = useState<string>("100000")
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
   const searchParams = useSearchParams()
   const urlCategory = searchParams.get("category")
@@ -141,7 +141,7 @@ function ShopContent() {
       const searchMatch = !urlSearch || (() => {
         const queryWords = normalizeField(urlSearch).split(/\s+/).filter(Boolean)
         const searchableText = normalizeField(`${p.name || ""} ${p.description || ""} ${p.category || ""}`)
-        return queryWords.every((word) => searchableText.includes(word))
+        return queryWords.every((word: string) => searchableText.includes(word))
       })()
 
       return categoryMatch && subcategoryMatch && genderMatch && searchMatch
@@ -190,17 +190,46 @@ function ShopContent() {
   // Reset price limit when category changes
   useEffect(() => {
     setPriceRange([0, categoryMaxPrice])
+    setSliderRange([0, categoryMaxPrice])
     setLocalMin("0")
     setLocalMax(categoryMaxPrice.toString())
   }, [categoryMaxPrice])
 
-  // Sync local inputs when slider moves priceRange (slider moves are direct)
-  useEffect(() => {
-    // Only sync if not currently being typed in by checking focus or a flag if needed, 
-    // but for now simple sync is fine if slider is used.
-    if (Math.abs(parseInt(localMin) - priceRange[0]) > 1) setLocalMin(priceRange[0].toString())
-    if (Math.abs(parseInt(localMax) - priceRange[1]) > 1) setLocalMax(priceRange[1].toString())
-  }, [priceRange])
+  const commitMinInput = () => {
+    if (localMin.trim() === "") {
+      setLocalMin(priceRange[0].toString())
+      return
+    }
+
+    const parsed = Number(localMin)
+    if (!Number.isFinite(parsed)) {
+      setLocalMin(priceRange[0].toString())
+      return
+    }
+
+    const nextMin = Math.max(0, Math.min(Math.floor(parsed), priceRange[1]))
+    setPriceRange((prev) => [nextMin, prev[1]])
+    setSliderRange((prev) => [nextMin, prev[1]])
+    setLocalMin(nextMin.toString())
+  }
+
+  const commitMaxInput = () => {
+    if (localMax.trim() === "") {
+      setLocalMax(priceRange[1].toString())
+      return
+    }
+
+    const parsed = Number(localMax)
+    if (!Number.isFinite(parsed)) {
+      setLocalMax(priceRange[1].toString())
+      return
+    }
+
+    const nextMax = Math.max(priceRange[0], Math.min(Math.floor(parsed), categoryMaxPrice))
+    setPriceRange((prev) => [prev[0], nextMax])
+    setSliderRange((prev) => [prev[0], nextMax])
+    setLocalMax(nextMax.toString())
+  }
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -242,7 +271,7 @@ function ShopContent() {
       const searchMatch = !urlSearch || (() => {
         const queryWords = normalize(urlSearch).split(/\s+/).filter(Boolean)
         const searchableText = normalize(`${product.name || ""} ${product.description || ""} ${product.category || ""}`)
-        return queryWords.every(word => searchableText.includes(word))
+        return queryWords.every((word: string) => searchableText.includes(word))
       })()
 
       return categoryMatch && subcategoryMatch && sizeMatch && priceMatch && genderMatch && searchMatch
@@ -250,7 +279,7 @@ function ShopContent() {
   }, [products, selectedCategories, selectedSubcategories, selectedSizes, priceRange, selectedGenders, urlSearch])
 
   /* ================= FILTER UI ================= */
-  const FilterContent = () => (
+  const renderFilterContent = () => (
     <div className="space-y-12 text-sm uppercase tracking-widest text-gray-400">
       {/* Gender */}
       <div>
@@ -348,34 +377,41 @@ function ShopContent() {
         <div className="flex items-center justify-between mb-8">
           <h3 className="text-[10px] uppercase tracking-[0.4em] font-medium text-white">Price Range</h3>
           <span className="text-[10px] text-gray-500 font-mono tracking-widest">
-            ₹{priceRange[0].toLocaleString('en-IN')} — ₹{priceRange[1].toLocaleString('en-IN')}
+            ₹{sliderRange[0].toLocaleString('en-IN')} — ₹{sliderRange[1].toLocaleString('en-IN')}
           </span>
         </div>
 
         <div className="space-y-8 px-1">
           <Slider
-            value={priceRange}
+            value={sliderRange}
             min={0}
             max={categoryMaxPrice}
-            step={100}
-            onValueChange={(val) => setPriceRange(val as [number, number])}
+            step={1}
+            onValueChange={(val) => {
+              const next = val as [number, number]
+              setSliderRange(next)
+              setLocalMin(next[0].toString())
+              setLocalMax(next[1].toString())
+            }}
+            onValueCommit={(val) => setPriceRange(val as [number, number])}
             className="py-4"
           />
-
+do 
           <div className="flex items-center gap-4">
             <div className="flex-1 relative group">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-white transition-colors text-[10px]">₹</span>
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={localMin}
-                onChange={(e) => {
-                  const val = e.target.value
-                  setLocalMin(val)
-                  if (debounceTimer.current) clearTimeout(debounceTimer.current)
-                  debounceTimer.current = setTimeout(() => {
-                    const num = parseInt(val) || 0
-                    setPriceRange(prev => [num, prev[1]])
-                  }, 400)
+                onChange={(e) => setLocalMin(e.target.value.replace(/\D/g, ""))}
+                onBlur={commitMinInput}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    commitMinInput()
+                  }
                 }}
                 className="h-9 pl-7 bg-white/5 border-white/10 text-white rounded-none border-0 border-b focus-visible:ring-0 focus-visible:border-white/30 transition-all text-xs font-mono"
                 placeholder="0"
@@ -388,16 +424,17 @@ function ShopContent() {
             <div className="flex-1 relative group">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-white transition-colors text-[10px]">₹</span>
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={localMax}
-                onChange={(e) => {
-                  const val = e.target.value
-                  setLocalMax(val)
-                  if (debounceTimer.current) clearTimeout(debounceTimer.current)
-                  debounceTimer.current = setTimeout(() => {
-                    const num = parseInt(val) || 0
-                    setPriceRange(prev => [prev[0], num])
-                  }, 400)
+                onChange={(e) => setLocalMax(e.target.value.replace(/\D/g, ""))}
+                onBlur={commitMaxInput}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    commitMaxInput()
+                  }
                 }}
                 className="h-9 pl-7 bg-white/5 border-white/10 text-white rounded-none border-0 border-b focus-visible:ring-0 focus-visible:border-white/30 transition-all text-xs font-mono"
                 placeholder={categoryMaxPrice.toString()}
@@ -443,7 +480,7 @@ function ShopContent() {
           {!loading && filteredProducts.length > 0 && (
             <aside className="hidden lg:block w-70 shrink-0">
               <div className="sticky top-52 pb-12">
-                <FilterContent />
+                {renderFilterContent()}
               </div>
             </aside>
           )}
@@ -484,7 +521,7 @@ function ShopContent() {
                         </SheetTitle>
                       </SheetHeader>
                       <div className="mt-12">
-                        <FilterContent />
+                        {renderFilterContent()}
                       </div>
                     </SheetContent>
                   </Sheet>

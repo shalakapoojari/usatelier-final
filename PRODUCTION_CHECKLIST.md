@@ -112,6 +112,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ### Post-Deployment Verification
 - [ ] Test login/logout
+- [ ] Test Google Sign-In (success + cancel + error flow)
 - [ ] Test product browsing
 - [ ] Test cart functionality
 - [ ] Test checkout flow
@@ -206,6 +207,21 @@ LOG_FILE=/var/log/app.log
 SECURE_SSL_REDIRECT=True
 SESSION_COOKIE_SECURE=True
 SESSION_COOKIE_HTTPONLY=True
+SESSION_COOKIE_SAMESITE=None
+
+# Cross-domain setup
+FRONTEND_URL=https://your-frontend-domain.com
+BACKEND_URL=https://your-backend-domain.com
+ALLOWED_ORIGINS=https://your-frontend-domain.com
+
+# OAuth (Google)
+GOOGLE_CLIENT_ID=<google-client-id>
+GOOGLE_CLIENT_SECRET=<google-client-secret>
+# Google OAuth redirect URI:
+# https://your-backend-domain.com/api/auth/google/callback
+
+# Frontend env
+NEXT_PUBLIC_API_BASE=https://your-backend-domain.com
 ```
 
 ---

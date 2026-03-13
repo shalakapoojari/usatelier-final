@@ -19,7 +19,7 @@ export default function CustomerProfilePage({
 
     const fetchCustomerProfile = async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/admin/customers/${id}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/admin/customers/${id}`, {
                 credentials: "include"
             })
             if (res.ok) {

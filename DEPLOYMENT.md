@@ -25,6 +25,38 @@ Visit `http://localhost:5000`
 
 ## Production Deployment
 
+### Recommended: Frontend + PythonAnywhere Backend
+
+Deploy frontend on Vercel/Netlify/Render and backend on PythonAnywhere.
+
+1. Backend (PythonAnywhere)
+- Deploy `app.py` as a Flask web app.
+- Configure environment variables from `.env.example`.
+- Required values:
+  - `FLASK_ENV=production`
+  - `NODE_ENV=production`
+  - `BACKEND_URL=https://<your-pythonanywhere-domain>`
+  - `FRONTEND_URL=https://<your-frontend-domain>`
+  - `ALLOWED_ORIGINS=https://<your-frontend-domain>`
+  - `TRUST_PROXY_HEADERS=1`
+
+2. Frontend (Vercel/Netlify/Render)
+- Set `NEXT_PUBLIC_API_BASE=https://<your-pythonanywhere-domain>`.
+- Redeploy after setting env vars.
+
+3. Google Sign-In over HTTPS (mandatory)
+- In Google Cloud Console, add these under OAuth client settings:
+  - Authorized JavaScript origins:
+    - `https://<your-frontend-domain>`
+    - `https://<your-pythonanywhere-domain>`
+  - Authorized redirect URIs:
+    - `https://<your-pythonanywhere-domain>/api/auth/google/callback`
+
+4. Verify cross-domain auth
+- Login via email and Google from frontend domain.
+- Confirm `/api/auth/user` returns active user with `credentials: include`.
+- Confirm logout clears session.
+
 ### Option 1: Heroku Deployment
 
 #### Prerequisites

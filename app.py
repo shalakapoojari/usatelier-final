@@ -1,5 +1,7 @@
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for, send_from_directory
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
@@ -66,6 +68,17 @@ def get_frontend_base_url() -> str:
     default_frontend = 'http://localhost:3000'
     return normalize_base_url(configured, default_frontend)
 
+
+def is_origin_allowed(origin: str) -> bool:
+    if not origin:
+        return False
+    for allowed in origins:
+        if isinstance(allowed, str) and origin == allowed:
+            return True
+        if hasattr(allowed, 'match') and allowed.match(origin):
+            return True
+    return False
+
 # Parse allowed origins from environment (comma separated) or use default local config
 allowed_origins_env = os.getenv('ALLOWED_ORIGINS')
 if allowed_origins_env:
@@ -88,6 +101,7 @@ else:
 # CORS must specify origins when supports_credentials=True
 # Wildcard "*" is NOT allowed with credentials.
 CORS(app, supports_credentials=True, origins=origins)
+limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[])
 
 # Upload Configuration
 # UPLOAD_FOLDER is kept for compatibility if needed, but we'll use Cloudinary
@@ -105,6 +119,9 @@ def allowed_file(filename):
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
 app.config['PREFERRED_URL_SCHEME'] = 'https' if is_production else 'http'
+if is_production and app.config['SECRET_KEY'] == 'default-secret-key':
+    raise RuntimeError('SECRET_KEY must be set in production')
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 if not is_production:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 else:
@@ -174,6 +191,33 @@ def serve_uploads(filename):
 
 # ==================== ROUTES ====================
 
+
+@app.before_request
+def csrf_origin_guard():
+    # Block cross-site state-changing API requests unless the caller origin is allowed.
+    if request.method not in {'POST', 'PUT', 'PATCH', 'DELETE'}:
+        return None
+    if not request.path.startswith('/api/'):
+        return None
+    if request.path == '/api/payments/webhook':
+        return None
+
+    origin = request.headers.get('Origin', '')
+    referer = request.headers.get('Referer', '')
+
+    if origin and not is_origin_allowed(origin):
+        return jsonify({"error": "Disallowed origin"}), 403
+
+    if not origin and referer:
+        parsed = urlparse(referer)
+        referer_origin = f"{parsed.scheme}://{parsed.netloc}"
+        backend_origin = urlparse(get_backend_base_url())
+        expected_backend_origin = f"{backend_origin.scheme}://{backend_origin.netloc}"
+        if referer_origin != expected_backend_origin and not is_origin_allowed(referer_origin):
+            return jsonify({"error": "Disallowed referer"}), 403
+
+    return None
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -237,6 +281,7 @@ def health():
 # ==================== AUTH ====================
 
 @app.route('/api/auth/signup', methods=['POST'])
+@limiter.limit('5 per minute')
 def signup():
     data = request.get_json()
     email = data.get('email', '').strip().lower()
@@ -292,30 +337,15 @@ def signup():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/auth/login', methods=['POST'])
+@limiter.limit('10 per minute')
 def login():
     data = request.get_json()
     email = data.get('email', '').strip().lower()
     password = data.get('password')
     
-    print(f"DEBUG: Login Attempt - Email: '{email}', Password: '{password}'")
     user = User.query.filter_by(email=email).first()
     
-    password_ok = False
-    if user:
-        # 1. Try hashed check
-        if check_password_hash(user.password, password):
-            password_ok = True
-        # 2. Fallback to plain-text for legacy users
-        elif user.password == password:
-            password_ok = True
-            # Automatically upgrade to hash for next time
-            try:
-                user.password = generate_password_hash(password)
-                db_mysql.session.commit()
-                print(f"DEBUG: Password upgraded to hash for {email}")
-            except Exception as e:
-                db_mysql.session.rollback()
-                print(f"DEBUG: Failed to upgrade password for {email}: {e}")
+    password_ok = bool(user and check_password_hash(user.password, password))
 
     if user and password_ok:
         if user.is_blocked:
@@ -324,7 +354,6 @@ def login():
         session.permanent = False # Change to False for session-only persistence
         session['user_id'] = str(user.id)
         session['is_admin'] = bool(user.is_admin)
-        print(f"DEBUG: Login success for {email}. is_admin: {session['is_admin']}")
         return jsonify({
             "success": True,
             "message": "Login successful!",
@@ -563,49 +592,12 @@ def google_callback():
 
     # Set session
     session.clear()
-    session.permanent = True
+    session.permanent = False
     session['user_id'] = str(user.id)
     session['is_admin'] = bool(user.is_admin)
     
     # Redirect to Landing Page
     return redirect(f"{frontend_base}/")
-
-@app.route('/api/auth/user', methods=['GET', 'PUT'])
-def user_profile():
-    if 'user_id' not in session:
-        return jsonify({"user": None}), 200
-
-    user = User.query.get(int(session['user_id']))
-    if not user:
-        return jsonify({"user": None}), 200
-
-    if request.method == 'GET':
-        return jsonify({
-            "user": user.email, 
-            "firstName": user.first_name or user.email.split('@')[0],
-            "lastName": user.last_name or '',
-            "phone": user.phone or '',
-            "profilePic": user.profile_pic or '',
-            "isAdmin": user.is_admin,
-            "isNewSignup": session.get('is_new_signup', False),
-            "id": str(user.id),
-            "addresses": user.JSON_addresses
-        }), 200
-    
-    if request.method == 'PUT':
-        data = request.get_json()
-        try:
-            if 'firstName' in data: user.first_name = data['firstName']
-            if 'lastName' in data: user.last_name = data['lastName']
-            if 'phone' in data: user.phone = data['phone']
-            if 'profilePic' in data: user.profile_pic = data['profilePic']
-            db_mysql.session.commit()
-            return jsonify({"success": True, "message": "Profile updated"}), 200
-        except Exception as e:
-            db_mysql.session.rollback()
-            return jsonify({"error": str(e)}), 500
-
-    return jsonify({"user": None}), 200
 
 @app.route('/api/user/addresses', methods=['POST'])
 def add_address():
@@ -681,11 +673,16 @@ def get_products():
 @app.route('/api/products/<product_id>', methods=['GET'])
 def get_product(product_id):
     try:
-        product = ProductSQL.query.get(int(product_id))
+        product_id_int = int(product_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid product id"}), 400
+
+    try:
+        product = ProductSQL.query.get(product_id_int)
         if product:
             return jsonify(product.to_dict()), 200
-    except:
-        pass
+    except Exception:
+        return jsonify({"error": "Failed to fetch product"}), 500
     return jsonify({"error": "Product not available"}), 404
 
 @app.route('/api/products/<product_id>', methods=['DELETE'])
@@ -827,8 +824,8 @@ def get_cart():
                         "quantity": item.quantity,
                         "size": item.size,
                     })
-            except:
-                pass
+            except (TypeError, ValueError):
+                continue
         return jsonify(results)
     else:
         return jsonify(session.get('cart', []))
@@ -902,8 +899,8 @@ def get_wishlist():
                     'image': product.images[0] if product.images else '',
                     'category': product.category
                 })
-        except:
-            pass
+        except (TypeError, ValueError):
+            continue
     return jsonify(results)
 
 @app.route('/api/wishlist', methods=['POST'])
@@ -987,12 +984,6 @@ def product_reviews(product_id):
 
     reviews = Review.query.filter_by(product_id_str=str(product_id)).order_by(Review.created_at.desc()).all()
     return jsonify([r.to_dict() for r in reviews])
-    data = request.get_json()
-    email = data.get('email')
-    if not email:
-        return jsonify({"error": "Email required"}), 400
-    # Mock logic
-    return jsonify({"success": True, "message": "Password reset link sent to email"}), 200
 
 # ==================== PAYMENTS ====================
 
@@ -1257,12 +1248,52 @@ def create_order():
         return jsonify({"error": "User not found"}), 404
 
     order_id_str = f"ORD-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    incoming_items = data.get('items', [])
+    if not isinstance(incoming_items, list) or len(incoming_items) == 0:
+        return jsonify({"error": "Order items required"}), 400
+
+    validated_items = []
+    computed_subtotal = 0.0
+    for item in incoming_items:
+        try:
+            product_id = int(item.get('id'))
+            quantity = int(item.get('quantity', 0))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid item payload"}), 400
+
+        if quantity <= 0:
+            return jsonify({"error": "Quantity must be greater than 0"}), 400
+
+        product = ProductSQL.query.get(product_id)
+        if not product:
+            return jsonify({"error": f"Product not found: {product_id}"}), 404
+        if product.stock < quantity:
+            return jsonify({"error": f"Insufficient stock for {product.name}"}), 400
+
+        line_total = float(product.price) * quantity
+        computed_subtotal += line_total
+        validated_items.append({
+            "id": product_id,
+            "name": product.name,
+            "quantity": quantity,
+            "size": item.get('size'),
+            "unit_price": float(product.price),
+            "price": float(product.price),
+        })
+
+    try:
+        client_total = float(data.get('total', 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid total"}), 400
+
+    if client_total + 0.01 < computed_subtotal:
+        return jsonify({"error": "Total mismatch"}), 400
     
     try:
         new_order = OrderSQL(
             order_number=order_id_str,
             user_id=user.id,
-            total=float(data.get('total', 0)),
+            total=client_total,
             status="Processing",
             payment_status=payment_status,
             shipping_address_json=json.dumps(data.get('shippingAddress', {}))
@@ -1282,24 +1313,22 @@ def create_order():
                 payment.order_id = new_order.id
                 payment.status = 'captured' if payment_status == 'Paid' else payment.status
         
-        for item in data.get('items', []):
+        for item in validated_items:
             new_item = OrderItem(
                 order_id=new_order.id,
                 product_id_str=str(item['id']),
                 product_name=item['name'],
                 quantity=item['quantity'],
-                price=float(item['price']),
+                price=item['unit_price'],
                 size=item.get('size')
             )
             db_mysql.session.add(new_item)
             
             # Update Stock
-            try:
-                prod = ProductSQL.query.get(int(item['id']))
-                if prod:
-                    prod.stock -= item['quantity']
-            except:
-                pass
+            prod = ProductSQL.query.get(int(item['id']))
+            if not prod or prod.stock < item['quantity']:
+                raise ValueError(f"Insufficient stock for {item['name']}")
+            prod.stock -= item['quantity']
         
         # Clear Cart
         CartItem.query.filter_by(user_id=user.id).delete()
@@ -1307,7 +1336,7 @@ def create_order():
         db_mysql.session.commit()
         
         # Send Order Confirmation Email
-        send_order_confirmation(mail, user.email, order_id_str, data.get('total'), data.get('items'))
+        send_order_confirmation(mail, user.email, order_id_str, new_order.total, validated_items)
         
         return jsonify({
             "success": True, 
@@ -1864,7 +1893,8 @@ def get_business_analysis():
                         "name": prod.name,
                         "count": r[1]
                     })
-            except: pass
+            except (TypeError, ValueError):
+                continue
 
         # 3. Most Added to Cart
         cart_counts_raw = db_mysql.session.query(
@@ -1884,7 +1914,8 @@ def get_business_analysis():
                         "total_quantity": int(r[1]),
                         "user_count": r[2]
                     })
-            except: pass
+            except (TypeError, ValueError):
+                continue
 
         # 4. Stock Inventory Levels
         products_stock = ProductSQL.query.order_by(ProductSQL.stock.asc()).all()
@@ -1943,7 +1974,7 @@ def seed_database():
         db_mysql.session.add(admin)
         print(f"Created new admin: {admin_email}")
     else:
-        admin.password = "admin123" # PLAIN TEXT AS REQUESTED
+        admin.password = generate_password_hash("admin123")
         admin.is_admin = True
         print(f"Synced credentials for admin: {admin_email}")
 
@@ -1979,12 +2010,11 @@ def seed_database():
 
 @app.after_request
 def after_request(response):
-    origin = request.headers.get('Origin')
-    if origin:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    if is_production:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     return response
 
 if __name__ == '__main__':
@@ -1994,4 +2024,4 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"Seeding failed: {e}")
             
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=not is_production)

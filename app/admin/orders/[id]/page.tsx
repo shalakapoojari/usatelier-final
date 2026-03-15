@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react"
 import Link from "next/link"
 import { RefreshCcw, AlertCircle, CheckCircle2, Package, Truck, User, CreditCard, ArrowLeft, Undo2 } from "lucide-react"
+import { getApiBase } from "@/lib/api-base"
 
 interface OrderItem {
   productName: string
@@ -38,7 +39,7 @@ export default function OrderDetailPage({
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState("")
   const [refunding, setRefunding] = useState(false)
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
+  const API_BASE = getApiBase()
 
   const fetchOrderDetail = async () => {
     try {

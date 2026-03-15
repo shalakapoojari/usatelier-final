@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Users, MoreVertical, Edit2, Ban, Eye, UserCheck } from "lucide-react"
+import { getApiBase } from "@/lib/api-base"
+
+const API_BASE = getApiBase()
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([])
@@ -15,7 +18,7 @@ export default function CustomersPage() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/admin/customers`, {
+      const res = await fetch(`${API_BASE}/api/admin/customers`, {
         credentials: "include"
       })
       if (res.ok) {
@@ -30,7 +33,7 @@ export default function CustomersPage() {
   }
   const toggleBlockStatus = async (customerId: string, currentStatus: boolean) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/admin/customers/${customerId}/status`, {
+      const res = await fetch(`${API_BASE}/api/admin/customers/${customerId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

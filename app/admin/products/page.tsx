@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/lib/toast-context"
+import { getApiBase } from "@/lib/api-base"
 
 const getSizesForCategory = (categoryName: string) => {
   const cat = categoryName.toLowerCase();
@@ -57,7 +58,7 @@ type Category = {
 }
 
 export default function ProductsPage() {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:5000`
+  const API_BASE = getApiBase()
 
   const [products, setProducts] = useState<any[]>([])
   const [categories, setCategories] = useState<Category[]>([])

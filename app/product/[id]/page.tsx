@@ -12,10 +12,11 @@ import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
 import { useToast } from "@/lib/toast-context"
 import { useAuth } from "@/lib/auth-context"
+import { getApiBase } from "@/lib/api-base"
 
 import { ChevronDown, ChevronUp, ShoppingBag, Heart, Star, Check, Sparkles, Award, ArrowLeft, Loader2, Share2, MessageCircle, Twitter, Facebook, Link2 } from "lucide-react"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
+const API_BASE = getApiBase()
 
 export default function ProductPage({
   params,

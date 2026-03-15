@@ -1,4 +1,3 @@
-
 from app import app
 from models_mysql import User, db_mysql
 

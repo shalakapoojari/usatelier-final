@@ -9,6 +9,9 @@ import { useWishlist } from "@/lib/wishlist-context"
 import { useState, useEffect } from "react"
 import { Package, Heart, ShoppingBag } from "lucide-react"
 import Link from "next/link"
+import { getApiBase } from "@/lib/api-base"
+
+const API_BASE = getApiBase()
 
 export default function AccountPage() {
   const { user } = useAuth()
@@ -36,7 +39,7 @@ export default function AccountPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'}/api/orders`, {
+        const res = await fetch(`${API_BASE}/api/orders`, {
           credentials: "include"
         })
         if (res.ok) {

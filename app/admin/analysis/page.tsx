@@ -22,6 +22,7 @@ import {
     ArrowRight,
     RefreshCw,
 } from "lucide-react"
+import { getApiBase } from "@/lib/api-base"
 
 interface CategoryStat {
     name: string
@@ -52,7 +53,7 @@ interface AnalysisData {
 const COLORS = ["#e8e8e3", "#a1a1aa", "#71717a", "#52525b", "#3f3f46"]
 
 export default function BusinessAnalysisPage() {
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
+    const API_BASE = getApiBase()
 
     const [data, setData] = useState<AnalysisData | null>(null)
     const [loading, setLoading] = useState(true)

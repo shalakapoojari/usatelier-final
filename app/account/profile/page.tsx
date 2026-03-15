@@ -11,10 +11,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Eye, EyeOff, User as UserIcon, Camera, Loader2 } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
+import { getApiBase } from "@/lib/api-base"
 
 import { useAuth } from "@/lib/auth-context"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
+const API_BASE = getApiBase()
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()

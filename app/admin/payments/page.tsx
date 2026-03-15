@@ -14,6 +14,7 @@ import {
   ChevronRight
 } from "lucide-react"
 import Link from "next/link"
+import { getApiBase } from "@/lib/api-base"
 
 interface Payment {
   id: number
@@ -36,7 +37,7 @@ export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [refreshing, setRefreshing] = useState(false)
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
+  const API_BASE = getApiBase()
 
   const fetchPayments = async () => {
     setRefreshing(true)

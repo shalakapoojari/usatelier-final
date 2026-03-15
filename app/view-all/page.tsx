@@ -17,8 +17,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { SlidersHorizontal, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
+import { getApiBase } from "@/lib/api-base"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
+const API_BASE = getApiBase()
 
 const getAllowedSizesForCategory = (categoryName: string) => {
   const cat = (categoryName || "").toLowerCase()

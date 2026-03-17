@@ -449,7 +449,7 @@ export function SiteHeader() {
       </div>
 
       {/* ── ROW 2: COMBINED NAV & CATEGORIES ── */}
-      <div className="hidden md:block w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/5 py-3 md:py-4 px-3 md:px-8 relative z-140">
+      <div className="hidden md:block w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/5 py-2 md:py-2.5 px-3 md:px-8 relative z-140">
         <div className="max-w-350 mx-auto flex items-center gap-4 md:gap-8 text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.25em] font-medium font-sans">
           <Link
             href="/view-all"
@@ -480,7 +480,7 @@ export function SiteHeader() {
                       e.preventDefault()
                       setActiveDesktopCategory((current) => (current === cat.name ? null : cat.name))
                     }}
-                    className="text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 py-2 md:py-4 px-1"
+                    className="text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 py-1.5 md:py-2 px-1"
                   >
                     {cat.name}
                     {hasSubcategories && (

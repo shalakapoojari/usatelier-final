@@ -23,6 +23,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Search, Plus } from "lucide-react"
+import { getApiBase } from "@/lib/api-base"
 
 type HeroSlide = {
     image: string
@@ -424,7 +425,7 @@ export default function HomepageDesignPage() {
     const [API_BASE, setApiBase] = useState("")
 
     useEffect(() => {
-        setApiBase(`http://${window.location.hostname}:5000`)
+        setApiBase(getApiBase())
     }, [])
 
     const [config, setConfig] = useState<ConfigType>({

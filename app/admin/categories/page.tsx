@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, Loader2, FolderPlus, X } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
+import { getApiBase } from "@/lib/api-base"
 
 type Category = {
   id: string
@@ -17,7 +18,7 @@ export default function CategoriesPage() {
   const [API_BASE, setApiBase] = useState("")
 
   useEffect(() => {
-    setApiBase(`http://${window.location.hostname}:5000`)
+    setApiBase(getApiBase())
   }, [])
 
   const [categories, setCategories] = useState<Category[]>([])

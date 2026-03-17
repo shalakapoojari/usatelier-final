@@ -2,9 +2,9 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import gsap from "gsap"
-import { Heart, ShoppingBag, User, LogOut, Package, ChevronDown, LayoutDashboard, Search } from "lucide-react"
+import { Heart, ShoppingBag, User, LogOut, Package, ChevronDown, LayoutDashboard, Search, Menu, X } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
@@ -14,6 +14,7 @@ const API_BASE = getApiBase()
 
 export function SiteHeader() {
   const navRef = useRef<HTMLDivElement | null>(null)
+  const pathname = usePathname()
   const { user, logout, isAdmin } = useAuth()
   // Read unseen counts directly from contexts — they live in providers
   // (mounted at layout level) so they never reset on navigation
@@ -22,6 +23,7 @@ export function SiteHeader() {
   const router = useRouter()
 
   const [profileOpen, setProfileOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
 
   const [searchQuery, setSearchQuery] = useState("")
@@ -29,6 +31,7 @@ export function SiteHeader() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [loopNum, setLoopNum] = useState(0)
   const [typingSpeed, setTypingSpeed] = useState(150)
+  const isHomePage = pathname === "/"
 
   const phrases = [
     "Search for pieces...",
@@ -112,7 +115,18 @@ export function SiteHeader() {
   const handleLogout = () => {
     logout()
     setProfileOpen(false)
+    setMobileMenuOpen(false)
     router.push("/")
+  }
+
+  const handleMobileCartClick = () => {
+    setMobileMenuOpen(false)
+    handleCartClick()
+  }
+
+  const handleMobileFavouritesClick = () => {
+    setMobileMenuOpen(false)
+    handleFavouritesClick()
   }
 
   const [dynamicCategories, setDynamicCategories] = useState<any[]>([])
@@ -132,16 +146,23 @@ export function SiteHeader() {
     fetchCategories()
   }, [])
 
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : ""
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [mobileMenuOpen])
+
   return (
-    <header className="fixed top-0 left-0 w-full z-100 bg-[#030303]">
+    <header className={`fixed top-0 left-0 w-full z-100 ${isHomePage ? "bg-transparent" : "bg-[#030303]"}`}>
       {/* ── ROW 1: BRAND | SEARCH | ICONS ── */}
-      <div className="w-full px-3 md:px-8 py-3 md:py-4 flex items-center gap-3 md:gap-12 border-b border-white/5">
+      <div className={`w-full px-3 md:px-8 py-3 md:py-4 flex items-center gap-3 md:gap-12 ${isHomePage ? "border-b border-transparent" : "border-b border-white/5"}`}>
         <Link href="/" className="shrink-0 -ml-1">
           <div className="h-10 md:h-12 w-32 sm:w-40 md:w-56 overflow-hidden flex items-center justify-center">
             <img
               src="/logo/logo.png"
               alt="U.S ATELIER"
-              className="h-10 md:h-12 w-auto object-contain object-center hover:opacity-80 transition-opacity scale-[3] sm:scale-[3.8] md:scale-[4.5] origin-center"
+              className={`h-10 md:h-12 w-auto object-contain object-center hover:opacity-80 transition-opacity scale-[3] sm:scale-[3.8] md:scale-[4.5] origin-center ${isHomePage ? "mix-blend-screen md:mix-blend-normal" : ""}`}
             />
           </div>
         </Link>
@@ -162,6 +183,26 @@ export function SiteHeader() {
 
         {/* Navigation Group - Even gaps */}
         <div className="flex items-center gap-3 sm:gap-4 md:gap-8 ml-auto">
+          {/* Mobile login/profile */}
+          <div className="md:hidden flex items-center">
+            {!user ? (
+              <Link
+                href="/login"
+                className="text-[10px] uppercase tracking-[0.2em] text-gray-300 hover:text-white transition-colors"
+              >
+                Login
+              </Link>
+            ) : (
+              <Link
+                href="/account"
+                className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center bg-white/5 hover:border-white/50 transition-colors text-gray-300 hover:text-white"
+                title="Profile"
+              >
+                <User size={14} strokeWidth={1.5} />
+              </Link>
+            )}
+          </div>
+
           {/* About Link */}
           <Link
             href="/about"
@@ -173,7 +214,7 @@ export function SiteHeader() {
           {/* Favourites icon */}
           <button
             onClick={handleFavouritesClick}
-            className="relative flex items-center gap-2 px-1 h-9 text-gray-400 hover:text-white transition-colors group"
+            className="relative hidden md:flex items-center gap-2 px-1 h-9 text-gray-400 hover:text-white transition-colors group"
             title="Favourites"
           >
             <Heart
@@ -190,7 +231,7 @@ export function SiteHeader() {
           {/* Cart icon */}
           <button
             onClick={handleCartClick}
-            className="relative flex items-center gap-2 px-1 h-9 text-gray-400 hover:text-white transition-colors group"
+            className="relative hidden md:flex items-center gap-2 px-1 h-9 text-gray-400 hover:text-white transition-colors group"
             title="Cart"
           >
             <ShoppingBag size={17} strokeWidth={1.5} />
@@ -213,12 +254,12 @@ export function SiteHeader() {
             {!user ? (
               <Link
                 href="/login"
-                className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-white transition-colors border border-white/10 px-4 py-2 hover:bg-white/5"
+                className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-white transition-colors border border-white/10 px-4 py-2 hover:bg-white/5 hidden md:inline-flex"
               >
                 Login
               </Link>
             ) : (
-              <div className="relative" ref={profileRef}>
+              <div className="relative hidden md:block" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen((o) => !o)}
                   className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
@@ -283,11 +324,20 @@ export function SiteHeader() {
               </div>
             )}
           </div>
+
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileMenuOpen((v) => !v)}
+            className="md:hidden w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-gray-300 hover:text-white hover:border-white/50 transition-colors"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          >
+            {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
+          </button>
         </div>
       </div>
 
       {/* ── ROW 2: COMBINED NAV & CATEGORIES ── */}
-      <div className="w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/5 py-3 md:py-4 px-3 md:px-8 relative">
+      <div className="hidden md:block w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/5 py-3 md:py-4 px-3 md:px-8 relative">
         <div className="max-w-[1400px] mx-auto flex items-center gap-4 md:gap-8 text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.25em] font-medium font-sans">
           <Link
             href="/view-all"
@@ -336,6 +386,89 @@ export function SiteHeader() {
           </div>
         </div>
       </div>
+
+      {/* ── MOBILE DRAWER: ALL NAV CONTENT ── */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 top-18 bg-black/60 backdrop-blur-sm z-120">
+          <div className="absolute right-0 top-0 h-full w-[88vw] max-w-90 bg-[#090909] border-l border-white/10 p-6 overflow-y-auto">
+            <div className="flex flex-col gap-6 text-[11px] uppercase tracking-[0.24em]">
+              <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors">
+                About
+              </Link>
+              <Link href="/help" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors">
+                Help
+              </Link>
+              <Link href="/view-all" onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-gray-300 transition-colors">
+                View All
+              </Link>
+
+              <button
+                onClick={handleMobileFavouritesClick}
+                className="text-left text-gray-300 hover:text-white transition-colors"
+              >
+                Favourites
+              </button>
+
+              <button
+                onClick={handleMobileCartClick}
+                className="text-left text-gray-300 hover:text-white transition-colors"
+              >
+                Cart
+              </button>
+
+              <div className="h-px bg-white/10" />
+
+              <div className="flex flex-col gap-4">
+                {dynamicCategories.map((cat) => (
+                  <div key={cat.id || cat.name} className="space-y-2">
+                    <Link
+                      href={`/view-all?category=${cat.name}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-gray-300 hover:text-white transition-colors"
+                    >
+                      {cat.name}
+                    </Link>
+                    {cat.subcategories && cat.subcategories.length > 0 && (
+                      <div className="pl-3 border-l border-white/10 flex flex-col gap-2 text-[10px] tracking-[0.2em]">
+                        {cat.subcategories.map((sub: string) => (
+                          <Link
+                            key={sub}
+                            href={`/view-all?category=${cat.name}&jumpTo=${sub}`}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="text-gray-500 hover:text-gray-300 transition-colors"
+                          >
+                            {sub}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {user && (
+                <>
+                  <div className="h-px bg-white/10" />
+                  <Link href="/account" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors">
+                    My Account
+                  </Link>
+                  <Link href="/account/orders" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors">
+                    Orders
+                  </Link>
+                  {isAdmin && (
+                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="text-amber-400 hover:text-amber-300 transition-colors">
+                      Admin Panel
+                    </Link>
+                  )}
+                  <button onClick={handleLogout} className="text-left text-gray-500 hover:text-white transition-colors">
+                    Sign Out
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

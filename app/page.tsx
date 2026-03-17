@@ -6,7 +6,6 @@ import Link from "next/link"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import useEmblaCarousel from 'embla-carousel-react' // New import
-import { ChevronLeft, ChevronRight } from "lucide-react" // New import
 
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
@@ -181,15 +180,7 @@ export default function HomePage() {
           duration: 0.9,
           ease: "power3.out",
           stagger: 0.1,
-        }).to(
-          ".hero-cta",
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.6,
-          },
-          "-=0.45"
-        )
+        })
 
         // Removed: gsap.to(".hero-bg", { yPercent: 30, scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true, }, })
       }, rootRef)
@@ -263,36 +254,18 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="absolute right-8 md:right-16 bottom-16 md:bottom-20 z-30 hero-cta">
-                    <Link
-                      href={slide.product_id ? `/product/${slide.product_id}` : '/view-all'}
-                      className="inline-block px-12 py-5 bg-[#e8e8e3] text-black border border-white rounded-2xl uppercase tracking-[0.3em] text-[11px] hover:bg-transparent hover:text-white transition-all duration-500 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.3)] font-bold active:scale-95"
-                    >
-                      Shop Now
-                    </Link>
-                  </div>
                 </div>
               ))}
             </div>
           </div>
+        </section>
 
-          {/* Navigation Arrows - Moved to edges and resized - Increased visibility */}
-          <div className="absolute inset-x-4 md:inset-x-10 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-20">
-            <button
-              onClick={() => emblaApi?.scrollPrev()}
-              className="size-10 md:size-12 rounded-full border border-white/40 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 hover:border-white/60 transition-all pointer-events-auto backdrop-blur-md"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={() => emblaApi?.scrollNext()}
-              className="size-10 md:size-12 rounded-full border border-white/40 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 hover:border-white/60 transition-all pointer-events-auto backdrop-blur-md"
-            >
-              <ChevronRight size={20} />
-            </button>
+        <section className="px-6 md:px-16 py-16 md:py-24 bg-[#030303]">
+          <div className="max-w-5xl mx-auto text-center">
+            <p className="text-[11vw] sm:text-5xl md:text-6xl leading-[1.35] md:leading-[1.3] font-serif text-[#d8d8d6]">
+              We believe in the quiet power of silence. In a world of noise, U.S ATELIER is the absence of it. We strip away the unnecessary to reveal the essential structure of the human form. This is not just clothing; this is architecture for the soul.
+            </p>
           </div>
-
-
         </section>
 
         {/* VERTICAL SECTIONS */}

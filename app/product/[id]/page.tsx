@@ -525,7 +525,7 @@ export default function ProductPage({
                     <div className="mx-auto max-w-md bg-white/2 border border-white/10 p-4 rounded-sm shadow-2xl">
                       <div className="relative overflow-hidden bg-black/40">
                         <img 
-                          src={formatImageUrl(product.sizeGuideImage)} 
+                          src={resolveMediaUrl(product.sizeGuideImage)} 
                           alt="Size Guide" 
                           className="w-full h-auto max-h-150 object-contain block mx-auto transition-transform duration-700 hover:scale-105"
                         />

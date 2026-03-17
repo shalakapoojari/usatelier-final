@@ -54,6 +54,7 @@ export function SiteHeader() {
 
   const [profileOpen, setProfileOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeDesktopCategory, setActiveDesktopCategory] = useState<string | null>(null)
   const profileRef = useRef<HTMLDivElement>(null)
 
   const [searchQuery, setSearchQuery] = useState("")
@@ -451,24 +452,33 @@ export function SiteHeader() {
 
           <span className="text-[#C8A45D] text-[20px] md:text-[28px] leading-none shrink-0" aria-hidden="true">|</span>
 
-          <div className="flex-1 overflow-x-auto overflow-y-visible no-scrollbar">
-            <div className="flex min-w-max items-center gap-5 md:gap-12 whitespace-nowrap pr-2">
-              {dynamicCategories.map((cat) => (
-                <div key={cat.id || cat.name} className="relative group">
+          <div className="flex-1 overflow-visible">
+            <div className="flex items-center gap-5 md:gap-12 whitespace-nowrap pr-2 overflow-visible">
+              {dynamicCategories.map((cat) => {
+                const hasSubcategories = cat.subcategories.length > 0
+                const isOpen = activeDesktopCategory === cat.name
+
+                return (
+                <div
+                  key={cat.id || cat.name}
+                  className="relative"
+                  onMouseEnter={() => setActiveDesktopCategory(cat.name)}
+                  onMouseLeave={() => setActiveDesktopCategory((current) => (current === cat.name ? null : current))}
+                >
                   <Link
                     href={`/view-all?category=${encodeURIComponent(cat.name)}`}
                     className="text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 py-2 md:py-4 px-1"
                   >
                     {cat.name}
-                    {cat.subcategories && cat.subcategories.length > 0 && (
-                      <ChevronDown size={10} className="group-hover:rotate-180 transition-transform duration-300 opacity-50" />
+                    {hasSubcategories && (
+                      <ChevronDown size={10} className={`transition-transform duration-300 opacity-50 ${isOpen ? "rotate-180" : ""}`} />
                     )}
                   </Link>
 
                   {/* Subcategories Dropdown */}
-                  {cat.subcategories && cat.subcategories.length > 0 && (
-                    <div className="absolute left-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-110">
-                      <div className="bg-[#0e0e0e] border border-white/10 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-50 backdrop-blur-xl">
+                  {hasSubcategories && (
+                    <div className={`absolute left-0 top-full z-110 pt-0 transition-all duration-200 ${isOpen ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"}`}>
+                      <div className={`mt-0 bg-[#0e0e0e] border border-white/10 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-50 backdrop-blur-xl transition-transform duration-200 ${isOpen ? "translate-y-0" : "translate-y-2"}`}>
                         <div className="flex flex-col gap-3">
                           {cat.subcategories.map((sub: string) => (
                             <Link
@@ -484,7 +494,7 @@ export function SiteHeader() {
                     </div>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         </div>

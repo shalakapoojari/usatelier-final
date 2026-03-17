@@ -619,12 +619,12 @@ export default function HomepageDesignPage() {
         <div className="bg-[#030303] text-[#e8e8e3] min-h-screen relative overflow-x-hidden">
             {/* STICKY HEADER */}
             <div className="sticky top-0 z-50 bg-[#030303]/80 backdrop-blur-xl border-b border-white/5 py-8 md:py-10 mb-12">
-                <div className="max-w-[1100px] pl-10 md:pl-32 pr-8 md:pr-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+                <div className="max-w-275 pl-10 md:pl-32 pr-8 md:pr-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
                     <div>
                         <p className="uppercase tracking-[0.5em] text-[10px] text-gray-500 mb-3">Admin / Surface</p>
-                        <h1 className="font-serif text-4xl md:text-5xl font-light tracking-tight">Homepage Design</h1>
+                        <h1 className="font-serif text-4xl md:text-5xl font-light tracking-tight">Homepage Collections</h1>
                         <p className="mt-3 text-[10px] tracking-[0.3em] text-gray-500 uppercase">
-                            Curate the primary editorial narrative and visual assembly.
+                            Curate the three homepage product rails only.
                         </p>
                     </div>
 
@@ -641,50 +641,12 @@ export default function HomepageDesignPage() {
                 </div>
             </div>
 
-            <div className="max-w-[1100px] pl-10 md:pl-32 pr-8 md:pr-12 pb-24">
+            <div className="max-w-275 pl-10 md:pl-32 pr-8 md:pr-12 pb-24">
                 <div className="space-y-16">
-                    {/* HERO CAROUSEL */}
-                    <div className="w-full">
-                        <section className="space-y-12">
-                            <div>
-                                <h2 className="text-3xl font-serif mb-4 uppercase tracking-widest">Hero Carousel</h2>
-                                <p className="text-[10px] text-gray-500 uppercase tracking-widest">Manage multiple high-impact editorial slides</p>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-10">
-                                {config.hero_slides.map((slide, idx) => (
-                                    <HeroSlideEditor
-                                        key={idx}
-                                        index={idx}
-                                        total={config.hero_slides.length}
-                                        slide={slide}
-                                        products={products}
-                                        categories={categories}
-                                        onUpdate={handleSlideUpdate}
-                                        onRemove={handleRemoveSlide}
-                                        onUpload={handleFileUpload}
-                                        onMove={handleSlideMove}
-                                    />
-                                ))}
-
-                                <button
-                                    onClick={handleAddSlide}
-                                    className="w-full flex flex-col items-center justify-center p-8 border border-dashed border-white/10 bg-white/1 hover:bg-white/3 hover:border-white/20 transition-all group/add-card"
-                                >
-                                    <div className="size-12 rounded-full border border-white/10 flex items-center justify-center mb-4 group-hover/add-card:scale-110 transition-all">
-                                        <Plus className="text-gray-500 group-hover/add-card:text-[#e8e8e3]" size={24} strokeWidth={1} />
-                                    </div>
-                                    <h3 className="font-serif text-xl uppercase tracking-widest text-gray-500 group-hover/add-card:text-[#e8e8e3]">Add Hero Slide</h3>
-                                    <p className="text-[8px] uppercase tracking-[0.4em] text-gray-600 mt-2 group-hover/add-card:text-gray-400">Recommended size: 2564 x 1440px</p>
-                                </button>
-                            </div>
-                        </section>
-                    </div>
-
                     {/* GALLERY CURATION */}
                     <div className="space-y-12">
                         <div className="flex items-center gap-8 mb-12">
-                            <h2 className="text-3xl font-serif uppercase tracking-[0.3em] whitespace-nowrap">Gallery Curation</h2>
+                            <h2 className="text-3xl font-serif uppercase tracking-[0.3em] whitespace-nowrap">Homepage Curation</h2>
                             <div className="h-px bg-white/10 flex-1" />
                         </div>
 

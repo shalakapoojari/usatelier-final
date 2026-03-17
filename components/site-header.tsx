@@ -12,6 +12,34 @@ import { getApiBase } from "@/lib/api-base"
 
 const API_BASE = getApiBase()
 
+type NavCategory = {
+  id?: string | number
+  name: string
+  subcategories: string[]
+}
+
+function normalizeSubcategories(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v).trim()).filter(Boolean)
+  }
+
+  if (typeof value === "string") {
+    const raw = value.trim()
+    if (!raw) return []
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        return parsed.map((v) => String(v).trim()).filter(Boolean)
+      }
+    } catch {
+      return [raw]
+    }
+    return [raw]
+  }
+
+  return []
+}
+
 export function SiteHeader() {
   const navRef = useRef<HTMLDivElement | null>(null)
   const mobileMenuRef = useRef<HTMLDivElement | null>(null)
@@ -138,22 +166,36 @@ export function SiteHeader() {
     }
   }
 
-  const [dynamicCategories, setDynamicCategories] = useState<any[]>([])
+  const [dynamicCategories, setDynamicCategories] = useState<NavCategory[]>([])
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/categories`)
+        const res = await fetch(`${API_BASE}/api/categories`, { cache: "no-store" })
         if (res.ok) {
           const data = await res.json()
-          setDynamicCategories(data)
+          const normalized: NavCategory[] = Array.isArray(data)
+            ? data
+              .map((cat: any) => ({
+                id: cat?.id,
+                name: String(cat?.name || "").trim(),
+                subcategories: normalizeSubcategories(cat?.subcategories),
+              }))
+              .filter((cat) => !!cat.name)
+            : []
+          setDynamicCategories(normalized)
         }
       } catch (err) {
         console.error("Failed to fetch categories:", err)
       }
     }
+
     fetchCategories()
-  }, [])
+
+    const refreshOnFocus = () => fetchCategories()
+    window.addEventListener("focus", refreshOnFocus)
+    return () => window.removeEventListener("focus", refreshOnFocus)
+  }, [pathname])
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : ""
@@ -414,7 +456,7 @@ export function SiteHeader() {
               {dynamicCategories.map((cat) => (
                 <div key={cat.id || cat.name} className="relative group">
                   <Link
-                    href={`/view-all?category=${cat.name}`}
+                    href={`/view-all?category=${encodeURIComponent(cat.name)}`}
                     className="text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 py-2 md:py-4 px-1"
                   >
                     {cat.name}
@@ -431,7 +473,7 @@ export function SiteHeader() {
                           {cat.subcategories.map((sub: string) => (
                             <Link
                               key={sub}
-                              href={`/view-all?category=${cat.name}&jumpTo=${sub}`}
+                              href={`/view-all?category=${encodeURIComponent(cat.name)}&jumpTo=${encodeURIComponent(sub)}`}
                               className="text-gray-500 hover:text-white transition-all text-[11px] tracking-[0.25em] hover:translate-x-2 duration-300"
                             >
                               {sub}
@@ -489,7 +531,7 @@ export function SiteHeader() {
                 {dynamicCategories.map((cat) => (
                   <div key={cat.id || cat.name} className="mobile-menu-item space-y-2">
                     <Link
-                      href={`/view-all?category=${cat.name}`}
+                      href={`/view-all?category=${encodeURIComponent(cat.name)}`}
                       onClick={closeMobileMenu}
                       className="font-serif text-[17px] sm:text-[18px] leading-none text-[#d4d4cf] hover:text-white transition-colors"
                     >
@@ -500,7 +542,7 @@ export function SiteHeader() {
                         {cat.subcategories.map((sub: string) => (
                           <Link
                             key={sub}
-                            href={`/view-all?category=${cat.name}&jumpTo=${sub}`}
+                            href={`/view-all?category=${encodeURIComponent(cat.name)}&jumpTo=${encodeURIComponent(sub)}`}
                             onClick={closeMobileMenu}
                             className="text-gray-500 hover:text-gray-300 transition-colors"
                           >

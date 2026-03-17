@@ -120,13 +120,20 @@ export function SiteHeader() {
   }
 
   const handleMobileCartClick = () => {
-    setMobileMenuOpen(false)
+    closeMobileMenu()
     handleCartClick()
   }
 
   const handleMobileFavouritesClick = () => {
-    setMobileMenuOpen(false)
+    closeMobileMenu()
     handleFavouritesClick()
+  }
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false)
+    if (typeof window !== "undefined" && window.history.state?.mobileMenuOpen) {
+      window.history.back()
+    }
   }
 
   const [dynamicCategories, setDynamicCategories] = useState<any[]>([])
@@ -153,16 +160,33 @@ export function SiteHeader() {
     }
   }, [mobileMenuOpen])
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    if (typeof window === "undefined") return
+    if (window.history.state?.mobileMenuOpen) return
+
+    window.history.pushState({ ...(window.history.state || {}), mobileMenuOpen: true }, "", window.location.href)
+  }, [mobileMenuOpen])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setMobileMenuOpen((open) => (open ? false : open))
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
+
   return (
-    <header className={`fixed top-0 left-0 w-full z-100 ${isHomePage ? "bg-transparent" : "bg-[#030303]"}`}>
+    <header className={`fixed top-0 left-0 w-full z-100 ${isHomePage ? "bg-transparent md:bg-[#030303]" : "bg-[#030303]"}`}>
       {/* ── ROW 1: BRAND | SEARCH | ICONS ── */}
-      <div className={`w-full px-3 md:px-8 py-3 md:py-4 flex items-center gap-3 md:gap-12 ${isHomePage ? "border-b border-transparent" : "border-b border-white/5"}`}>
+      <div className={`w-full px-3 md:px-8 py-3 md:py-4 flex items-center gap-3 md:gap-12 ${isHomePage ? "border-b border-transparent md:border-white/5" : "border-b border-white/5"}`}>
         <Link href="/" className="shrink-0 -ml-1">
-          <div className="h-10 md:h-12 w-32 sm:w-40 md:w-56 overflow-hidden flex items-center justify-center">
+          <div className="flex h-10 w-40 items-center justify-center overflow-hidden sm:w-48 md:h-12 md:w-72">
             <img
-              src="/logo/logo.png"
+              src="/logo/us-atelier-wordmark.svg"
               alt="U.S ATELIER"
-              className={`h-10 md:h-12 w-auto object-contain object-center hover:opacity-80 transition-opacity scale-[3] sm:scale-[3.8] md:scale-[4.5] origin-center ${isHomePage ? "mix-blend-screen md:mix-blend-normal" : ""}`}
+              className="h-full w-full object-contain object-center hover:opacity-80 transition-opacity"
             />
           </div>
         </Link>
@@ -327,7 +351,7 @@ export function SiteHeader() {
 
           {/* Mobile hamburger */}
           <button
-            onClick={() => setMobileMenuOpen((v) => !v)}
+            onClick={() => (mobileMenuOpen ? closeMobileMenu() : setMobileMenuOpen(true))}
             className="md:hidden w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-gray-300 hover:text-white hover:border-white/50 transition-colors"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
@@ -390,15 +414,15 @@ export function SiteHeader() {
       {/* ── MOBILE DRAWER: ALL NAV CONTENT ── */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 top-18 bg-black/60 backdrop-blur-sm z-120">
-          <div className="absolute right-0 top-0 h-full w-[88vw] max-w-90 bg-[#090909] border-l border-white/10 p-6 overflow-y-auto">
+          <div className="absolute right-0 top-0 w-[88vw] max-w-90 bg-[#090909] border-l border-white/10 p-6 h-auto max-h-[78vh] overflow-y-auto">
             <div className="flex flex-col gap-6 text-[11px] uppercase tracking-[0.24em]">
-              <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors">
+              <Link href="/about" onClick={closeMobileMenu} className="text-gray-300 hover:text-white transition-colors">
                 About
               </Link>
-              <Link href="/help" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors">
+              <Link href="/help" onClick={closeMobileMenu} className="text-gray-300 hover:text-white transition-colors">
                 Help
               </Link>
-              <Link href="/view-all" onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-gray-300 transition-colors">
+              <Link href="/view-all" onClick={closeMobileMenu} className="text-white hover:text-gray-300 transition-colors">
                 View All
               </Link>
 
@@ -423,7 +447,7 @@ export function SiteHeader() {
                   <div key={cat.id || cat.name} className="space-y-2">
                     <Link
                       href={`/view-all?category=${cat.name}`}
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={closeMobileMenu}
                       className="text-gray-300 hover:text-white transition-colors"
                     >
                       {cat.name}
@@ -434,7 +458,7 @@ export function SiteHeader() {
                           <Link
                             key={sub}
                             href={`/view-all?category=${cat.name}&jumpTo=${sub}`}
-                            onClick={() => setMobileMenuOpen(false)}
+                            onClick={closeMobileMenu}
                             className="text-gray-500 hover:text-gray-300 transition-colors"
                           >
                             {sub}
@@ -449,14 +473,14 @@ export function SiteHeader() {
               {user && (
                 <>
                   <div className="h-px bg-white/10" />
-                  <Link href="/account" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors">
+                  <Link href="/account" onClick={closeMobileMenu} className="text-gray-300 hover:text-white transition-colors">
                     My Account
                   </Link>
-                  <Link href="/account/orders" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors">
+                  <Link href="/account/orders" onClick={closeMobileMenu} className="text-gray-300 hover:text-white transition-colors">
                     Orders
                   </Link>
                   {isAdmin && (
-                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="text-amber-400 hover:text-amber-300 transition-colors">
+                    <Link href="/admin" onClick={closeMobileMenu} className="text-amber-400 hover:text-amber-300 transition-colors">
                       Admin Panel
                     </Link>
                   )}

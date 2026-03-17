@@ -20,7 +20,7 @@ export function AdminSidebar() {
         <aside className="fixed left-0 top-0 h-full w-64 bg-[#060606] border-r border-white/5 z-40 flex flex-col">
             {/* Brand */}
             <div className="px-8 py-8 border-b border-white/5">
-                <p className="font-serif text-lg tracking-widest">U.S ATELIER</p>
+                <img src="/logo/us-atelier-wordmark.svg" alt="U.S ATELIER" className="h-8 w-44 object-contain object-left" />
                 <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 mt-1">Admin Panel</p>
             </div>
 

@@ -54,9 +54,13 @@ export function Preloader() {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black text-white"
     >
       <div className="text-center">
-        <h1 className="text-4xl font-serif tracking-widest mb-4">
-          U.S ATELIER
-        </h1>
+        <div className="mb-4 flex justify-center">
+          <img
+            src="/logo/us-atelier-wordmark.svg"
+            alt="U.S ATELIER"
+            className="h-10 w-56 object-contain"
+          />
+        </div>
 
         <div className="w-48 h-px bg-gray-800 overflow-hidden relative">
           <div

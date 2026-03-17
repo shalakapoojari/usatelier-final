@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 110" role="img" aria-labelledby="title desc">
+  <title id="title">U.S ATELIER wordmark</title>
+  <desc id="desc">Elegant muted-gold U.S ATELIER wordmark on a transparent background.</desc>
+  <rect width="720" height="110" fill="none"/>
+  <text
+    x="18"
+    y="76"
+    fill="#a99d73"
+    font-family="Didot, Bodoni MT, Baskerville, Times New Roman, serif"
+    font-size="76"
+    font-weight="500"
+    letter-spacing="5.4"
+    textLength="680"
+    lengthAdjust="spacingAndGlyphs"
+  >U.S ATELIER.</text>
+</svg>

@@ -182,6 +182,19 @@ export default function HomePage() {
           stagger: 0.1,
         })
 
+        gsap.set(".hero-cta-desktop", { autoAlpha: 0, y: 24 })
+        gsap.to(".hero-cta-desktop", {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.5,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: ".hero-carousel",
+            start: "top+=170 top",
+            toggleActions: "play reverse play reverse",
+          },
+        })
+
         // Removed: gsap.to(".hero-bg", { yPercent: 30, scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true, }, })
       }, rootRef)
     }
@@ -228,41 +241,80 @@ export default function HomePage() {
         `}</style>
 
         {/* HERO CAROUSEL */}
-        <section className="relative h-screen overflow-hidden bg-[#030303] flex items-center justify-center">
-          <div className="embla w-full h-full" ref={emblaRef}>
-            <div className="embla__container h-full flex">
+        <section className="hero-carousel relative md:mt-30 bg-[#030303]">
+          <div className="embla w-full" ref={emblaRef}>
+            <div className="embla__container flex">
               {slides.map((slide: any, idx: number) => (
-                <div key={idx} className="embla__slide relative flex-[0_0_100%] h-full flex items-center justify-center p-6 md:p-12">
+                <div key={idx} className="embla__slide relative flex-[0_0_100%] w-full">
                   {/* Full Size Hero Image Background */}
-                  <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#030303]">
-                    <Image
-                      src={slide.image || "/placeholder.jpg"}
-                      alt={`Hero Slide ${idx}`}
-                      fill
-                      priority={idx === 0}
-                      className="object-cover opacity-60 scale-100"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+                  <div className="relative w-full overflow-hidden bg-[#030303]">
+                    <div className="relative h-screen md:hidden">
+                      <Image
+                        src={slide.image || "/placeholder.jpg"}
+                        alt={`Hero Slide ${idx}`}
+                        fill
+                        priority={idx === 0}
+                        className="object-cover object-center opacity-60"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+                    </div>
+                    <div className="relative hidden md:block">
+                      <img
+                        src={slide.image || "/placeholder.jpg"}
+                        alt={`Hero Slide ${idx}`}
+                        className="w-full h-auto block opacity-60 -mt-56"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+                    </div>
                   </div>
 
-                  {/* Overlay Narrative - Simplified */}
-                  <div className="absolute inset-x-0 bottom-32 z-10 flex flex-col items-center justify-center text-center mix-blend-difference px-6">
-                    <div className="max-w-4xl mx-auto overflow-hidden text-center">
-                      <h1 className="text-[4vw] md:text-[3vw] leading-[1.2] font-serif hero-line mb-10 tracking-wider">
-                        <span className="block">{slide.content || "Editorial Piece"}</span>
+                  {/* Mobile hero title */}
+                  <div className="absolute inset-0 z-10 flex items-start justify-center pt-70 text-center px-6 pointer-events-none md:hidden">
+                    <div className="max-w-4xl mx-auto overflow-hidden text-center hero-line">
+                      <h1 className="leading-[0.82] tracking-[0.04em] uppercase font-serif">
+                        <span className="block bg-linear-to-r from-[#d8c892] to-[#8d7748] bg-clip-text text-[18vw] font-medium text-transparent sm:text-[13vw]">Ethereal</span>
+                        <span className="-mt-2 block bg-linear-to-r from-[#8d7748] to-[#374633] bg-clip-text text-[18vw] italic text-transparent sm:text-[13vw]">Shadows</span>
                       </h1>
                     </div>
                   </div>
 
+                  {/* Desktop hero title */}
+                  <div className="absolute inset-x-0 top-0 z-10 hidden pt-60 md:flex flex-col items-center justify-start text-center px-6">
+                    <div className="max-w-4xl mx-auto overflow-hidden text-center">
+                      <h1 className="leading-[0.82] tracking-[0.05em] uppercase font-serif hero-line m-10">
+                        <span className="block bg-linear-to-r from-[#d8c892] to-[#8d7748] bg-clip-text text-[8vw] font-medium text-transparent">Ethereal</span>
+                        <span className="-mt-3 block bg-linear-to-r from-[#8d7748] to-[#374633] bg-clip-text text-[8vw] italic text-transparent">Shadows</span>
+                      </h1>
+                    </div>
+                  </div>
+
+                  <div className="absolute inset-x-0 bottom-60 z-30 flex justify-center px-6 md:hidden">
+                    <Link
+                      href={slide.cta_link || "/view-all"}
+                      className="inline-flex min-w-62.5 max-w-full items-center justify-center rounded-full border border-[#b8a471]/45 bg-transparent px-10 py-4 text-center font-serif text-[12px] uppercase tracking-[0.28em] text-[#b8a471] transition-all duration-500 hover:border-[#b8a471] hover:bg-[#b8a471]/10 hover:text-[#d7c48e] md:min-w-105 md:px-16 md:py-5 md:text-[14px] active:scale-95"
+                    >
+                      {slide.cta_text || "View The Lookbook"}
+                    </Link>
+                  </div>
+
+                  <div className="hero-cta-desktop absolute inset-x-0 bottom-30 z-30 hidden justify-center px-6 md:flex">
+                    <Link
+                      href={slide.cta_link || "/view-all"}
+                      className="inline-flex min-w-62.5 max-w-full items-center justify-center rounded-full border border-[#b8a471]/45 bg-transparent px-10 py-4 text-center font-serif text-[12px] uppercase tracking-[0.28em] text-[#b8a471] transition-all duration-500 hover:border-[#b8a471] hover:bg-[#b8a471]/10 hover:text-[#d7c48e] md:min-w-105 md:px-16 md:py-5 md:text-[14px] active:scale-95"
+                    >
+                      {slide.cta_text || "View The Lookbook"}
+                    </Link>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
+
         </section>
 
-        <section className="px-6 md:px-16 py-16 md:py-24 bg-[#030303]">
+        <section className="px-6 md:px-16 pt-24 pb-16 md:py-24 bg-[#030303]">
           <div className="max-w-5xl mx-auto text-center">
-            <p className="text-[11vw] sm:text-5xl md:text-6xl leading-[1.35] md:leading-[1.3] font-serif text-[#d8d8d6]">
+            <p className="text-[8vw] sm:text-5xl md:text-6xl leading-[1.35] md:leading-[1.3] font-serif text-[#d8d8d6]">
               We believe in the quiet power of silence. In a world of noise, U.S ATELIER is the absence of it. We strip away the unnecessary to reveal the essential structure of the human form. This is not just clothing; this is architecture for the soul.
             </p>
           </div>

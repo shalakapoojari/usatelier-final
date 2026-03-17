@@ -41,8 +41,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="text-center mb-12">
-          <Link href="/" className="text-4xl font-serif font-light tracking-[0.25em]">
-            U.S ATELIER
+          <Link href="/" className="inline-flex justify-center">
+            <img
+              src="/logo/us-atelier-wordmark.svg"
+              alt="U.S ATELIER"
+              className="h-10 w-60 object-contain"
+            />
           </Link>
           <p className="mt-4 text-xs uppercase tracking-widest text-gray-500">
             Welcome Back

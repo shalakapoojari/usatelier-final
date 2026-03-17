@@ -66,11 +66,11 @@ export default function AdminLayout({
         {/* Brand */}
         <div className="mb-16">
           <Link href="/" className="block w-full">
-            <div className="mx-auto h-16 w-56 overflow-hidden flex items-center justify-center mb-6">
+            <div className="mx-auto mb-6 flex h-16 w-60 items-center justify-center overflow-hidden">
               <img
-                src="/logo/logo.png"
+                src="/logo/us-atelier-wordmark.svg"
                 alt="U.S ATELIER"
-                className="h-16 w-auto object-contain object-center scale-[4.5] origin-center"
+                className="h-full w-full object-contain object-center"
               />
             </div>
           </Link>

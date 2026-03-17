@@ -11,15 +11,16 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Preloader } from "@/components/preloader"
 import { getApiBase } from "@/lib/api-base"
+import { resolveMediaUrl } from "@/lib/media-url"
 
 gsap.registerPlugin(ScrollTrigger)
 
 function SectionProductCard({ product }: { product: any }) {
   const images = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
-  const imageUrl = images && images[0] ? images[0] : "/placeholder.jpg"
+  const imageUrl = resolveMediaUrl(images && images[0] ? images[0] : "/placeholder.jpg")
 
   return (
-    <div className="group relative w-[200px] md:w-[280px] aspect-[3/4] overflow-hidden bg-white/5 border border-white/5 hover:border-white/20 transition-all duration-500 flex-shrink-0">
+    <div className="group relative w-50 md:w-70 aspect-3/4 overflow-hidden bg-white/5 border border-white/5 hover:border-white/20 transition-all duration-500 shrink-0">
       <Link href={`/product/${product.id}`}>
         <Image
           src={imageUrl}
@@ -27,7 +28,7 @@ function SectionProductCard({ product }: { product: any }) {
           fill
           className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-70 group-hover:opacity-100"
         />
-        <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+        <div className="absolute inset-x-0 bottom-0 p-6 bg-linear-to-t from-black/80 to-transparent translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
           <p className="text-xs uppercase tracking-[0.3em] text-gray-400 mb-2">{product.category}</p>
           <h3 className="text-2xl font-serif italic text-white drop-shadow-md mb-2">
             {product.name}
@@ -46,7 +47,7 @@ function CollectionSection({ title, subtitle, products }: { title: string, subti
 
   return (
     <div className="flex flex-col justify-center px-6 md:px-24">
-      <div className="max-w-[1600px] w-full mx-auto">
+      <div className="max-w-400 w-full mx-auto">
         <div className="mb-12">
           <h2 className="text-3xl md:text-5xl font-serif font-light mb-6 uppercase tracking-[0.2em]">{title}</h2>
           <div className="h-px w-32 bg-white/20" />
@@ -256,7 +257,7 @@ export default function HomePage() {
                         priority={idx === 0}
                         className="object-cover object-center opacity-60"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+                      <div className="absolute inset-0 bg-linear-to-b from-black/20 via-transparent to-black/40" />
                     </div>
                     <div className="relative hidden md:block">
                       <img
@@ -264,7 +265,7 @@ export default function HomePage() {
                         alt={`Hero Slide ${idx}`}
                         className="w-full h-auto block opacity-60 -mt-56"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+                      <div className="absolute inset-0 bg-linear-to-b from-black/20 via-transparent to-black/40" />
                     </div>
                   </div>
 

@@ -13,6 +13,7 @@ import { useWishlist } from "@/lib/wishlist-context"
 import { useToast } from "@/lib/toast-context"
 import { useAuth } from "@/lib/auth-context"
 import { getApiBase } from "@/lib/api-base"
+import { resolveMediaUrl } from "@/lib/media-url"
 
 import { ChevronDown, ChevronUp, ShoppingBag, Heart, Star, Check, Sparkles, Award, ArrowLeft, Loader2, Share2, MessageCircle, Twitter, Facebook, Link2 } from "lucide-react"
 
@@ -93,13 +94,6 @@ export default function ProductPage({
 
   const isInStock = product.stock !== undefined ? product.stock > 0 : product.inStock
 
-  const formatImageUrl = (url: string) => {
-    if (!url) return "/placeholder.jpg"
-    if (url.startsWith("http") || url.startsWith("data:")) return url
-    if (!url.startsWith("/")) return `/${url}`
-    return url
-  }
-
   const relatedProducts = allProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 8)
@@ -122,7 +116,7 @@ export default function ProductPage({
       name: product.name,
       price: product.price,
       size: selectedSize,
-      image: formatImageUrl(images[0]),
+      image: resolveMediaUrl(images[0]),
     })
 
     setAddedToCart(true)
@@ -141,7 +135,7 @@ export default function ProductPage({
       id: product.id,
       name: product.name,
       price: product.price,
-      image: formatImageUrl(images[0]),
+      image: resolveMediaUrl(images[0]),
       category: product.category,
     })
     if (wasWishlisted) {
@@ -219,7 +213,7 @@ export default function ProductPage({
       name: product.name,
       price: product.price,
       size: selectedSize,
-      image: formatImageUrl(images[0]),
+      image: resolveMediaUrl(images[0]),
     })
 
     showToast("Redirecting to checkout...", "cart", product.name)
@@ -231,7 +225,7 @@ export default function ProductPage({
       <SiteHeader />
 
       {/* ── BACK LINK ── */}
-      <div className="pt-56 px-6 md:px-12 max-w-[1400px] mx-auto">
+      <div className="pt-56 px-6 md:px-12 max-w-350 mx-auto">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors"
@@ -243,14 +237,14 @@ export default function ProductPage({
 
       {/* ── PRODUCT LAYOUT ── */}
       <main className="pt-10 px-6 md:px-12 pb-32">
-        <div className="grid md:grid-cols-2 gap-16 lg:gap-24 items-start max-w-[1400px] mx-auto">
+        <div className="grid md:grid-cols-2 gap-16 lg:gap-24 items-start max-w-350 mx-auto">
 
           {/* ── IMAGES COLUMN ── */}
           <div className="space-y-4">
             {/* Main image */}
             <div className="relative aspect-3/4 overflow-hidden bg-[#111]">
               <Image
-                src={formatImageUrl(images[selectedImage])}
+                src={resolveMediaUrl(images[selectedImage])}
                 alt={product.name}
                 fill
                 priority
@@ -293,7 +287,7 @@ export default function ProductPage({
                       }`}
                   >
                     <Image
-                      src={formatImageUrl(image)}
+                      src={resolveMediaUrl(image)}
                       alt={`${product.name} view ${index + 1}`}
                       fill
                       className="object-cover"
@@ -533,7 +527,7 @@ export default function ProductPage({
                         <img 
                           src={formatImageUrl(product.sizeGuideImage)} 
                           alt="Size Guide" 
-                          className="w-full h-auto max-h-[600px] object-contain block mx-auto transition-transform duration-700 hover:scale-105"
+                          className="w-full h-auto max-h-150 object-contain block mx-auto transition-transform duration-700 hover:scale-105"
                         />
                       </div>
                       <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
@@ -600,7 +594,7 @@ export default function ProductPage({
 
         {/* ── RELATED PRODUCTS ── */}
         {relatedProducts.length > 0 && (
-          <section className="mt-40 max-w-[1400px] mx-auto">
+          <section className="mt-40 max-w-350 mx-auto">
             <div className="text-center mb-14">
               <p className="uppercase tracking-[0.4em] text-xs text-gray-500 mb-4">You may also like</p>
               <h2 className="font-serif text-4xl font-light">Related Products</h2>
@@ -613,7 +607,7 @@ export default function ProductPage({
                   <Link key={p.id} href={`/product/${p.id}`} className="group block">
                     <div className="relative aspect-3/4 overflow-hidden mb-4 bg-[#111]">
                       <Image
-                        src={formatImageUrl(pImages[0])}
+                        src={resolveMediaUrl(pImages[0])}
                         alt={p.name}
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-105"

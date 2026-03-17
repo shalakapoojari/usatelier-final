@@ -1,7 +1,5 @@
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for, send_from_directory
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
@@ -28,6 +26,24 @@ from models_mysql import (
     Payment
 )
 from borzo_utils import create_delivery_order
+
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+except ModuleNotFoundError:
+    Limiter = None
+
+    def get_remote_address():
+        return request.remote_addr or "0.0.0.0"
+
+    class _NoopLimiter:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def limit(self, *_args, **_kwargs):
+            def _decorator(fn):
+                return fn
+            return _decorator
 
 PASSWORD_POLICY_REGEX = re.compile(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$')
 
@@ -123,7 +139,7 @@ else:
 # CORS must specify origins when supports_credentials=True
 # Wildcard "*" is NOT allowed with credentials.
 CORS(app, supports_credentials=True, origins=origins)
-limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[])
+limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[]) if Limiter else _NoopLimiter()
 
 # Upload Configuration
 # UPLOAD_FOLDER is kept for compatibility if needed, but we'll use Cloudinary

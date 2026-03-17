@@ -6,6 +6,7 @@ import Image from "next/image"
 import gsap from "gsap"
 import { Sparkles, Award } from "lucide-react"
 import type { Product } from "@/lib/data"
+import { resolveMediaUrl } from "@/lib/media-url"
 
 type ProductCardProps = {
   product: Product
@@ -28,13 +29,6 @@ export function ProductCard({ product }: ProductCardProps) {
   }, [product.images])
 
   const isInStock = (product as any).stock !== undefined ? (product as any).stock > 0 : product.inStock
-
-  const formatImageUrl = (url: string) => {
-    if (!url) return "/placeholder.jpg"
-    if (url.startsWith("http") || url.startsWith("data:")) return url
-    if (!url.startsWith("/")) return `/${url}`
-    return url
-  }
 
   useEffect(() => {
     if (!rootRef.current) return
@@ -65,9 +59,9 @@ export function ProductCard({ product }: ProductCardProps) {
       onMouseLeave={handleLeave}
     >
       {/* Image Container */}
-      <div className="relative aspect-[3/4] overflow-hidden bg-[#111] rounded-sm">
+      <div className="relative aspect-3/4 overflow-hidden bg-[#111] rounded-sm">
         <Image
-          src={formatImageUrl(images[currentImage])}
+          src={resolveMediaUrl(images[currentImage])}
           alt={product.name}
           fill
           ref={imgRef as any}

@@ -14,6 +14,8 @@ const API_BASE = getApiBase()
 
 export function SiteHeader() {
   const navRef = useRef<HTMLDivElement | null>(null)
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null)
+  const mobileMenuOverlayRef = useRef<HTMLDivElement | null>(null)
   const pathname = usePathname()
   const { user, logout, isAdmin } = useAuth()
   // Read unseen counts directly from contexts — they live in providers
@@ -176,6 +178,41 @@ export function SiteHeader() {
     window.addEventListener("popstate", handlePopState)
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
+
+  useEffect(() => {
+    if (!mobileMenuOpen || !mobileMenuRef.current) return
+
+    const ctx = gsap.context(() => {
+      if (mobileMenuOverlayRef.current) {
+        gsap.fromTo(
+          mobileMenuOverlayRef.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.26, ease: "power2.out" },
+        )
+      }
+
+      gsap.fromTo(
+        mobileMenuRef.current,
+        { y: -24, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.42, ease: "power3.out" },
+      )
+
+      gsap.fromTo(
+        ".mobile-menu-item",
+        { y: 20, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.42,
+          ease: "power3.out",
+          stagger: 0.06,
+          delay: 0.08,
+        },
+      )
+    }, mobileMenuRef)
+
+    return () => ctx.revert()
+  }, [mobileMenuOpen])
 
   return (
     <header className={`fixed top-0 left-0 w-full z-100 ${isHomePage ? "bg-transparent md:bg-[#030303]" : "bg-[#030303]"}`}>
@@ -362,7 +399,7 @@ export function SiteHeader() {
 
       {/* ── ROW 2: COMBINED NAV & CATEGORIES ── */}
       <div className="hidden md:block w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/5 py-3 md:py-4 px-3 md:px-8 relative">
-        <div className="max-w-[1400px] mx-auto flex items-center gap-4 md:gap-8 text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.25em] font-medium font-sans">
+        <div className="max-w-350 mx-auto flex items-center gap-4 md:gap-8 text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.25em] font-medium font-sans">
           <Link
             href="/view-all"
             className="text-white hover:text-gray-400 transition-colors shrink-0 whitespace-nowrap"
@@ -389,7 +426,7 @@ export function SiteHeader() {
                   {/* Subcategories Dropdown */}
                   {cat.subcategories && cat.subcategories.length > 0 && (
                     <div className="absolute left-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-110">
-                      <div className="bg-[#0e0e0e] border border-white/10 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-[200px] backdrop-blur-xl">
+                      <div className="bg-[#0e0e0e] border border-white/10 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-50 backdrop-blur-xl">
                         <div className="flex flex-col gap-3">
                           {cat.subcategories.map((sub: string) => (
                             <Link
@@ -413,82 +450,63 @@ export function SiteHeader() {
 
       {/* ── MOBILE DRAWER: ALL NAV CONTENT ── */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-18 bg-black/60 backdrop-blur-sm z-120">
-          <div className="absolute right-0 top-0 w-[88vw] max-w-90 bg-[#090909] border-l border-white/10 p-6 h-auto max-h-[78vh] overflow-y-auto">
-            <div className="flex flex-col gap-6 text-[11px] uppercase tracking-[0.24em]">
-              <Link href="/about" onClick={closeMobileMenu} className="text-gray-300 hover:text-white transition-colors">
-                About
-              </Link>
-              <Link href="/help" onClick={closeMobileMenu} className="text-gray-300 hover:text-white transition-colors">
-                Help
-              </Link>
-              <Link href="/view-all" onClick={closeMobileMenu} className="text-white hover:text-gray-300 transition-colors">
-                View All
-              </Link>
-
-              <button
-                onClick={handleMobileFavouritesClick}
-                className="text-left text-gray-300 hover:text-white transition-colors"
-              >
-                Favourites
-              </button>
-
-              <button
-                onClick={handleMobileCartClick}
-                className="text-left text-gray-300 hover:text-white transition-colors"
-              >
-                Cart
-              </button>
-
-              <div className="h-px bg-white/10" />
-
-              <div className="flex flex-col gap-4">
-                {dynamicCategories.map((cat) => (
-                  <div key={cat.id || cat.name} className="space-y-2">
-                    <Link
-                      href={`/view-all?category=${cat.name}`}
-                      onClick={closeMobileMenu}
-                      className="text-gray-300 hover:text-white transition-colors"
-                    >
-                      {cat.name}
-                    </Link>
-                    {cat.subcategories && cat.subcategories.length > 0 && (
-                      <div className="pl-3 border-l border-white/10 flex flex-col gap-2 text-[10px] tracking-[0.2em]">
-                        {cat.subcategories.map((sub: string) => (
-                          <Link
-                            key={sub}
-                            href={`/view-all?category=${cat.name}&jumpTo=${sub}`}
-                            onClick={closeMobileMenu}
-                            className="text-gray-500 hover:text-gray-300 transition-colors"
-                          >
-                            {sub}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+        <div ref={mobileMenuOverlayRef} className="md:hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-120">
+          <div ref={mobileMenuRef} className="h-full w-full bg-[#020202] px-6 pt-10 pb-8 overflow-y-auto">
+            <div className="mx-auto max-w-160 flex min-h-full flex-col">
+              <div className="mobile-menu-item flex items-center justify-between text-[7vw] sm:text-3xl uppercase tracking-[0.12em] font-serif text-[#e6e6e2]">
+                <span>Menu</span>
+                <button onClick={closeMobileMenu} className="text-[#e6e6e2] hover:text-white transition-colors" aria-label="Close menu">
+                  Close
+                </button>
               </div>
 
-              {user && (
-                <>
-                  <div className="h-px bg-white/10" />
-                  <Link href="/account" onClick={closeMobileMenu} className="text-gray-300 hover:text-white transition-colors">
-                    My Account
+              <div className="mt-16 flex flex-col gap-8">
+                <Link href="/collections" onClick={closeMobileMenu} className="mobile-menu-item font-serif text-[14vw] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                  Collections
+                </Link>
+                <Link href="/new-arrivals" onClick={closeMobileMenu} className="mobile-menu-item font-serif text-[14vw] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                  Campaign
+                </Link>
+                <Link href="/about" onClick={closeMobileMenu} className="mobile-menu-item font-serif text-[14vw] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                  Maison
+                </Link>
+                <Link href="/view-all" onClick={closeMobileMenu} className="mobile-menu-item font-serif text-[14vw] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                  Shop
+                </Link>
+                <button onClick={handleMobileCartClick} className="mobile-menu-item text-left font-serif text-[14vw] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                  Cart ({cartUnseen})
+                </button>
+              </div>
+
+              <div className="mobile-menu-item mt-14 h-px bg-white/12" />
+
+              <div className="mobile-menu-item mt-8 flex flex-col gap-4 text-[8vw] sm:text-2xl font-serif text-[#e6e6e2]">
+                {!user ? (
+                  <Link href="/login" onClick={closeMobileMenu} className="hover:text-white transition-colors">
+                    Login
                   </Link>
-                  <Link href="/account/orders" onClick={closeMobileMenu} className="text-gray-300 hover:text-white transition-colors">
-                    Orders
-                  </Link>
-                  {isAdmin && (
-                    <Link href="/admin" onClick={closeMobileMenu} className="text-amber-400 hover:text-amber-300 transition-colors">
-                      Admin Panel
+                ) : (
+                  <>
+                    <Link href="/account" onClick={closeMobileMenu} className="hover:text-white transition-colors">
+                      My Account
                     </Link>
-                  )}
-                  <button onClick={handleLogout} className="text-left text-gray-500 hover:text-white transition-colors">
-                    Sign Out
-                  </button>
-                </>
-              )}
+                    <Link href="/account/orders" onClick={closeMobileMenu} className="hover:text-white transition-colors">
+                      Orders
+                    </Link>
+                    <button onClick={handleMobileFavouritesClick} className="text-left hover:text-white transition-colors">
+                      Favourites
+                    </button>
+                    {isAdmin && (
+                      <Link href="/admin" onClick={closeMobileMenu} className="text-amber-300 hover:text-amber-200 transition-colors">
+                        Admin Panel
+                      </Link>
+                    )}
+                    <button onClick={handleLogout} className="text-left text-[#bdbdb8] hover:text-white transition-colors">
+                      Sign Out
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

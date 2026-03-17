@@ -10,6 +10,7 @@ import useEmblaCarousel from 'embla-carousel-react' // New import
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Preloader } from "@/components/preloader"
+import { getApiBase } from "@/lib/api-base"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -69,9 +70,8 @@ function CollectionSection({ title, subtitle, products }: { title: string, subti
 
 export default function HomePage() {
   const [API_BASE, setApiBase] = useState("")
-
   useEffect(() => {
-    setApiBase(`http://${window.location.hostname}:5000`)
+    setApiBase(getApiBase())
   }, [])
 
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -315,7 +315,10 @@ export default function HomePage() {
         <section className="px-6 md:px-16 pt-24 pb-16 md:py-24 bg-[#030303]">
           <div className="max-w-5xl mx-auto text-center">
             <p className="text-[8vw] sm:text-5xl md:text-6xl leading-[1.35] md:leading-[1.3] font-serif text-[#d8d8d6]">
-              We believe in the quiet power of silence. In a world of noise, U.S ATELIER is the absence of it. We strip away the unnecessary to reveal the essential structure of the human form. This is not just clothing; this is architecture for the soul.
+              U.S Atelier is premium menswear designed for the modern man who values style, comfort, and craftsmanship with innovative tailoring to deliver clothing that makes a statement—confident, stylish, and refined.
+            </p>
+            <p className="mt-8 text-sm md:text-base uppercase tracking-[0.3em] text-[#a99d73] font-light">
+              &ldquo;Made with Pride, Worn with Confidence&rdquo;
             </p>
           </div>
         </section>

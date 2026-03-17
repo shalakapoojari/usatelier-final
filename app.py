@@ -388,10 +388,20 @@ def signup():
 @limiter.limit('10 per minute')
 def login():
     data = request.get_json()
-    email = data.get('email', '').strip().lower()
+    identifier = data.get('email', '').strip().lower()
     password = data.get('password')
-    
-    user = User.query.filter_by(email=email).first()
+
+    if not identifier or not password:
+        return jsonify({"error": "Email/username and password required"}), 400
+
+    # Support either full email or username (local-part before @), case-insensitive.
+    user = User.query.filter(db_mysql.func.lower(User.email) == identifier).first()
+    if not user and '@' not in identifier:
+        candidates = User.query.filter(User.email.ilike(f"{identifier}@%"))\
+            .order_by(User.id.asc())\
+            .all()
+        if len(candidates) == 1:
+            user = candidates[0]
 
     password_ok = bool(user and is_password_valid(user.password, password))
 
@@ -413,8 +423,8 @@ def login():
         return jsonify({
             "success": True,
             "message": "Login successful!",
-            "user": email,
-            "firstName": user.first_name or email.split('@')[0],
+            "user": user.email,
+            "firstName": user.first_name or user.email.split('@')[0],
             "lastName": user.last_name or '',
             "phone": user.phone or '',
             "profilePic": user.profile_pic or '',

@@ -243,14 +243,14 @@ export default function HomePage() {
         `}</style>
 
         {/* HERO CAROUSEL */}
-        <section className="hero-carousel relative md:mt-30 bg-[#030303]">
-          <div className="embla w-full" ref={emblaRef}>
-            <div className="embla__container flex">
+        <section className="hero-carousel relative h-screen bg-[#030303]">
+          <div className="embla h-full w-full" ref={emblaRef}>
+            <div className="embla__container flex h-full">
               {slides.map((slide: any, idx: number) => (
-                <div key={idx} className="embla__slide relative flex-[0_0_100%] w-full">
+                <div key={idx} className="embla__slide relative flex-[0_0_100%] h-full w-full">
                   {/* Full Size Hero Image Background */}
-                  <div className="relative w-full overflow-hidden bg-[#030303]">
-                    <div className="relative h-screen md:hidden">
+                  <div className="relative h-full w-full overflow-hidden bg-[#030303]">
+                    <div className="relative h-full md:hidden">
                       <Image
                         src={resolveMediaUrl(slide.image || "/placeholder.jpg")}
                         alt={`Hero Slide ${idx}`}
@@ -260,11 +260,13 @@ export default function HomePage() {
                       />
                       <div className="absolute inset-0 bg-linear-to-b from-black/20 via-transparent to-black/40" />
                     </div>
-                    <div className="relative hidden md:block">
-                      <img
+                    <div className="relative hidden h-full md:block">
+                      <Image
                         src={resolveMediaUrl(slide.image || "/placeholder.jpg")}
                         alt={`Hero Slide ${idx}`}
-                        className="w-full h-auto block opacity-60 -mt-56"
+                        fill
+                        priority={idx === 0}
+                        className="object-cover object-center opacity-60"
                       />
                       <div className="absolute inset-0 bg-linear-to-b from-black/20 via-transparent to-black/40" />
                     </div>
@@ -332,7 +334,7 @@ export default function HomePage() {
 
         </section>
 
-        <section className="px-6 md:px-16 pt-24 pb-16 md:py-24 bg-[#030303]">
+        <section className="px-6 md:px-16 pt-4 pb-16 md:pt-8 md:pb-20 bg-[#030303]">
           <div className="max-w-5xl mx-auto text-center">
             <p className="text-[8vw] sm:text-5xl md:text-6xl leading-[1.35] md:leading-[1.3] font-serif text-[#d8d8d6]">
               U.S Atelier is premium menswear designed for the modern man who values style, comfort, and craftsmanship with innovative tailoring to deliver clothing that makes a statement—confident, stylish, and refined.

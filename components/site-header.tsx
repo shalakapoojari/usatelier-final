@@ -157,21 +157,23 @@ export function SiteHeader() {
   }
 
   const handleMobileCartClick = () => {
-    closeMobileMenu()
+    closeMobileMenu(false)
     handleCartClick()
   }
 
   const handleMobileFavouritesClick = () => {
-    closeMobileMenu()
+    closeMobileMenu(false)
     handleFavouritesClick()
   }
 
-  const closeMobileMenu = () => {
+  const closeMobileMenu = (popHistory: boolean = true) => {
     setMobileMenuOpen(false)
-    if (typeof window !== "undefined" && window.history.state?.mobileMenuOpen) {
+    if (popHistory && typeof window !== "undefined" && window.history.state?.mobileMenuOpen) {
       window.history.back()
     }
   }
+
+  const closeMobileMenuForNavigation = () => closeMobileMenu(false)
 
   const [dynamicCategories, setDynamicCategories] = useState<NavCategory[]>([])
 
@@ -513,7 +515,7 @@ export function SiteHeader() {
 
       {/* ── MOBILE DRAWER: ALL NAV CONTENT ── */}
       {mobileMenuOpen && (
-        <div ref={mobileMenuOverlayRef} className="md:hidden fixed inset-0 bg-black/45 backdrop-blur-[1px] z-120" onClick={closeMobileMenu}>
+        <div ref={mobileMenuOverlayRef} className="md:hidden fixed inset-0 bg-black/45 backdrop-blur-[1px] z-120" onClick={() => closeMobileMenu()}>
           <div
             ref={mobileMenuRef}
             onClick={(e) => e.stopPropagation()}
@@ -523,19 +525,19 @@ export function SiteHeader() {
             <div className="mx-auto max-w-120 flex min-h-full flex-col">
               <div className="mobile-menu-item flex items-center justify-between text-[20px] sm:text-[22px] uppercase tracking-[0.12em] font-serif text-[#e6e6e2]">
                 <span>Menu</span>
-                <button onClick={closeMobileMenu} className="text-[#e6e6e2] hover:text-white transition-colors" aria-label="Close menu">
+                <button onClick={() => closeMobileMenu()} className="text-[#e6e6e2] hover:text-white transition-colors" aria-label="Close menu">
                   Close
                 </button>
               </div>
 
               <div className="mt-16 flex flex-col gap-6">
-                <Link href="/about" onClick={closeMobileMenu} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                <Link href="/about" onClick={closeMobileMenuForNavigation} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
                   About
                 </Link>
-                <Link href="/help" onClick={closeMobileMenu} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                <Link href="/help" onClick={closeMobileMenuForNavigation} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
                   Help
                 </Link>
-                <Link href="/view-all" onClick={closeMobileMenu} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                <Link href="/view-all" onClick={closeMobileMenuForNavigation} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
                   View All
                 </Link>
                 <button onClick={handleMobileFavouritesClick} className="mobile-menu-item text-left font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
@@ -553,7 +555,7 @@ export function SiteHeader() {
                   <div key={cat.id || cat.name} className="mobile-menu-item space-y-2">
                     <Link
                       href={`/view-all?category=${encodeURIComponent(cat.name)}`}
-                      onClick={closeMobileMenu}
+                      onClick={closeMobileMenuForNavigation}
                       className="font-serif text-[17px] sm:text-[18px] leading-none text-[#d4d4cf] hover:text-white transition-colors"
                     >
                       {cat.name}
@@ -564,7 +566,7 @@ export function SiteHeader() {
                           <Link
                             key={sub}
                             href={`/view-all?category=${encodeURIComponent(cat.name)}&jumpTo=${encodeURIComponent(sub)}`}
-                            onClick={closeMobileMenu}
+                            onClick={closeMobileMenuForNavigation}
                             className="text-gray-500 hover:text-gray-300 transition-colors"
                           >
                             {sub}
@@ -578,22 +580,22 @@ export function SiteHeader() {
 
               <div className="mobile-menu-item mt-8 flex flex-col gap-4 text-[18px] sm:text-[20px] font-serif text-[#e6e6e2]">
                 {!user ? (
-                  <Link href="/login" onClick={closeMobileMenu} className="hover:text-white transition-colors">
+                  <Link href="/login" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
                     Login
                   </Link>
                 ) : (
                   <>
-                    <Link href="/account" onClick={closeMobileMenu} className="hover:text-white transition-colors">
+                    <Link href="/account" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
                       My Account
                     </Link>
-                    <Link href="/account/orders" onClick={closeMobileMenu} className="hover:text-white transition-colors">
+                    <Link href="/account/orders" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
                       Orders
                     </Link>
                     <button onClick={handleMobileFavouritesClick} className="text-left hover:text-white transition-colors">
                       Favourites
                     </button>
                     {isAdmin && (
-                      <Link href="/admin" onClick={closeMobileMenu} className="text-amber-300 hover:text-amber-200 transition-colors">
+                      <Link href="/admin" onClick={closeMobileMenuForNavigation} className="text-amber-300 hover:text-amber-200 transition-colors">
                         Admin Panel
                       </Link>
                     )}

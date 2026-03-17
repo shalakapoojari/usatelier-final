@@ -123,6 +123,11 @@ function ShopContent() {
     }
   }, [jumpTo, loading, products])
 
+  useEffect(() => {
+    if (jumpTo) return
+    window.scrollTo({ top: 0, behavior: "auto" })
+  }, [urlCategory, urlSubcategory, urlSearch, jumpTo])
+
   const allSizes = useMemo(() => {
     const normalizeField = (str: any) => (str ?? "").toString().toLowerCase().trim()
 

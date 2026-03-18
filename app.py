@@ -10,6 +10,7 @@ import re
 import razorpay
 from urllib.parse import urlparse, urlunparse
 from datetime import datetime
+import traceback
 from flask_mail import Mail
 from authlib.integrations.flask_client import OAuth
 import requests
@@ -615,17 +616,25 @@ def google_callback():
         user_info = resp.json()
     except Exception as e:
         print(f"Google OAuth callback failed: {e}")
+        print(traceback.format_exc())
         error_text = str(e).lower()
+        error_type = e.__class__.__name__.lower()
         error_code = 'google_auth_failed'
-        if 'mismatching_state' in error_text or 'state' in error_text:
+        if 'mismatching_state' in error_text or 'state' in error_text or 'state' in error_type:
             error_code = 'google_state_mismatch'
         elif 'redirect_uri_mismatch' in error_text:
             error_code = 'google_redirect_uri_mismatch'
         elif 'invalid_client' in error_text:
             error_code = 'google_invalid_client'
+        elif 'invalid_grant' in error_text:
+            error_code = 'google_invalid_grant'
+        elif 'token' in error_text:
+            error_code = 'google_token_exchange_failed'
+        elif 'userinfo' in error_text:
+            error_code = 'google_userinfo_failed'
         elif 'access_denied' in error_text:
             error_code = 'google_access_denied'
-        return redirect(f"{frontend_base}/login?error={error_code}")
+        return redirect(f"{frontend_base}/login?error={error_code}&etype={error_type}")
     
     email = user_info.get('email', '').lower()
     first_name = user_info.get('given_name', '')

@@ -615,7 +615,17 @@ def google_callback():
         user_info = resp.json()
     except Exception as e:
         print(f"Google OAuth callback failed: {e}")
-        return redirect(f"{frontend_base}/login?error=google_auth_failed")
+        error_text = str(e).lower()
+        error_code = 'google_auth_failed'
+        if 'mismatching_state' in error_text or 'state' in error_text:
+            error_code = 'google_state_mismatch'
+        elif 'redirect_uri_mismatch' in error_text:
+            error_code = 'google_redirect_uri_mismatch'
+        elif 'invalid_client' in error_text:
+            error_code = 'google_invalid_client'
+        elif 'access_denied' in error_text:
+            error_code = 'google_access_denied'
+        return redirect(f"{frontend_base}/login?error={error_code}")
     
     email = user_info.get('email', '').lower()
     first_name = user_info.get('given_name', '')

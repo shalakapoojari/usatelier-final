@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 
 import { useAuth } from "@/lib/auth-context"
@@ -19,6 +19,25 @@ export default function LoginPage() {
 
   const { login, loginWithGoogle } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const oauthError = searchParams.get("error")
+    if (!oauthError) return
+
+    const errorMap: Record<string, string> = {
+      google_auth_failed: "Google sign-in failed. Please try again.",
+      google_state_mismatch: "Google session expired or blocked. Please disable Brave Shields/cookie blocking and try again.",
+      google_redirect_uri_mismatch: "Google OAuth redirect URL is misconfigured. Please contact support.",
+      google_invalid_client: "Google OAuth client is misconfigured. Please contact support.",
+      google_access_denied: "Google sign-in was cancelled.",
+      google_email_missing: "Your Google account did not provide an email.",
+      google_oauth_not_configured: "Google login is not configured on the server.",
+      db_error: "We could not create your account. Please try again.",
+    }
+
+    setError(errorMap[oauthError] || "Google sign-in failed. Please try again.")
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

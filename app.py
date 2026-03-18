@@ -384,7 +384,7 @@ def signup():
         db_mysql.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/auth/login', methods=['POST'])
+@app.route('/api/auth/login'    , methods=['POST'])
 @limiter.limit('10 per minute')
 def login():
     data = request.get_json()
@@ -665,8 +665,8 @@ def google_callback():
     session['user_id'] = str(user.id)
     session['is_admin'] = bool(user.is_admin)
     
-    # Redirect to Landing Page
-    return redirect(f"{frontend_base}/")
+    # Redirect to frontend callback so React can restore user state before routing.
+    return redirect(f"{frontend_base}/auth/callback")
 
 @app.route('/api/user/addresses', methods=['POST'])
 def add_address():

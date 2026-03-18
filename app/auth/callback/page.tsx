@@ -7,18 +7,38 @@ import { useAuth } from "@/lib/auth-context"
 
 export default function GoogleAuthCallbackPage() {
   const router = useRouter()
-  const { user, isAuthenticated, isAuthLoading } = useAuth()
+  const { refreshUser } = useAuth()
 
   useEffect(() => {
-    if (isAuthLoading) return
+    let cancelled = false
 
-    if (isAuthenticated && user) {
-      router.replace(user.role === "admin" ? "/admin" : "/")
-      return
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+    const finalizeLogin = async () => {
+      // Retry a few times in case browser cookie/session propagation is slightly delayed.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const restoredUser = await refreshUser()
+        if (cancelled) return
+
+        if (restoredUser) {
+          router.replace(restoredUser.role === "admin" ? "/admin" : "/")
+          return
+        }
+
+        if (attempt < 2) {
+          await sleep(300)
+        }
+      }
+
+      router.replace("/login?error=google_auth_failed")
     }
 
-    router.replace("/login?error=google_auth_failed")
-  }, [isAuthLoading, isAuthenticated, user, router])
+    finalizeLogin()
+
+    return () => {
+      cancelled = true
+    }
+  }, [refreshUser, router])
 
   return (
     <div className="min-h-screen bg-[#030303] text-[#e8e8e3] flex items-center justify-center px-6">

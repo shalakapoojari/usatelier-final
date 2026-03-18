@@ -24,6 +24,7 @@ type AuthContextType = {
   updateProfile: (data: { firstName: string; lastName: string; phone: string; profilePic?: string }) => Promise<{ success: boolean; message: string }>
   logout: () => void
   loginWithGoogle: () => void
+  refreshUser: () => Promise<User | null>
   isAuthenticated: boolean
   isAdmin: boolean
   isAuthLoading: boolean
@@ -44,42 +45,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
   const [isAuthLoading, setIsAuthLoading] = useState(true)
 
+  const restoreUserFromSession = async (): Promise<User | null> => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/user`, {
+        credentials: "include",
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.user) {
+          const restored: User = {
+            id: data.id || "",
+            email: data.user,
+            firstName: data.firstName || data.user.split("@")[0],
+            lastName: data.lastName || "",
+            phone: data.phone || "",
+            profilePic: data.profilePic || "",
+            role: data.isAdmin ? "admin" : "user",
+            isNewSignup: data.isNewSignup || false,
+            addresses: data.addresses || [],
+          }
+          setUser(restored)
+          sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(restored))
+          return restored
+        }
+      }
+      setUser(null)
+      sessionStorage.removeItem(SESSION_USER_KEY)
+      return null
+    } catch {
+      // Flask not reachable — keep sessionStorage snapshot for this tab
+      return user
+    }
+  }
+
   // On mount: restore session from Flask server
   useEffect(() => {
     const restore = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/auth/user`, {
-          credentials: "include",
-        })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.user) {
-            const restored: User = {
-              id: data.id || "",
-              email: data.user,
-              firstName: data.firstName || data.user.split("@")[0],
-              lastName: data.lastName || "",
-              phone: data.phone || "",
-              profilePic: data.profilePic || "",
-              role: data.isAdmin ? "admin" : "user",
-              isNewSignup: data.isNewSignup || false,
-              addresses: data.addresses || [],
-            }
-            setUser(restored)
-            sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(restored))
-            return
-          }
-        }
-        setUser(null)
-        sessionStorage.removeItem(SESSION_USER_KEY)
-      } catch {
-        // Flask not reachable — keep sessionStorage snapshot for this tab
+        await restoreUserFromSession()
       } finally {
         setIsAuthLoading(false)
       }
     }
     restore()
   }, [])
+
+  const refreshUser = async (): Promise<User | null> => {
+    setIsAuthLoading(true)
+    try {
+      return await restoreUserFromSession()
+    } finally {
+      setIsAuthLoading(false)
+    }
+  }
 
   const login = async (
     email: string,
@@ -219,6 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateProfile,
         logout,
         loginWithGoogle,
+        refreshUser,
         isAuthenticated: !!user,
         isAdmin: user?.role === "admin",
         isAuthLoading,

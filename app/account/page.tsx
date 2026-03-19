@@ -17,6 +17,10 @@ export default function AccountPage() {
   const { user } = useAuth()
   const { items: cartItems } = useCart()
   const { count: wishlistCount } = useWishlist()
+  const sanitizedDisplayName = `${user?.firstName || ""}${user?.lastName ? ` ${user.lastName}` : ""}`
+    .replace(/[\\/]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
   const [userOrders, setUserOrders] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showHelloGreeting, setShowHelloGreeting] = useState(false)
@@ -75,7 +79,7 @@ export default function AccountPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-serif text-xl truncate">
-                    {user?.firstName ? `${user.firstName}${user?.lastName ? ` ${user.lastName}` : ""}` : "My Account"}
+                    {sanitizedDisplayName || "My Account"}
                   </p>
                   <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                 </div>

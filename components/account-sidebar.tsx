@@ -20,6 +20,10 @@ export function AccountSidebar({ children }: SidebarProps) {
     const { user, logout, isAdmin } = useAuth()
     const router = useRouter()
     const pathname = usePathname()
+    const sanitizedName = `${user?.firstName || ""} ${user?.lastName || ""}`
+        .replace(/[\\/]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
 
     const handleLogout = () => {
         logout()
@@ -39,7 +43,7 @@ export function AccountSidebar({ children }: SidebarProps) {
                     <div className="w-14 h-14 rounded-full border border-white/20 bg-white/5 flex items-center justify-center mb-4">
                         <User size={22} strokeWidth={1} className="text-gray-400" />
                     </div>
-                    <p className="font-serif text-lg font-light truncate">{user ? `${user.firstName} ${user.lastName}` : "Guest"}</p>
+                    <p className="font-serif text-lg font-light truncate">{user ? (sanitizedName || "Guest") : "Guest"}</p>
                     <p className="text-xs text-gray-500 truncate mt-1">{user?.email}</p>
                 </div>
 

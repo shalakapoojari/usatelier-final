@@ -560,21 +560,6 @@ export function SiteHeader() {
 
               <div className="mobile-menu-item mt-14 h-px bg-white/12" />
 
-              <p className="mobile-menu-item mt-8 text-[10px] uppercase tracking-[0.35em] text-gray-500">Categories</p>
-              <div className="mt-8 flex flex-col gap-5">
-                {dynamicCategories.map((cat) => (
-                  <div key={cat.id || cat.name} className="mobile-menu-item">
-                    <Link
-                      href={`/view-all?category=${encodeURIComponent(cat.name)}`}
-                      onClick={closeMobileMenuForNavigation}
-                      className="font-serif text-[17px] sm:text-[18px] leading-none text-[#d4d4cf] hover:text-white transition-colors"
-                    >
-                      {cat.name}
-                    </Link>
-                  </div>
-                ))}
-              </div>
-
               <div className="mobile-menu-item mt-8 flex flex-col gap-4 text-[18px] sm:text-[20px] font-serif text-[#e6e6e2]">
                 {!user ? (
                   <Link href="/login" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
@@ -601,6 +586,23 @@ export function SiteHeader() {
                     </button>
                   </>
                 )}
+              </div>
+
+              <div className="mobile-menu-item mt-8 h-px bg-white/12" />
+
+              <p className="mobile-menu-item mt-8 text-[10px] uppercase tracking-[0.35em] text-gray-500">Categories</p>
+              <div className="mt-8 flex flex-col gap-5">
+                {dynamicCategories.map((cat) => (
+                  <div key={cat.id || cat.name} className="mobile-menu-item">
+                    <Link
+                      href={`/view-all?category=${encodeURIComponent(cat.name)}`}
+                      onClick={closeMobileMenuForNavigation}
+                      className="font-serif text-[17px] sm:text-[18px] leading-none text-[#d4d4cf] hover:text-white transition-colors"
+                    >
+                      {cat.name}
+                    </Link>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

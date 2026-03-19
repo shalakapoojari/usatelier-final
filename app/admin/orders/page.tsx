@@ -21,13 +21,13 @@ export default function OrdersPage() {
     "uppercase tracking-widest text-xs pb-4 transition-colors"
 
   return (
-    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 py-16">
+    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 py-10 md:py-16">
       {/* ================= HEADER ================= */}
-      <div className="max-w-[1400px] mx-auto mb-20">
+      <div className="max-w-350 mx-auto mb-14 md:mb-20">
         <p className="uppercase tracking-[0.5em] text-xs text-gray-500 mb-4">
           Admin
         </p>
-        <h1 className="font-serif text-5xl font-light">
+        <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light">
           Orders
         </h1>
         <p className="mt-4 text-sm tracking-widest text-gray-500">
@@ -36,7 +36,7 @@ export default function OrdersPage() {
       </div>
 
       {/* ================= TABS ================= */}
-      <div className="max-w-[1400px] mx-auto flex gap-12 border-b border-white/10 mb-16">
+      <div className="max-w-350 mx-auto flex gap-8 md:gap-12 border-b border-white/10 mb-12 md:mb-16 overflow-x-auto whitespace-nowrap">
         <button
           onClick={() => setActiveTab("all")}
           className={`${tabBase} ${activeTab === "all"
@@ -85,7 +85,7 @@ export default function OrdersPage() {
       </div>
 
       {/* ================= TABLE ================= */}
-      <div className="max-w-[1400px] mx-auto border border-white/10 overflow-x-auto">
+      <div className="max-w-350 mx-auto border border-white/10 overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/10">
@@ -100,7 +100,7 @@ export default function OrdersPage() {
               ].map((h) => (
                 <th
                   key={h}
-                  className="px-8 py-6 text-left text-xs uppercase tracking-widest text-gray-500"
+                  className="px-4 md:px-8 py-4 md:py-6 text-left text-xs uppercase tracking-widest text-gray-500"
                 >
                   {h}
                 </th>
@@ -112,14 +112,14 @@ export default function OrdersPage() {
             {filteredOrders.map((order, i) => (
               <tr
                 key={order.id}
-                className={`border-b border-white/5 hover:bg-white/[0.04] transition-colors ${i % 2 === 0 ? "bg-white/[0.02]" : ""
+                className={`border-b border-white/5 hover:bg-white/4 transition-colors ${i % 2 === 0 ? "bg-white/2" : ""
                   }`}
               >
-                <td className="px-8 py-6 font-medium">
+                <td className="px-4 md:px-8 py-4 md:py-6 font-medium">
                   {order.id}
                 </td>
 
-                <td className="px-8 py-6">
+                <td className="px-4 md:px-8 py-4 md:py-6">
                   <p className="font-medium">
                     {order.customerName}
                   </p>
@@ -128,23 +128,23 @@ export default function OrdersPage() {
                   </p>
                 </td>
 
-                <td className="px-8 py-6 text-xs tracking-widest text-gray-500">
+                <td className="px-4 md:px-8 py-4 md:py-6 text-xs tracking-widest text-gray-500">
                   {new Date(order.date).toLocaleDateString()}
                 </td>
 
-                <td className="px-8 py-6">
+                <td className="px-4 md:px-8 py-4 md:py-6">
                   {order.items.length}
                 </td>
 
-                <td className="px-8 py-6 font-medium">
+                <td className="px-4 md:px-8 py-4 md:py-6 font-medium">
                   ₹{order.total.toLocaleString('en-IN')}
                 </td>
 
-                <td className="px-8 py-6 uppercase tracking-widest text-xs text-gray-400">
+                <td className="px-4 md:px-8 py-4 md:py-6 uppercase tracking-widest text-xs text-gray-400">
                   {order.status}
                 </td>
 
-                <td className="px-8 py-6 text-right">
+                <td className="px-4 md:px-8 py-4 md:py-6 text-right">
                   <Link
                     href={`/admin/orders/${order.id}`}
                     className="uppercase tracking-widest text-xs text-gray-400 hover:text-white transition-colors"

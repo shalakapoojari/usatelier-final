@@ -157,7 +157,7 @@ export default function OrderDetailPage({
 
   if (!order) {
     return (
-      <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 py-16 text-center">
+      <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 py-10 md:py-16 text-center">
         <Link href="/admin/orders" className="uppercase tracking-widest text-xs text-gray-500">
           ← Back to Orders
         </Link>
@@ -167,7 +167,7 @@ export default function OrderDetailPage({
   }
 
   return (
-    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 lg:px-16 py-12 lg:py-20 max-w-7xl mx-auto space-y-16">
+    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 lg:px-12 py-10 md:py-14 lg:py-20 max-w-7xl mx-auto space-y-10 md:space-y-16">
       {/* ================= HEADER ================= */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 border-b border-white/5 pb-12">
         <div className="space-y-6">
@@ -177,10 +177,10 @@ export default function OrderDetailPage({
           </Link>
 
           <div>
-            <h1 className="font-serif text-5xl font-light tracking-tight mb-4">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light tracking-tight mb-4 break-all">
               {order.order_number}
             </h1>
-            <div className="flex items-center gap-6 text-[10px] uppercase tracking-[0.2em] text-gray-500">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-[10px] uppercase tracking-[0.2em] text-gray-500">
               <span className="flex items-center gap-2">
                 <CheckCircle2 size={12} className="text-green-500" />
                 Placed {new Date(order.date).toLocaleDateString()}
@@ -209,7 +209,7 @@ export default function OrderDetailPage({
       <div className="grid lg:grid-cols-3 gap-12 lg:gap-20">
         {/* ITEMS & SUMMARY */}
         <div className="lg:col-span-2 space-y-12">
-          <div className="bg-white/2 border border-white/5 p-10 space-y-8">
+          <div className="bg-white/2 border border-white/5 p-5 sm:p-7 md:p-10 space-y-8">
             <h2 className="flex items-center gap-3 uppercase tracking-[0.3em] text-[10px] text-gray-500 mb-8">
               <Package size={14} />
               Manifested Items
@@ -217,7 +217,7 @@ export default function OrderDetailPage({
 
             <div className="space-y-8">
               {order.items.map((item, i) => (
-                <div key={i} className="flex justify-between items-start border-b border-white/5 pb-8 last:border-0 last:pb-0 group">
+                <div key={i} className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start border-b border-white/5 pb-8 last:border-0 last:pb-0 group">
                   <div className="space-y-1">
                     <p className="font-serif text-lg text-[#e8e8e3] group-hover:text-white transition-colors">
                       {item.productName}
@@ -252,7 +252,7 @@ export default function OrderDetailPage({
           </div>
 
           {/* SHIPPING ADDRESS */}
-          <div className="bg-white/2 border border-white/5 p-10">
+          <div className="bg-white/2 border border-white/5 p-5 sm:p-7 md:p-10">
             <h2 className="flex items-center gap-3 uppercase tracking-[0.3em] text-[10px] text-gray-500 mb-8">
               <Truck size={14} />
               Logistics Destination
@@ -274,7 +274,7 @@ export default function OrderDetailPage({
         {/* CONTROLS SIDEBAR */}
         <div className="space-y-8">
           {/* CUSTOMER PROFILE */}
-          <div className="bg-white/2 border border-white/5 p-8 space-y-6">
+          <div className="bg-white/2 border border-white/5 p-5 sm:p-8 space-y-6">
             <h2 className="flex items-center gap-3 uppercase tracking-[0.3em] text-[10px] text-gray-500">
               <User size={14} />
               Identity
@@ -292,7 +292,7 @@ export default function OrderDetailPage({
           </div>
 
           {/* PAYMENT STATUS */}
-          <div className="bg-white/2 border border-white/5 p-8 space-y-6">
+          <div className="bg-white/2 border border-white/5 p-5 sm:p-8 space-y-6">
             <h2 className="flex items-center gap-3 uppercase tracking-[0.3em] text-[10px] text-gray-500">
               <CreditCard size={14} />
               Financial Status
@@ -318,7 +318,7 @@ export default function OrderDetailPage({
           </div>
 
           {/* WORKFLOW CONTROLS */}
-          <div className="bg-white/2 border border-white/5 p-8 space-y-8">
+          <div className="bg-white/2 border border-white/5 p-5 sm:p-8 space-y-8">
             <h2 className="uppercase tracking-[0.3em] text-[10px] text-gray-500">Execution</h2>
 
             <div className="space-y-4">

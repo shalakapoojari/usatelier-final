@@ -31,9 +31,9 @@ export default function OrderDetailPage({
     <div className="bg-[#030303] text-[#e8e8e3] min-h-screen">
       <SiteHeader />
 
-      <div className="pt-[72px]">
+      <div className="pt-28 md:pt-52">
         <AccountSidebar>
-          <div className="p-10 max-w-3xl">
+          <div className="p-5 md:p-10 max-w-4xl">
             {/* Breadcrumb */}
             <Link
               href="/account/orders"
@@ -43,10 +43,10 @@ export default function OrderDetailPage({
             </Link>
 
             {/* Header */}
-            <div className="flex justify-between items-start mb-10 pb-8 border-b border-white/10">
+            <div className="flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-start mb-10 pb-8 border-b border-white/10">
               <div>
                 <p className="uppercase tracking-[0.4em] text-xs text-gray-500 mb-2">Account</p>
-                <h1 className="font-serif text-4xl font-light">{order.id}</h1>
+                <h1 className="font-serif text-3xl md:text-4xl font-light break-all">{order.id}</h1>
                 <p className="text-sm text-gray-500 mt-1">
                   Placed on{" "}
                   {new Date(order.date).toLocaleDateString("en-IN", {
@@ -56,7 +56,7 @@ export default function OrderDetailPage({
                   })}
                 </p>
               </div>
-              <div className="flex flex-col items-end gap-3">
+              <div className="flex flex-col items-start sm:items-end gap-3">
                 <span className={`px-4 py-1.5 border uppercase tracking-widest text-xs ${getStatusStyle(order.status)}`}>
                   {order.status}
                 </span>
@@ -80,11 +80,11 @@ export default function OrderDetailPage({
             </div>
 
             {/* Items */}
-            <div className="border border-white/10 p-8 mb-8">
+            <div className="border border-white/10 p-4 sm:p-8 mb-8">
               <h2 className="uppercase tracking-widest text-xs text-gray-400 mb-7">Items</h2>
               <div className="space-y-5">
                 {order.items.map((item, index) => (
-                  <div key={index} className="flex justify-between pb-5 border-b border-white/10 last:border-0 last:pb-0">
+                  <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between pb-5 border-b border-white/10 last:border-0 last:pb-0">
                     <div>
                       <p className="uppercase tracking-widest text-sm">{item.productName}</p>
                       <p className="text-xs text-gray-500 mt-1.5">Size {item.size} · Qty {item.quantity}</p>
@@ -111,7 +111,7 @@ export default function OrderDetailPage({
             </div>
 
             {/* Address */}
-            <div className="border border-white/10 p-8">
+            <div className="border border-white/10 p-4 sm:p-8">
               <h2 className="uppercase tracking-widest text-xs text-gray-400 mb-5">Shipping Address</h2>
               <div className="text-sm text-gray-400 leading-loose">
                 <p>{order.customerName}</p>

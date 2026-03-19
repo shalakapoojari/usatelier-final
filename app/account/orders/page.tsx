@@ -22,13 +22,13 @@ export default function OrdersPage() {
     <div className="bg-[#030303] text-[#e8e8e3] min-h-screen">
       <SiteHeader />
 
-      <div className="pt-[72px]">
+      <div className="pt-28 md:pt-52">
         <AccountSidebar>
-          <div className="p-10 max-w-3xl">
+          <div className="p-5 md:p-10 max-w-4xl">
             {/* Header */}
             <div className="mb-10 pb-8 border-b border-white/10">
               <p className="uppercase tracking-[0.4em] text-xs text-gray-500 mb-2">Account</p>
-              <h1 className="font-serif text-4xl font-light">Order History</h1>
+              <h1 className="font-serif text-3xl md:text-4xl font-light">Order History</h1>
             </div>
 
             {userOrders.length > 0 ? (
@@ -37,9 +37,9 @@ export default function OrdersPage() {
                   <Link
                     key={order.id}
                     href={`/account/orders/${order.id}`}
-                    className="block border border-white/10 p-7 group hover:border-white/30 transition-colors"
+                    className="block border border-white/10 p-4 sm:p-7 group hover:border-white/30 transition-colors"
                   >
-                    <div className="flex items-start justify-between mb-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-5">
                       <div>
                         <p className="uppercase tracking-widest text-xs mb-2">{order.id}</p>
                         <p className="text-xs text-gray-500">
@@ -60,8 +60,8 @@ export default function OrdersPage() {
 
                     <div className="border-t border-white/10 pt-5 space-y-2 text-sm text-gray-400">
                       {order.items.map((item, index) => (
-                        <div key={index} className="flex justify-between">
-                          <span>{item.productName} · Size {item.size} × {item.quantity}</span>
+                        <div key={index} className="flex items-start justify-between gap-4">
+                          <span className="pr-2">{item.productName} · Size {item.size} × {item.quantity}</span>
                           <span>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
                         </div>
                       ))}

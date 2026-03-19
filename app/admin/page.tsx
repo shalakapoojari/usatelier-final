@@ -28,13 +28,13 @@ export default function AdminDashboard() {
     .slice(0, 5)
 
   return (
-    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 py-16">
+    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 py-10 md:py-16">
       {/* HEADER */}
-      <div className="max-w-[1400px] mx-auto mb-20">
+      <div className="max-w-350 mx-auto mb-14 md:mb-20">
         <p className="uppercase tracking-[0.5em] text-xs text-gray-500 mb-4">
           Admin Overview
         </p>
-        <h1 className="font-serif text-5xl font-light">
+        <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light">
           Dashboard
         </h1>
         <p className="mt-4 text-sm tracking-widest text-gray-500">
@@ -43,7 +43,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* METRICS */}
-      <div className="max-w-[1400px] mx-auto grid md:grid-cols-5 gap-8 mb-24">
+      <div className="max-w-350 mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 md:gap-8 mb-14 md:mb-24">
         {[
           ["Revenue", `₹${revenue.toLocaleString('en-IN')}`],
           ["Orders", totalOrders],
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
           ["Customers", customers],
           ["Avg Order", `₹${avgOrder.toFixed(0)}`],
         ].map(([label, value]) => (
-          <div key={label} className="border border-white/10 p-8">
+          <div key={label} className="border border-white/10 p-5 md:p-8">
             <p className="uppercase tracking-widest text-xs text-gray-500 mb-4">
               {label}
             </p>
@@ -61,9 +61,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* GRID */}
-      <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16">
+      <div className="max-w-350 mx-auto grid lg:grid-cols-2 gap-8 md:gap-16">
         {/* RECENT ORDERS */}
-        <div className="border border-white/10 p-10">
+        <div className="border border-white/10 p-5 md:p-10">
           <div className="flex justify-between items-center mb-10">
             <h2 className="uppercase tracking-widest text-xs text-gray-400">
               Recent Orders
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
             {recentOrders.map(o => (
               <div
                 key={o.id}
-                className="flex justify-between border-b border-white/5 pb-4"
+                className="flex flex-col gap-2 sm:flex-row sm:justify-between border-b border-white/5 pb-4"
               >
                 <div>
                   <p className="font-medium">{o.id}</p>
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* TOP PRODUCTS */}
-        <div className="border border-white/10 p-10">
+        <div className="border border-white/10 p-5 md:p-10">
           <div className="flex justify-between items-center mb-10">
             <h2 className="uppercase tracking-widest text-xs text-gray-400">
               Top Products
@@ -117,7 +117,7 @@ export default function AdminDashboard() {
             {topProducts.map((p, i) => (
               <div
                 key={p.product!.id}
-                className="flex justify-between border-b border-white/5 pb-4"
+                className="flex flex-col gap-2 sm:flex-row sm:justify-between border-b border-white/5 pb-4"
               >
                 <div>
                   <p className="font-medium">

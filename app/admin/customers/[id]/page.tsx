@@ -39,7 +39,7 @@ export default function CustomerProfilePage({
 
     if (isLoading) {
         return (
-            <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 py-16 flex items-center justify-center">
+            <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 py-10 md:py-16 flex items-center justify-center">
                 <p className="uppercase tracking-widest text-xs animate-pulse text-gray-500">Loading Profile...</p>
             </div>
         )
@@ -47,7 +47,7 @@ export default function CustomerProfilePage({
 
     if (!customer) {
         return (
-            <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 py-16">
+            <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 py-10 md:py-16">
                 <Link href="/admin/customers" className="uppercase tracking-widest text-xs text-gray-500 flex items-center gap-2 mb-12">
                     <ArrowLeft size={14} /> Back to Customers
                 </Link>
@@ -57,8 +57,8 @@ export default function CustomerProfilePage({
     }
 
     return (
-        <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 md:px-8 py-16">
-            <div className="max-w-[1200px] mx-auto">
+        <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 py-10 md:py-16">
+            <div className="max-w-300 mx-auto">
                 <Link href="/admin/customers" className="uppercase tracking-widest text-xs text-gray-500 flex items-center gap-2 mb-12 hover:text-white transition-colors w-fit">
                     <ArrowLeft size={14} /> Back to Customers
                 </Link>
@@ -66,7 +66,7 @@ export default function CustomerProfilePage({
                 {/* HEADER */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-8 mb-16">
                     <div>
-                        <h1 className="font-serif text-5xl font-light mb-4 flex items-center gap-4">
+                        <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light mb-4 flex items-center gap-4">
                             {customer.first_name} {customer.last_name}
                         </h1>
                         <p className="text-gray-500 text-xs tracking-widest uppercase flex items-center gap-2">
@@ -81,7 +81,7 @@ export default function CustomerProfilePage({
                     {/* LEFT COL: PROFILE INFO */}
                     <div className="lg:col-span-1 space-y-12">
                         {/* Contact Details */}
-                        <div className="border border-white/10 p-8 space-y-6">
+                        <div className="border border-white/10 p-5 sm:p-8 space-y-6">
                             <h2 className="uppercase tracking-widest text-xs text-gray-500 mb-8 border-b border-white/10 pb-4">Basic Info</h2>
 
                             <div className="flex items-start gap-4">
@@ -126,10 +126,10 @@ export default function CustomerProfilePage({
                         </div>
 
                         {/* Statistics */}
-                        <div className="border border-white/10 p-8 space-y-6">
+                        <div className="border border-white/10 p-5 sm:p-8 space-y-6">
                             <h2 className="uppercase tracking-widest text-xs text-gray-500 mb-8 border-b border-white/10 pb-4">Account Analytics</h2>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <p className="font-serif text-3xl font-light text-white">{customer.stats.total_orders}</p>
                                     <p className="text-[10px] tracking-widest uppercase text-gray-500 mt-2">Total Orders</p>
@@ -158,7 +158,7 @@ export default function CustomerProfilePage({
                         </h2>
 
                         {customer.orders.length > 0 ? (
-                            <div className="border border-white/10 overflow-hidden">
+                            <div className="border border-white/10 overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-white/10 bg-white/5">

@@ -329,11 +329,11 @@ export default function ProductsPage() {
   })
 
   return (
-    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 py-16">
-      <div className="max-w-[1400px] mx-auto mb-20 flex justify-between items-end">
+    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 py-10 md:py-16">
+      <div className="max-w-350 mx-auto mb-14 md:mb-20 flex flex-col md:flex-row md:justify-between md:items-end gap-6">
         <div>
           <p className="uppercase tracking-[0.5em] text-xs text-gray-500 mb-4">Admin</p>
-          <h1 className="font-serif text-5xl font-light">
+          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light">
             Total Products: <span className="text-xl opacity-50" style={{ fontFamily: 'Times New Roman, serif' }}>({products.length})</span>
           </h1>
           <p className="mt-4 text-sm tracking-widest text-gray-500">
@@ -366,7 +366,7 @@ export default function ProductsPage() {
           }
         }}>
           <DialogTrigger asChild>
-            <Button className="bg-white text-black hover:bg-white hover:text-black px-8 py-6 uppercase tracking-widest text-xs transition-all rounded-none">
+            <Button className="bg-white text-black hover:bg-white hover:text-black px-8 py-6 uppercase tracking-widest text-xs transition-all rounded-none w-full md:w-auto">
               Add Product
             </Button>
           </DialogTrigger>
@@ -397,7 +397,7 @@ export default function ProductsPage() {
                           className="bg-transparent border-white/10 focus:border-white/30 rounded-none h-12"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label className="text-[10px] uppercase tracking-widest text-gray-400">Price (INR)</Label>
                           <Input
@@ -442,7 +442,7 @@ export default function ProductsPage() {
 
                   <div className="space-y-4">
                     <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 border-b border-white/5 pb-2">Classification</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-[10px] uppercase tracking-widest text-gray-400">Category</Label>
                         <Select
@@ -495,7 +495,7 @@ export default function ProductsPage() {
                       value={formData.description}
                       onChange={handleInputChange}
                       required
-                      className="bg-transparent border-white/10 focus:border-white/30 rounded-none min-h-[120px]"
+                      className="bg-transparent border-white/10 focus:border-white/30 rounded-none min-h-30"
                     />
                   </div>
                 </div>
@@ -506,7 +506,7 @@ export default function ProductsPage() {
                     <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 border-b border-white/5 pb-2">Imagery</p>
                     <div className="space-y-6">
                       {formData.images.map((img, idx) => (
-                        <div key={idx} className="space-y-3 p-4 border border-white/5 hover:bg-white/[0.02] transition-all">
+                        <div key={idx} className="space-y-3 p-4 border border-white/5 hover:bg-white/2 transition-all">
                           <div className="flex justify-between items-center">
                             <Label className="text-[10px] uppercase tracking-widest text-gray-500">Image {idx + 1} {idx === 0 && "(Primary)"}</Label>
                             {img && (
@@ -516,7 +516,7 @@ export default function ProductsPage() {
                             )}
                           </div>
                           <div className="flex gap-4">
-                            <div className="relative w-16 h-20 bg-white/5 border border-white/10 flex-shrink-0 overflow-hidden">
+                            <div className="relative w-16 h-20 bg-white/5 border border-white/10 shrink-0 overflow-hidden">
                               {img ? (
                                 <Image src={getImageUrl(img)} alt="Preview" fill className="object-cover" />
                               ) : (
@@ -576,8 +576,8 @@ export default function ProductsPage() {
                           </button>
                         )}
                       </div>
-                      <div className="flex gap-4 p-4 border border-amber-500/10 bg-amber-500/[0.02] hover:bg-amber-500/[0.04] transition-all">
-                        <div className="relative w-16 h-20 bg-white/5 border border-white/10 flex-shrink-0 overflow-hidden">
+                      <div className="flex gap-4 p-4 border border-amber-500/10 bg-amber-500/2 hover:bg-amber-500/4 transition-all">
+                        <div className="relative w-16 h-20 bg-white/5 border border-white/10 shrink-0 overflow-hidden">
                           {formData.sizeGuideImage ? (
                             <Image src={getImageUrl(formData.sizeGuideImage)} alt="Size Guide" fill className="object-cover" />
                           ) : (
@@ -637,13 +637,13 @@ export default function ProductsPage() {
 
                   <div className="space-y-4">
                     <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 border-b border-white/5 pb-2">Attributes</p>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {[
                         { label: "Featured", key: "featured" },
                         { label: "New", key: "newArrival" },
                         { label: "Best", key: "bestseller" }
                       ].map(item => (
-                        <div key={item.key} className="flex flex-col items-center gap-3 p-3 border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all">
+                        <div key={item.key} className="flex flex-col items-center gap-3 p-3 border border-white/10 bg-white/2 hover:bg-white/5 transition-all">
                           <Label className="text-[8px] uppercase tracking-widest text-gray-500">{item.label}</Label>
                           <Switch
                             checked={(formData as any)[item.key]}
@@ -652,7 +652,7 @@ export default function ProductsPage() {
                           />
                         </div>
                       ))}
-                      <div className="flex flex-col items-center gap-3 p-3 border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all col-span-3">
+                      <div className="flex flex-col items-center gap-3 p-3 border border-white/10 bg-white/2 hover:bg-white/5 transition-all sm:col-span-3">
                         <Label className="text-[8px] uppercase tracking-widest text-[#e8e8e3]">Notify Users via Email</Label>
                         <div className="flex items-center gap-4">
                           <span className="text-[10px] text-gray-500 uppercase tracking-tighter">Off</span>
@@ -711,7 +711,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="max-w-[1400px] mx-auto mb-12 flex flex-col md:flex-row gap-8 items-end justify-between border-t border-white/5 pt-12">
+      <div className="max-w-350 mx-auto mb-12 flex flex-col md:flex-row gap-8 items-start md:items-end justify-between border-t border-white/5 pt-12">
         <div className="space-y-4 w-full md:w-96">
           <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Search Catalog</p>
           <div className="relative group">
@@ -741,19 +741,19 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto border border-white/10 overflow-x-auto">
+      <div className="max-w-350 mx-auto border border-white/10 overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/10">
               {["Product", "Category", "Price", "Tags", "Stock", ""].map(h => (
-                <th key={h} className="px-8 py-6 text-left uppercase tracking-widest text-xs text-gray-500">{h}</th>
+                <th key={h} className="px-4 md:px-8 py-4 md:py-6 text-left uppercase tracking-widest text-xs text-gray-500">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-8 py-24 text-center">
+                <td colSpan={6} className="px-4 md:px-8 py-24 text-center">
                   <div className="flex flex-col items-center gap-4">
                     <Loader2 className="animate-spin text-gray-500" />
                     <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Retrieving Catalog...</p>
@@ -762,13 +762,13 @@ export default function ProductsPage() {
               </tr>
             ) : filteredProductsList.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-8 py-24 text-center">
+                <td colSpan={6} className="px-4 md:px-8 py-24 text-center">
                   <p className="text-xs uppercase tracking-[0.3em] text-gray-500">No matching pieces available in catalog.</p>
                 </td>
               </tr>
             ) : filteredProductsList.map((p, i) => (
-              <tr key={p.id} className={`border-b border-white/5 hover:bg-white/[0.04] ${i % 2 === 0 ? "bg-white/[0.02]" : ""}`}>
-                <td className="px-8 py-6 flex items-center gap-6">
+              <tr key={p.id} className={`border-b border-white/5 hover:bg-white/4 ${i % 2 === 0 ? "bg-white/2" : ""}`}>
+                <td className="px-4 md:px-8 py-4 md:py-6 flex items-center gap-4 md:gap-6">
                   <div className="relative w-16 h-20 bg-white/5">
                     <Image src={getImageUrl(p.images)} alt={p.name} fill className="object-cover opacity-80" />
                   </div>
@@ -777,18 +777,18 @@ export default function ProductsPage() {
                     <p className="text-[10px] tracking-[0.3em] text-gray-600 uppercase mt-1">ID {String(p.id).slice(-6)}</p>
                   </div>
                 </td>
-                <td className="px-8 py-6 text-xs tracking-widest">
+                <td className="px-4 md:px-8 py-4 md:py-6 text-xs tracking-widest">
                   {p.category}
                   {p.subcategory && <span className="text-gray-600 block text-[9px] mt-1 italic">{p.subcategory}</span>}
                 </td>
-                <td className="px-8 py-6 font-mono text-xs">₹{p.price.toLocaleString('en-IN')}</td>
-                <td className="px-8 py-6 text-[10px] tracking-widest text-gray-500 uppercase">
+                <td className="px-4 md:px-8 py-4 md:py-6 font-mono text-xs">₹{p.price.toLocaleString('en-IN')}</td>
+                <td className="px-4 md:px-8 py-4 md:py-6 text-[10px] tracking-widest text-gray-500 uppercase">
                   {[p.is_featured && "Featured", p.is_new && "New", p.is_bestseller && "Best"].filter(Boolean).join(" · ") || "—"}
                 </td>
-                <td className="px-8 py-6 text-[10px] tracking-widest uppercase">
+                <td className="px-4 md:px-8 py-4 md:py-6 text-[10px] tracking-widest uppercase">
                   {p.stock > 0 ? <span className="text-white">In Stock ({p.stock})</span> : <span className="text-red-500/60">Sold Out</span>}
                 </td>
-                <td className="px-8 py-6 text-right space-x-4">
+                <td className="px-4 md:px-8 py-4 md:py-6 text-right space-x-4 whitespace-nowrap">
                   <button onClick={() => handleEditProduct(p)} className="uppercase tracking-widest text-[10px] text-gray-400 hover:text-white transition-colors">
                     Edit
                   </button>

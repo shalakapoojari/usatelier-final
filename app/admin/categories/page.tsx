@@ -133,19 +133,19 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-8 py-16">
-      <div className="max-w-[1400px] mx-auto mb-20">
+    <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 py-10 md:py-16">
+      <div className="max-w-350 mx-auto mb-14 md:mb-20">
         <p className="uppercase tracking-[0.5em] text-xs text-gray-500 mb-4">Admin</p>
-        <h1 className="font-serif text-5xl font-light">Categories</h1>
+        <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light">Categories</h1>
         <p className="mt-4 text-sm tracking-widest text-gray-500 max-w-xl">
           Manage product categories and their subcategories.
         </p>
       </div>
 
-      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <div className="max-w-350 mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
         {/* ADD CATEGORY */}
         <div className="lg:col-span-1">
-          <section className="border border-white/10 p-10 sticky top-10 bg-white/[0.02]">
+          <section className="border border-white/10 p-5 md:p-10 md:sticky md:top-10 bg-white/2">
             <h2 className="uppercase tracking-widest text-[10px] text-gray-400 mb-8 border-b border-white/5 pb-4">
               Create New Category
             </h2>
@@ -179,10 +179,10 @@ export default function CategoriesPage() {
           ) : (
             <div className="grid grid-cols-1 gap-8">
               {categories.map((cat) => (
-                <div key={cat.id} className="border border-white/10 p-8 hover:bg-white/[0.01] transition-all group">
-                  <div className="flex justify-between items-start mb-8">
+                <div key={cat.id} className="border border-white/10 p-5 md:p-8 hover:bg-white/1 transition-all group">
+                  <div className="flex justify-between items-start gap-4 mb-8">
                     <div>
-                      <h3 className="font-serif text-3xl font-light">{cat.name}</h3>
+                      <h3 className="font-serif text-2xl md:text-3xl font-light">{cat.name}</h3>
                       <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 mt-2">
                         {cat.subcategories.length} Subcategories
                       </p>

@@ -109,20 +109,36 @@ export default function AdminLayout({
         </div>
       </aside>
 
+      {/* ── MOBILE TOP BAR ── */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#030303]/95 backdrop-blur px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/admin" className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Admin Panel</p>
+            <p className="text-sm font-serif text-white truncate">U.S ATELIER</p>
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Store
+          </Link>
+        </div>
+      </div>
+
       {/* ── MOBILE BOTTOM NAV ── */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#030303] border-t border-white/10 z-50">
-        <nav className="flex justify-around py-4 text-[10px] uppercase tracking-widest overflow-x-auto whitespace-nowrap px-4 scrollbar-hide">
-          <Link href="/admin" className={pathname === "/admin" ? "text-white px-2" : "text-gray-500 px-2"}>Dashboard</Link>
-          <Link href="/admin/analysis" className={pathname === "/admin/analysis" ? "text-white px-2" : "text-gray-500 px-2"}>Analysis</Link>
-          <Link href="/admin/orders" className={pathname === "/admin/orders" ? "text-white px-2" : "text-gray-500 px-2"}>Orders</Link>
-          <Link href="/admin/products" className={pathname === "/admin/products" ? "text-white px-2" : "text-gray-500 px-2"}>Products</Link>
-          <Link href="/admin/payments" className={pathname === "/admin/payments" ? "text-white px-2" : "text-gray-500 px-2"}>Payments</Link>
-          <Link href="/admin/customers" className={pathname === "/admin/customers" ? "text-white px-2" : "text-gray-500 px-2"}>Customers</Link>
+        <nav className="flex py-4 text-[10px] uppercase tracking-widest overflow-x-auto whitespace-nowrap px-4 gap-5 scrollbar-hide">
+          {navItems.map(([href, label]) => (
+            <Link key={href} href={href} className={pathname === href ? "text-white" : "text-gray-500"}>
+              {label}
+            </Link>
+          ))}
         </nav>
       </div>
 
       {/* ── CONTENT ── */}
-      <main className="flex-1 pb-24 lg:pb-0 lg:ml-72">
+      <main className="flex-1 pt-16 pb-24 lg:pt-0 lg:pb-0 lg:ml-72">
         {children}
       </main>
     </div>

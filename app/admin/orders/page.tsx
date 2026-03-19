@@ -1,10 +1,34 @@
 "use client"
 
-import { useState } from "react"
-import { orders } from "@/lib/data"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { getApiBase } from "@/lib/api-base"
+
+const API_BASE = getApiBase()
 
 export default function OrdersPage() {
+  const [orders, setOrders] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/orders`, {
+          credentials: "include"
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setOrders(data)
+        }
+      } catch (err) {
+        console.error("Failed to fetch admin orders:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchOrders()
+  }, [])
+
   const [activeTab, setActiveTab] = useState<
     "all" | "pending" | "completed"
   >("all")
@@ -116,7 +140,7 @@ export default function OrdersPage() {
                   }`}
               >
                 <td className="px-4 md:px-8 py-4 md:py-6 font-medium">
-                  {order.id}
+                  {order.order_number || order.id}
                 </td>
 
                 <td className="px-4 md:px-8 py-4 md:py-6">
@@ -129,7 +153,7 @@ export default function OrdersPage() {
                 </td>
 
                 <td className="px-4 md:px-8 py-4 md:py-6 text-xs tracking-widest text-gray-500">
-                  {new Date(order.date).toLocaleDateString()}
+                  {new Date(order.date || order.createdAt).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}
                 </td>
 
                 <td className="px-4 md:px-8 py-4 md:py-6">
@@ -155,7 +179,16 @@ export default function OrdersPage() {
               </tr>
             ))}
 
-            {filteredOrders.length === 0 && (
+            {isLoading ? (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-8 py-24 text-center text-sm tracking-widest text-gray-500 animate-pulse"
+                >
+                  Loading orders...
+                </td>
+              </tr>
+            ) : filteredOrders.length === 0 ? (
               <tr>
                 <td
                   colSpan={7}
@@ -164,7 +197,7 @@ export default function OrdersPage() {
                   No orders found.
                 </td>
               </tr>
-            )}
+            ) : null}
           </tbody>
         </table>
       </div>

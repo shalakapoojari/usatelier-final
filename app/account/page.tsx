@@ -132,9 +132,9 @@ export default function AccountPage() {
                       className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border border-white/10 px-4 sm:px-6 py-4 hover:border-white/30 transition-colors group"
                     >
                       <div>
-                        <p className="text-xs uppercase tracking-widest mb-1">{order.id}</p>
+                        <p className="text-xs uppercase tracking-widest mb-1">{order.order_number || order.id}</p>
                         <p className="text-xs text-gray-500">
-                          {new Date(order.date).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}
+                          {new Date(order.date || order.createdAt).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}
                         </p>
                       </div>
                       <div className="flex items-center justify-between sm:justify-start gap-6">

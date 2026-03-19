@@ -1443,6 +1443,27 @@ def get_orders():
     orders = OrderSQL.query.filter_by(user_id=session['user_id']).order_by(OrderSQL.created_at.desc()).all()
     return jsonify([o.to_dict() for o in orders])
 
+@app.route('/api/admin/orders', methods=['GET'])
+def get_all_admin_orders():
+    is_admin = session.get('is_admin')
+    if 'user_id' not in session or not (is_admin is True or str(is_admin).lower() == 'true'):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    orders = OrderSQL.query.order_by(OrderSQL.created_at.desc()).all()
+    
+    order_list = []
+    for order in orders:
+        user = User.query.get(order.user_id)
+        order_dict = order.to_dict()
+        order_dict['customerName'] = f"{user.first_name or ''} {user.last_name or ''}".strip() if user else "Unknown"
+        order_dict['customerEmail'] = user.email if user else "Unknown"
+        # Standardize date string for JS parsing (ISO 8601)
+        order_dict['date'] = order.created_at.isoformat() + "Z" if order.created_at else ""
+        order_dict['items'] = order_dict.get('items', [])
+        order_list.append(order_dict)
+        
+    return jsonify(order_list), 200
+
 @app.route('/api/admin/orders/<order_id>', methods=['GET'])
 def get_admin_order_detail(order_id):
     is_admin = session.get('is_admin')

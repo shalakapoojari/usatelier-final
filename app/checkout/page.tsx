@@ -27,7 +27,7 @@ export default function CheckoutPage() {
     }
   }, [items, isHydrated, router])
 
-  const shipping = 500
+  const shipping = 0
   const grandTotal = total + shipping
 
   const [step, setStep] = useState<"shipping" | "review">("shipping")

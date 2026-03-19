@@ -14,7 +14,7 @@ export default function CartPage() {
   // Clear the navbar badge as soon as the user lands here
   useEffect(() => { clearUnseen() }, [])
 
-  const shipping = items.length > 0 ? 1245 : 0
+  const shipping = 0
   const grandTotal = total + shipping
 
   /* ================= EMPTY STATE ================= */

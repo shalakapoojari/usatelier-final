@@ -1,7 +1,5 @@
 Flask==3.0.0
 Flask-CORS==4.0.0
-Flask-Limiter==3.8.0
-Flask-SQLAlchemy==3.1.1
 Werkzeug==3.0.0
 python-dotenv==1.0.0
 razorpay==2.0.0
@@ -9,5 +7,10 @@ Flask-Mail==0.9.1
 authlib
 requests
 pyOpenSSL
-PyMySQL==1.1.2
+flask-pymysql
 gunicorn==21.2.0
+authlib
+flask_mail
+APScheduler
+Flask-Limiter
+python-magic

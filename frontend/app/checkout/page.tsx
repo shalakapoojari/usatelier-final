@@ -47,19 +47,7 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [checkoutTermsAccepted, setCheckoutTermsAccepted] = useState(false)
   const [checkoutTermsError, setCheckoutTermsError] = useState("")
-  const [qrData, setQrData] = useState<{ url: string; vpa: string; id: string } | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<"standard" | "upi_qr">("standard")
-
-  // Load Razorpay script
-  useEffect(() => {
-    const script = document.createElement("script")
-    script.src = "https://checkout.razorpay.com/v1/checkout.js"
-    script.async = true
-    document.body.appendChild(script)
-    return () => {
-      document.body.removeChild(script)
-    }
-  }, [])
+  const [globalError, setGlobalError] = useState("")
 
   useEffect(() => {
     if (user) {
@@ -146,160 +134,47 @@ export default function CheckoutPage() {
     }
 
     setCheckoutTermsError("")
+    setGlobalError("")
     setIsProcessing(true)
     try {
-      // CASE 1: UPI QR Mode (Verify existing QR payment)
-      if (paymentMethod === "upi_qr" && qrData) {
-        const verifyRes = await fetch(`${API_BASE}/api/payments/check-qr-status`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ qr_id: qrData.id }),
-        })
-
-        const verifyData = await verifyRes.json()
-        if (verifyRes.ok && verifyData.success) {
-          // Payment found! Finalize the order
-          const finalizeRes = await fetch(`${API_BASE}/api/orders`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-              total: total,
-              items: items.map((item) => ({
-                id: item.id,
-                name: item.name,
-                size: item.size,
-                quantity: item.quantity,
-                price: item.price,
-                image: item.image,
-              })),
-              shippingAddress: formData,
-              termsAccepted: checkoutTermsAccepted,
-              razorpay_payment_id: verifyData.payment_id,
-              // For VA, we don't have order_id or signature in the same way
-            }),
-          })
-
-          if (finalizeRes.ok) {
-            const finalData = await finalizeRes.json()
-            sessionStorage.setItem("lastOrder", JSON.stringify({
-              orderId: finalData.orderId,
-              items,
-              subtotal: total,
-              shipping,
-              total: grandTotal,
-              address: formData
-            }))
-            clearCart()
-            router.push("/checkout/confirmation")
-            return
-          } else {
-            throw new Error("Payment verified but order creation failed.")
-          }
-        } else {
-          alert("Payment not detected yet. Please scan the QR and pay, then try verifying again.")
-          setIsProcessing(false)
-          return
-        }
-      }
-
-      // CASE 2: Standard Flow (Open Popup)
-      const res = await fetch(`${API_BASE}/api/payments/create-order`, {
+      const finalizeRes = await fetch(`${API_BASE}/api/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ amount: grandTotal }),
+        body: JSON.stringify({
+          total: total,
+          items: items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            size: item.size,
+            quantity: item.quantity,
+            price: item.price,
+            image: item.image,
+          })),
+          shippingAddress: formData,
+          termsAccepted: checkoutTermsAccepted,
+        }),
       })
 
-      if (!res.ok) throw new Error("Could not create payment order")
-      const rzpOrder = await res.json()
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
-        amount: rzpOrder.amount,
-        currency: rzpOrder.currency,
-        name: "U.S ATELIER",
-        description: "Order Payment",
-        order_id: rzpOrder.id,
-        handler: async function (response: any) {
-          const finalizeRes = await fetch(`${API_BASE}/api/orders`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-              total: total,
-              items: items.map((item) => ({
-                id: item.id,
-                name: item.name,
-                size: item.size,
-                quantity: item.quantity,
-                price: item.price,
-                image: item.image,
-              })),
-              shippingAddress: formData,
-              termsAccepted: checkoutTermsAccepted,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature
-            }),
-          })
-
-          if (finalizeRes.ok) {
-            const finalData = await finalizeRes.json()
-            sessionStorage.setItem("lastOrder", JSON.stringify({
-              orderId: finalData.orderId,
-              items,
-              subtotal: total,
-              shipping,
-              total: grandTotal,
-              address: formData
-            }))
-            clearCart()
-            router.push("/checkout/confirmation")
-          } else {
-            const errorData = await finalizeRes.json();
-            alert("Payment verified but order creation failed. Error: " + errorData.error)
-          }
-        },
-        prefill: {
-          name: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
-          contact: formData.phone
-        },
-        theme: { color: "#030303" }
-      };
-
-      const rzp = new (window as any).Razorpay(options)
-      rzp.open()
+      if (finalizeRes.ok) {
+        const finalData = await finalizeRes.json()
+        sessionStorage.setItem("lastOrder", JSON.stringify({
+          orderId: finalData.orderId,
+          items,
+          subtotal: total,
+          shipping,
+          total: grandTotal,
+          address: formData
+        }))
+        clearCart()
+        router.push("/checkout/confirmation")
+      } else {
+        const errorData = await finalizeRes.json();
+        setGlobalError(errorData.error || "Order creation failed. Please try again.")
+      }
     } catch (err: any) {
       console.error(err)
-      alert(`Something went wrong: ${err.message || 'Unknown error'}`)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const handleGenerateQR = async () => {
-    setIsProcessing(true)
-    setQrData(null)
-    try {
-      const res = await fetch(`${API_BASE}/api/payments/create-qr`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ amount: grandTotal }),
-      })
-
-      const data = await res.json()
-      if (res.ok && data.success) {
-        setQrData({ url: data.qr_url, vpa: data.vpa, id: data.qr_id })
-        setPaymentMethod("upi_qr")
-      } else {
-        throw new Error(data.error || "Failed to generate QR")
-      }
-    } catch (err: any) {
-      alert(`QR Error: ${err.message}`)
+      setGlobalError(`Something went wrong: ${err.message || 'Unknown error'}`)
     } finally {
       setIsProcessing(false)
     }
@@ -488,35 +363,15 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* PAYMENT METHOD SELECTION */}
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  <button
-                    onClick={() => setPaymentMethod("standard")}
-                    className={`py-4 border text-[10px] uppercase tracking-widest transition-all ${paymentMethod === "standard" ? "border-white text-white bg-white/5" : "border-white/10 text-gray-500"}`}
-                  >
-                    Card / Netbanking
-                  </button>
-                  <button
-                    onClick={handleGenerateQR}
-                    className={`py-4 border text-[10px] uppercase tracking-widest transition-all ${paymentMethod === "upi_qr" ? "border-white text-white bg-white/5" : "border-white/10 text-gray-500"}`}
-                  >
-                    UPI QR Code
-                  </button>
-                </div>
-
-                {qrData && paymentMethod === "upi_qr" && (
-                  <div className="mb-8 p-8 border border-white/10 bg-white/5 text-center space-y-4">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400">Scan to Pay</p>
-                    <div className="mx-auto w-48 h-48 bg-white p-2 rounded-lg">
-                      <img src={qrData.url} alt="Payment QR" className="w-full h-full" />
-                    </div>
+                {globalError && (
+                  <div className="mb-8 p-6 border border-red-500/30 bg-red-950/20 text-red-400 flex items-start justify-between">
                     <div className="space-y-1">
-                      <p className="text-xs text-white tabular-nums">₹{grandTotal.toLocaleString("en-IN")}</p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest">{qrData.vpa}</p>
+                      <h3 className="text-xs uppercase tracking-widest font-bold">Checkout Error</h3>
+                      <p className="text-[10px] uppercase tracking-widest">{globalError}</p>
                     </div>
-                    <p className="text-[10px] text-gray-400 uppercase leading-relaxed max-w-[200px] mx-auto">
-                      After scanning and paying in your app, click the button below to complete your order.
-                    </p>
+                    <button onClick={() => setGlobalError("")} className="text-red-500/50 hover:text-red-400 transition-colors text-xl leading-none">
+                      &times;
+                    </button>
                   </div>
                 )}
 
@@ -545,7 +400,7 @@ export default function CheckoutPage() {
                   disabled={isProcessing || !checkoutTermsAccepted}
                   className="w-full border border-white/40 bg-transparent uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all py-8"
                 >
-                  {isProcessing ? "Processing..." : paymentMethod === "upi_qr" ? "I have Paid · Verify" : `Pay ₹${grandTotal.toLocaleString("en-IN")}`}
+                  {isProcessing ? "Processing Order..." : `Place Order (COD) · ₹${grandTotal.toLocaleString("en-IN")}`}
                 </Button>
               </div>
             )}

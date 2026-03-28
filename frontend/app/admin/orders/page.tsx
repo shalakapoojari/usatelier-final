@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { getApiBase } from "@/lib/api-base"
 
-const API_BASE = getApiBase()
 
 export default function OrdersPage() {
   const { isAuthLoading } = useAuth()
@@ -21,9 +20,10 @@ export default function OrdersPage() {
     }
 
     const fetchOrders = async () => {
+      const apiBase = getApiBase()
       try {
-        console.log(`[Orders] Fetching from: ${API_BASE}/api/admin/orders`)
-        const res = await fetch(`${API_BASE}/api/admin/orders`, {
+        console.log(`[Orders] Fetching from: ${apiBase}/api/admin/orders`)
+        const res = await fetch(`${apiBase}/api/admin/orders`, {
           credentials: "include"
         })
         console.log(`[Orders] Response status: ${res.status}`)

@@ -8,7 +8,7 @@ logging with PII redaction, hardened headers, and full Borzo integration.
 # ============================================================
 # Imports
 # ============================================================
-from pydoc import text
+from sqlalchemy import text
 
 from flask import Flask, render_template, jsonify, request, session, redirect, send_from_directory
 from flask_cors import CORS
@@ -1751,7 +1751,10 @@ def _validate_order_payload(data: dict) -> list:
         errors.append("total must be a number")
 
     addr = data.get("shippingAddress") or data.get("shipping_address") or {}
-    for field in ("street", "city", "state", "zip"):
+    street_val = addr.get("street") or addr.get("address")
+    if not str(street_val or "").strip():
+        errors.append("shippingAddress.address is required")
+    for field in ("city", "state", "zip"):
         if not str(addr.get(field, "")).strip():
             errors.append(f"shippingAddress.{field} is required")
     return errors
@@ -1782,24 +1785,10 @@ def create_order():
     if errors:
         return jsonify({"error": errors[0], "details": errors}), 400
 
-    # Payment verification
-    rzp_payment_id = data.get("razorpay_payment_id")
-    rzp_order_id   = data.get("razorpay_order_id")
-    rzp_signature  = data.get("razorpay_signature")
-    payment_status = "Pending"
-
-    if rzp_payment_id and rzp_order_id and rzp_signature:
-        if not razorpay_client:
-            return jsonify({"error": "Payment gateway not configured"}), 500
-        try:
-            razorpay_client.utility.verify_payment_signature({
-                "razorpay_order_id":   rzp_order_id,
-                "razorpay_payment_id": rzp_payment_id,
-                "razorpay_signature":  rzp_signature,
-            })
-            payment_status = "Paid"
-        except Exception:
-            return jsonify({"error": "Payment verification failed"}), 400
+    # Payment status (bypassing Razorpay for direct Delhivery dispatch)
+    payment_status = "COD"
+    rzp_order_id = None
+    rzp_payment_id = None
 
     user = User.query.get(int(session["user_id"]))
     if not user:
@@ -1873,12 +1862,7 @@ def create_order():
         db_mysql.session.add(new_order)
         db_mysql.session.flush()
 
-        # Link Payment record
-        if rzp_order_id:
-            payment_rec = Payment.query.filter_by(razorpay_order_id=rzp_order_id).first()
-            if payment_rec:
-                payment_rec.order_id = new_order.id
-                payment_rec.status   = "captured" if payment_status == "Paid" else payment_rec.status
+        # Payment skipped for direct checkout
 
         # Order items + stock decrement
         for item in validated_items:
@@ -1908,9 +1892,8 @@ def create_order():
         # Clear cart
         CartItem.query.filter_by(user_id=user.id).delete()
 
-        # Enqueue Borzo dispatch job (instead of raw thread)
-        if payment_status == "Paid":
-            _enqueue_dispatch(new_order.id)
+        # Enqueue Delhivery dispatch job automatically
+        _enqueue_dispatch(new_order.id)
 
         _audit("order_created", "order", new_order.id, {"order_number": order_number})
         db_mysql.session.commit()
@@ -2192,7 +2175,7 @@ def get_analysis_data():
         fav_raw = (
             db_mysql.session.query(
                 WishlistItem.product_id_str, func.count(WishlistItem.id).label("count")
-            ).group_by(WishlistItem.product_id_str).order_by(func.desc("count")).limit(10).all()
+            ).group_by(WishlistItem.product_id_str).order_by(text("count DESC")).limit(10).all()
         )
         most_favorited = []
         for r in fav_raw:
@@ -2208,7 +2191,7 @@ def get_analysis_data():
                 CartItem.product_id_str,
                 func.sum(CartItem.quantity).label("total_qty"),
                 func.count(CartItem.user_id.distinct()).label("user_count"),
-            ).group_by(CartItem.product_id_str).order_by(func.desc("total_qty")).limit(10).all()
+            ).group_by(CartItem.product_id_str).order_by(text("total_qty DESC")).limit(10).all()
         )
         most_added_to_cart = []
         for r in cart_raw:
@@ -2230,6 +2213,7 @@ def get_analysis_data():
             if p.stock <= 5:
                 low_stock.append(entry)
 
+        # Flat category stats (used for pie chart)
         cat_raw = (
             db_mysql.session.query(
                 ProductSQL.category,
@@ -2237,7 +2221,41 @@ def get_analysis_data():
                 func.sum(ProductSQL.stock).label("total_stock"),
             ).group_by(ProductSQL.category).all()
         )
-        category_stats = [{"_id": r[0] or "Uncategorized", "count": r[1], "total_stock": int(r[2] or 0)} for r in cat_raw]
+        # pie_data for the doughnut chart (uses _id key)
+        pie_data = [{"_id": r[0] or "Uncategorized", "count": r[1], "total_stock": int(r[2] or 0)} for r in cat_raw]
+
+        # Nested category_stats with subcategories for the stock anatomy section
+        all_products = ProductSQL.query.order_by(ProductSQL.category, ProductSQL.subcategory, ProductSQL.name).all()
+        cat_map: dict = {}
+        for p in all_products:
+            cat_name = p.category or "Uncategorized"
+            sub_name = p.subcategory or "General"
+            if cat_name not in cat_map:
+                cat_map[cat_name] = {}
+            if sub_name not in cat_map[cat_name]:
+                cat_map[cat_name][sub_name] = []
+            cat_map[cat_name][sub_name].append({"id": p.id, "name": p.name, "stock": p.stock or 0})
+
+        category_stats = []
+        for cat_name, subs in cat_map.items():
+            sub_list = []
+            total_count = 0
+            total_stock_sum = 0
+            for sub_name, prods in subs.items():
+                sub_list.append({
+                    "name": sub_name,
+                    "count": len(prods),
+                    "total_stock": sum(pr["stock"] for pr in prods),
+                    "products": prods,
+                })
+                total_count += len(prods)
+                total_stock_sum += sum(pr["stock"] for pr in prods)
+            category_stats.append({
+                "name": cat_name,
+                "count": total_count,
+                "total_stock": total_stock_sum,
+                "subcategories": sub_list,
+            })
 
         # Revenue summary
         from sqlalchemy import extract
@@ -2266,6 +2284,7 @@ def get_analysis_data():
             "low_stock":          low_stock,
             "all_stock":          all_stock,
             "category_stats":     category_stats,
+            "pie_data":           pie_data,
             "monthly_revenue":    monthly_revenue,
         }), 200
 

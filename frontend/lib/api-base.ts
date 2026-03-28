@@ -15,10 +15,10 @@ export function getApiBase(): string {
 
   if (typeof window !== "undefined") {
     const host = window.location.hostname
-    const isLocalHost = host === "localhost" || host === "127.0.0.1"
+    const isLocalHost = host === "localhost" || host === "127.0.0.1" || host.startsWith("192.168.") || host.startsWith("10.")
 
     if (isLocalHost) {
-      return `http://${host}:5000`
+      return window.location.origin
     }
 
     // Production fallback for this deployment when env vars are missing.

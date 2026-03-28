@@ -261,7 +261,7 @@ export default function OrderDetailPage({
               <p className="text-[#e8e8e3] font-medium mb-3 uppercase tracking-widest">
                 {order.shipping_address?.firstName} {order.shipping_address?.lastName}
               </p>
-              <p>{order.shipping_address?.street}</p>
+              <p>{order.shipping_address?.street || order.shipping_address?.address}</p>
               <p>{order.shipping_address?.city}, {order.shipping_address?.state} {order.shipping_address?.zip}</p>
               <p className="mt-4 pt-4 border-t border-white/5 flex items-center gap-3">
                 <span className="text-[9px] uppercase tracking-widest text-gray-600">Contact:</span>

@@ -41,7 +41,10 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleHover = () => {
     if (!imgRef.current) return
     gsap.to(imgRef.current, { scale: 1.04, duration: 0.5, ease: "power2.out" })
-    gsap.to(rootRef.current, { boxShadow: "0 10px 30px rgba(0,0,0,0.15)", duration: 0.35 })
+    gsap.to(rootRef.current, {
+      boxShadow: "0 0 0 1px rgba(155,48,255,0.35), 0 8px 32px rgba(155,48,255,0.18)",
+      duration: 0.35,
+    })
   }
 
   const handleLeave = () => {
@@ -86,7 +89,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
           {(product.bestseller || (product as any).is_bestseller) && (
-            <span className="bg-amber-500 text-black text-[9px] uppercase tracking-widest px-2 py-0.5 font-medium flex items-center gap-1">
+            <span className="bg-purple-600 text-white text-[9px] uppercase tracking-widest px-2 py-0.5 font-medium flex items-center gap-1">
               <Award size={8} />
               Best
             </span>

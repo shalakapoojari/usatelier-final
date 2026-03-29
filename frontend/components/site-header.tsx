@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
 import { getApiBase } from "@/lib/api-base"
+import { SearchOverlay } from "@/components/search-overlay"
 
 const API_BASE = getApiBase()
 
@@ -62,12 +63,42 @@ export function SiteHeader() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeDesktopCategory, setActiveDesktopCategory] = useState<string | null>(null)
+  const [collectionsOpen, setCollectionsOpen] = useState(false)
+  const [searchOverlayOpen, setSearchOverlayOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
+  const collectionsRef = useRef<HTMLDivElement>(null)
   const [isMounted, setIsMounted] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // Track scroll position for nav-scrolled effect
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 80)
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // Close Collections flyout on outside click or Escape
+  useEffect(() => {
+    if (!collectionsOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCollectionsOpen(false)
+    }
+    const onOutside = (e: MouseEvent) => {
+      if (collectionsRef.current && !collectionsRef.current.contains(e.target as Node)) {
+        setCollectionsOpen(false)
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    document.addEventListener("mousedown", onOutside)
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.removeEventListener("mousedown", onOutside)
+    }
+  }, [collectionsOpen])
 
   const [searchQuery, setSearchQuery] = useState("")
   const [placeholder, setPlaceholder] = useState("")
@@ -272,259 +303,209 @@ export function SiteHeader() {
   }, [mobileMenuOpen])
 
   return (
-    <header className={`fixed top-0 left-0 w-full z-100 ${isHomePage ? "bg-transparent md:bg-[#030303]" : "bg-[#030303]"}`}>
-      {/* ── ROW 1: BRAND | SEARCH | ICONS ── */}
-      <div className={`relative z-160 w-full px-3 md:px-8 py-3 md:py-4 flex items-center gap-3 md:gap-12 ${isHomePage ? "border-b border-transparent md:border-white/5" : "border-b border-white/5"}`}>
-        <Link href="/" className="shrink-0 -ml-1">
-          <div className="flex h-10 w-40 items-center justify-center overflow-hidden sm:w-48 md:h-12 md:w-72">
-            <img
-              src="/logo/us-atelier-wordmark.svg"
-              alt="U.S ATELIER"
-              className="h-full w-full object-contain object-center hover:opacity-80 transition-opacity"
-            />
-          </div>
+    <>
+    <header className={`fixed top-0 left-0 w-full z-100 transition-all duration-400 ${
+      scrolled ? "nav-scrolled" : isHomePage ? "bg-transparent" : "bg-[#030303]"
+    }`}>
+
+      {/* ── REFERENCE-STYLE SINGLE NAV ROW ── */}
+      <div
+        ref={navRef}
+        className={`relative z-160 w-full flex items-center justify-between px-6 md:px-10 py-4 md:py-5 ${
+          isHomePage ? "" : "border-b border-white/5"
+        }`}
+      >
+        {/* LEFT: Brand wordmark — gradient-text treatment */}
+        <Link href="/" className="shrink-0">
+          <span
+            className="gradient-text font-serif text-base md:text-lg tracking-[0.06em] hover:opacity-80 transition-opacity whitespace-nowrap"
+            style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}
+          >
+            U.S ATELIER.
+          </span>
         </Link>
 
-        {/* Enlarged Search Box */}
-        <form onSubmit={handleSearchSubmit} className="flex-1 max-w-5xl relative group items-center hidden md:flex mx-4">
-          <input
-            type="text"
-            placeholder={placeholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 px-10 py-2.5 text-[10px] tracking-widest rounded-lg focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all placeholder:text-gray-600 h-10"
-          />
-
-          <Search size={14} className="absolute left-3 text-gray-500 group-focus-within:text-white transition-colors" />
-          <button type="submit" className="hidden">Search</button>
-        </form>
-
-        {/* Navigation Group - Even gaps */}
-        <div className="flex items-center gap-3 sm:gap-4 md:gap-8 ml-auto">
-          {/* Mobile login/profile */}
-          <div className="md:hidden flex items-center">
-            {!isMounted ? (
-              <div className="w-8 h-8 opacity-0" />
-            ) : !user ? (
-              <Link
-                href="/login"
-                className="text-[10px] uppercase tracking-[0.2em] text-gray-300 hover:text-white transition-colors"
-              >
-                Login
-              </Link>
-            ) : (
-              <Link
-                href="/account"
-                className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center bg-white/5 hover:border-white/50 transition-colors text-gray-300 hover:text-white"
-                title="Profile"
-              >
-                <User size={14} strokeWidth={1.5} />
-              </Link>
-            )}
-          </div>
-
-          {/* About Link */}
+        {/* CENTER: Desktop nav — inline category pills + Shop */}
+        <nav className="hidden md:flex items-center gap-2 lg:gap-3 absolute left-1/2 -translate-x-1/2" style={{ maxWidth: "60vw", overflowX: "auto" }}>
           <Link
-            href="/about"
-            className="text-[10px] uppercase tracking-[0.25em] text-gray-400 hover:text-white transition-colors hidden lg:block"
+            href="/view-all"
+            className={`pill-cat nav-link-underline ${
+              pathname === "/view-all" && !new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("category") ? "active" : ""
+            }`}
           >
-            About
+            All
           </Link>
+          {dynamicCategories.map(cat => (
+            <Link
+              key={cat.id || cat.name}
+              href={`/view-all?category=${encodeURIComponent(cat.name)}`}
+              className="pill-cat"
+            >
+              {cat.name}
+            </Link>
+          ))}
+        </nav>
 
-          {/* Favourites icon */}
+        {/* RIGHT: Search + Wishlist + Cart + Login + Hamburger */}
+        <div className="flex items-center gap-4 md:gap-6">
+          {/* Search icon — visible on ALL screen sizes */}
+          <button
+            onClick={() => setSearchOverlayOpen(true)}
+            className="flex items-center text-white/60 hover:text-white transition-colors"
+            title="Search"
+            aria-label="Open search"
+          >
+            <Search size={16} strokeWidth={1.5} />
+          </button>
+
+          {/* Search on non-homepage desktop (form) — removed; replaced by icon */}
+          {!isHomePage && (
+            <form onSubmit={handleSearchSubmit} className="hidden lg:flex items-center relative" style={{ display: 'none' }}>
+              <input type="text" placeholder={placeholder} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-white/5 border border-white/10 px-8 py-2 text-[10px] tracking-widest rounded focus:outline-none focus:border-white/30 placeholder:text-gray-600 w-48" />
+              <Search size={12} className="absolute left-2.5 text-gray-500" />
+              <button type="submit" className="hidden">Search</button>
+            </form>
+          )}
+
+          {/* Wishlist — desktop only */}
           <button
             onClick={handleFavouritesClick}
-            className="relative hidden md:flex items-center gap-2 px-1 h-9 text-gray-400 hover:text-white transition-colors group"
+            className="relative hidden md:flex items-center text-white/60 hover:text-white transition-colors"
             title="Favourites"
           >
-            <Heart
-              size={17}
-              strokeWidth={1.5}
-              className={wishlistUnseen > 0 ? "fill-red-400 text-red-400" : ""}
-            />
-            <span className="text-[10px] uppercase tracking-[0.2em] font-medium hidden xl:block">Favourites</span>
+            <Heart size={16} strokeWidth={1.5} className={wishlistUnseen > 0 ? "fill-red-400 text-red-400" : ""} />
             {wishlistUnseen > 0 && (
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-black animate-pulse" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-black" />
             )}
           </button>
 
-          {/* Cart icon */}
+          {/* Cart */}
           <button
             onClick={handleCartClick}
-            className="relative hidden md:flex items-center gap-2 px-1 h-9 text-gray-400 hover:text-white transition-colors group"
+            className="relative hidden md:flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white transition-colors"
             title="Cart"
           >
-            <ShoppingBag size={17} strokeWidth={1.5} />
-            <span className="text-[10px] uppercase tracking-[0.2em] font-medium hidden xl:block">Cart</span>
+            <ShoppingBag size={16} strokeWidth={1.5} />
+            {isMounted && (
+              <span>Cart</span>
+            )}
             {cartUnseen > 0 && (
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-black animate-pulse" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-black" />
             )}
           </button>
 
-          {/* Help Link */}
-          <Link
-            href="/help"
-            className="text-[10px] uppercase tracking-[0.25em] text-gray-400 hover:text-white transition-colors hidden lg:block"
-          >
-            Help
-          </Link>
-
-          {/* Profile / Login - Moved to the end */}
-          <div className="flex items-center ml-2">
-            {!isMounted ? (
-              <div className="w-16 h-8 opacity-0" />
-            ) : !user ? (
-              <Link
-                href="/login"
-                className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-white transition-colors border border-white/10 px-4 py-2 hover:bg-white/5 hidden md:inline-flex"
+          {/* Login / Profile */}
+          {!isMounted ? (
+            <div className="w-12 h-4 opacity-0 hidden md:block" />
+          ) : !user ? (
+            <Link
+              href="/login"
+              className="hidden md:inline-flex text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white transition-colors"
+            >
+              Login
+            </Link>
+          ) : (
+            <div className="relative hidden md:block z-170" ref={profileRef}>
+              <button
+                onClick={() => setProfileOpen((o) => !o)}
+                className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors"
+                title="Account"
               >
-                Login
-              </Link>
-            ) : (
-              <div className="relative hidden md:block z-170" ref={profileRef}>
-                <button
-                  onClick={() => setProfileOpen((o) => !o)}
-                  className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
-                  title="Account"
-                >
-                  <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center bg-white/5 hover:border-white/50 transition-colors">
-                    <User size={14} strokeWidth={1.5} />
-                  </div>
-                  <ChevronDown
-                    size={12}
-                    className={`transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
+                <div className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center bg-white/5 hover:border-white/50 transition-colors">
+                  <User size={13} strokeWidth={1.5} />
+                </div>
+                <ChevronDown
+                  size={11}
+                  className={`transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
+                />
+              </button>
 
-                {/* Dropdown */}
-                {profileOpen && (
-                  <div className="absolute right-0 top-full mt-3 w-52 bg-[#0e0e0e] border border-white/10 shadow-2xl z-220">
-                    <div className="px-4 py-3 border-b border-white/10">
-                      <p className="text-xs uppercase tracking-widest text-gray-400 truncate">
-                        {user.email}
-                      </p>
-                    </div>
-                    <div className="py-1">
-                      {isAdmin && (
-                        <Link
-                          href="/admin"
-                          onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-amber-400 hover:text-amber-300 hover:bg-amber-400/5 transition-colors border-b border-white/5"
-                        >
-                          <LayoutDashboard size={13} />
-                          Admin Panel
-                        </Link>
-                      )}
-                      <Link
-                        href="/account"
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                      >
-                        <User size={13} />
-                        My Account
-                      </Link>
-                      <Link
-                        href="/account/orders"
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                      >
-                        <Package size={13} />
-                        Orders
-                      </Link>
-                    </div>
-                    <div className="border-t border-white/10 py-1">
-                      <button
-                        onClick={handleLogout}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-                      >
-                        <LogOut size={13} />
-                        Sign Out
-                      </button>
-                    </div>
+              {/* Dropdown */}
+              {profileOpen && (
+                <div className="absolute right-0 top-full mt-3 w-52 bg-[#0e0e0e] border border-white/10 shadow-2xl z-220">
+                  <div className="px-4 py-3 border-b border-white/10">
+                    <p className="text-xs uppercase tracking-widest text-gray-400 truncate">
+                      {user.email}
+                    </p>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                  <div className="py-1">
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest hover:bg-purple-500/10 transition-colors border-b border-white/5"
+                        style={{ color: "rgba(155,48,255,0.85)" }}
+                      >
+                        <LayoutDashboard size={13} />
+                        Admin Panel
+                      </Link>
+                    )}
+                    <Link
+                      href="/account"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      <User size={13} />
+                      My Account
+                    </Link>
+                    <Link
+                      href="/account/orders"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      <Package size={13} />
+                      Orders
+                    </Link>
+                  </div>
+                  <div className="border-t border-white/10 py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      <LogOut size={13} />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Mobile hamburger */}
+          {/* Hamburger circle — hidden on homepage */}
+          {!isHomePage && (
           <button
             onClick={() => (mobileMenuOpen ? closeMobileMenu() : setMobileMenuOpen(true))}
-            className="relative md:hidden w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-gray-300 hover:text-white hover:border-white/50 transition-colors"
+            className="relative w-9 h-9 rounded-full border border-white/30 flex items-center justify-center text-white/60 hover:text-white hover:border-white/60 transition-colors"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {hasMobileUnseen && (
               <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border border-black bg-red-500 animate-pulse" />
             )}
-            {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
+            {mobileMenuOpen ? <X size={14} /> : <Menu size={14} />}
           </button>
+          )}
         </div>
       </div>
 
-      {/* ── ROW 2: COMBINED NAV & CATEGORIES ── */}
-      <div className="hidden md:block w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/5 py-2 md:py-2.5 px-3 md:px-8 relative z-120">
-        <div className="max-w-350 mx-auto flex items-center gap-4 md:gap-8 text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.25em] font-medium font-sans">
+
+      {/* ── Mobile category pills row — all pages ── */}
+      <div
+        className="md:hidden w-full overflow-x-auto no-scrollbar flex gap-2 px-4 py-2"
+        style={{ background: "rgba(4,2,10,0.92)", borderBottom: "1px solid rgba(155,48,255,0.1)" }}
+      >
+        <Link href="/view-all" className="pill-cat shrink-0">All</Link>
+        {dynamicCategories.map(cat => (
           <Link
-            href="/view-all"
-            className="text-white hover:text-gray-400 transition-colors shrink-0 whitespace-nowrap"
+            key={cat.id || cat.name}
+            href={`/view-all?category=${encodeURIComponent(cat.name)}`}
+            className="pill-cat shrink-0"
           >
-            View All
+            {cat.name}
           </Link>
-
-          <span className="text-[#C8A45D] text-[20px] md:text-[28px] leading-none shrink-0" aria-hidden="true">|</span>
-
-          <div className="flex-1 overflow-visible">
-            <div className="flex items-center gap-5 md:gap-12 whitespace-nowrap pr-2 overflow-visible">
-              {dynamicCategories.map((cat) => {
-                const hasSubcategories = cat.subcategories.length > 0
-                const isOpen = activeDesktopCategory === cat.name
-
-                return (
-                <div
-                  key={cat.id || cat.name}
-                  className="relative"
-                  onMouseEnter={() => setActiveDesktopCategory(cat.name)}
-                  onMouseLeave={() => setActiveDesktopCategory((current) => (current === cat.name ? null : current))}
-                >
-                  <Link
-                    href={`/view-all?category=${encodeURIComponent(cat.name)}`}
-                    onClick={(e) => {
-                      if (!hasSubcategories) return
-                      e.preventDefault()
-                      setActiveDesktopCategory((current) => (current === cat.name ? null : cat.name))
-                    }}
-                    className="text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 py-1.5 md:py-2 px-1"
-                  >
-                    {cat.name}
-                    {hasSubcategories && (
-                      <ChevronDown size={10} className={`transition-transform duration-300 opacity-50 ${isOpen ? "rotate-180" : ""}`} />
-                    )}
-                  </Link>
-
-                  {/* Subcategories Dropdown */}
-                  {hasSubcategories && (
-                    <div className={`absolute left-0 top-full z-200 pt-0 transition-all duration-200 ${isOpen ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"}`}>
-                      <div className={`mt-0 bg-[#0e0e0e] border border-white/10 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-50 backdrop-blur-xl transition-transform duration-200 ${isOpen ? "translate-y-0" : "translate-y-2"}`}>
-                        <div className="flex flex-col gap-3">
-                          {cat.subcategories.map((sub: string) => (
-                            <Link
-                              key={sub}
-                              href={`/view-all?category=${encodeURIComponent(cat.name)}&jumpTo=${encodeURIComponent(sub)}`}
-                              className="text-gray-500 hover:text-white transition-all text-[11px] tracking-[0.25em] hover:translate-x-2 duration-300"
-                            >
-                              {sub}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )})}
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
+
 
       {/* ── MOBILE DRAWER: ALL NAV CONTENT ── */}
       {mobileMenuOpen && (
@@ -620,5 +601,13 @@ export function SiteHeader() {
         </div>
       )}
     </header>
+
+    {/* Full-screen search overlay */}
+    <SearchOverlay
+      isOpen={searchOverlayOpen}
+      onClose={() => setSearchOverlayOpen(false)}
+      categories={dynamicCategories}
+    />
+    </>
   )
 }

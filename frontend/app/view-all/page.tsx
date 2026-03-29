@@ -458,7 +458,7 @@ do
       {/* ================= PAGE HEADER ================= */}
       {!loading && (
         <section className="pt-56 pb-12 text-center px-6 lg:hidden">
-          <h1 className="text-4xl md:text-6xl font-serif font-light mb-4 uppercase tracking-[0.2em]">
+          <h1 className="text-4xl md:text-6xl font-serif font-light mb-4 uppercase tracking-[0.2em] gradient-text">
             {urlSearch ? `Search: ${urlSearch}` : (urlCategory ? urlCategory.toString().toUpperCase() : "VIEW ALL")}
           </h1>
           <p className="text-gray-500 text-[10px] tracking-[0.3em] uppercase">
@@ -472,12 +472,43 @@ do
         {/* Desktop category heading — centered, full width */}
         {!loading && (
           <div className="hidden lg:block text-center mb-10">
-            <h1 className="text-5xl font-serif font-light mb-3 uppercase tracking-[0.2em]">
+            <h1 className="text-5xl font-serif font-light mb-3 uppercase tracking-[0.2em] gradient-text">
               {urlSearch ? `Search: ${urlSearch}` : (urlCategory ? urlCategory.toString().toUpperCase() : "VIEW ALL")}
             </h1>
             <p className="text-gray-500 text-[10px] tracking-[0.3em] uppercase">
               {filteredProducts.length} pieces available
             </p>
+          </div>
+        )}
+
+        {/* Category filter tabs */}
+        {!loading && !urlSearch && categories.length > 0 && (
+          <div className="mb-10 pb-6 border-b border-white/5 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-3 min-w-max">
+              <a
+                href="/view-all"
+                className={`px-5 py-2 text-[10px] uppercase tracking-[0.3em] border transition-all duration-300 whitespace-nowrap ${
+                  !urlCategory
+                    ? "border-white/40 text-white bg-white/5"
+                    : "border-white/10 text-white/35 hover:text-white hover:border-white/30"
+                }`}
+              >
+                All
+              </a>
+              {categories.map((cat: any) => (
+                <a
+                  key={cat.id || cat.name}
+                  href={`/view-all?category=${encodeURIComponent(cat.name)}`}
+                  className={`px-5 py-2 text-[10px] uppercase tracking-[0.3em] border transition-all duration-300 whitespace-nowrap ${
+                    urlCategory?.toLowerCase() === cat.name.toLowerCase()
+                      ? "border-white/40 text-white bg-white/5"
+                      : "border-white/10 text-white/35 hover:text-white hover:border-white/30"
+                  }`}
+                >
+                  {cat.name}
+                </a>
+              ))}
+            </div>
           </div>
         )}
 
@@ -627,10 +658,10 @@ do
                         return (
                           <div key={subName} className="w-full pt-10 scroll-mt-40" id={`section-${subName.toLowerCase()}`}>
                             <div className="mb-8">
-                              <h2 className="text-3xl font-serif font-light mb-6 uppercase tracking-[0.5em] text-white">
+                              <h2 className="text-3xl font-serif font-light mb-6 uppercase tracking-[0.5em] gradient-text">
                                 {subName}
                               </h2>
-                              <div className="h-px w-full bg-white/20" />
+                              <div className="h-px w-full bg-white/10" />
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">
                               {sectionProducts.map((product) => (

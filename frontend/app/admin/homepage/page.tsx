@@ -746,16 +746,7 @@ export default function HomepageDesignPage() {
                     </div>
                 </div>
 
-                <div className="mt-24 pt-12 border-t border-white/10 flex justify-end">
-                    <Button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="bg-[#e8e8e3] text-black hover:bg-white px-12 py-8 uppercase tracking-widest text-xs rounded-none transition-all flex items-center gap-3 w-full md:w-auto shadow-2xl"
-                    >
-                        {saving ? <Loader2 className="animate-spin size-4" /> : <Save size={18} />}
-                        Save Work
-                    </Button>
-                </div>
+                {/* Duplicate save button removed — use the sticky header button above */}
             </div>
 
             <style jsx global>{`

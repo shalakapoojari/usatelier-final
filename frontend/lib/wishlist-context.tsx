@@ -65,7 +65,8 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
     const addItem = (item: WishlistItem) => {
         if (!isAuthenticated) {
-            router.push("/signup")
+            const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+            router.push(`/signup${currentPath ? `?next=${encodeURIComponent(currentPath)}` : ""}`)
             return
         }
         setItems((prev) => {
@@ -80,7 +81,8 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
     const toggleItem = (item: WishlistItem) => {
         if (!isAuthenticated) {
-            router.push("/signup")
+            const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+            router.push(`/signup${currentPath ? `?next=${encodeURIComponent(currentPath)}` : ""}`)
             return
         }
         // Check BEFORE the state update using the ref (always current)

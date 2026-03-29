@@ -7,6 +7,7 @@ import { WishlistProvider } from "@/lib/wishlist-context"
 import { CartProvider } from "@/lib/cart-context"
 import { AuthProvider } from "@/lib/auth-context"
 import { ToastProvider } from "@/lib/toast-context"
+import { ScrollRevealProvider } from "@/components/scroll-reveal-provider"
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -44,7 +45,11 @@ export default function RootLayout({
           <WishlistProvider>
             <CartProvider>
               <ToastProvider>
-                <LenisProvider>{children}</LenisProvider>
+                <LenisProvider>
+                  <ScrollRevealProvider>
+                    {children}
+                  </ScrollRevealProvider>
+                </LenisProvider>
               </ToastProvider>
             </CartProvider>
           </WishlistProvider>

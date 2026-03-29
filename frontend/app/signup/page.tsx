@@ -27,6 +27,9 @@ export default function SignupPage() {
   const router = useRouter()
   const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
 
+  // Read next redirect param
+  const nextUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError("")
@@ -61,7 +64,7 @@ export default function SignupPage() {
       const result = await signup(email, password, firstName, lastName, phoneClean, termsAccepted)
 
       if (result?.success) {
-        router.push("/account")
+        router.push(nextUrl || "/account")
       } else {
         setError(result?.message ?? "Unable to create account")
       }

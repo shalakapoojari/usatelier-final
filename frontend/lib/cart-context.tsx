@@ -53,18 +53,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("cart", JSON.stringify(items))
   }, [items, isHydrated])
 
-  // Reset items when logged out
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setItems([])
-    }
-  }, [isAuthenticated])
+  // Cart persists in localStorage regardless of auth state
+  // (no wipe on logout — guest cart is preserved)
 
   const addItem = (newItem: Omit<CartItem, "quantity">) => {
-    if (!isAuthenticated) {
-      router.push("/signup")
-      return
-    }
     // Every addItem call is an addition — increment badge
     setUnseenCount((c) => c + 1)
     setItems((prev) => {

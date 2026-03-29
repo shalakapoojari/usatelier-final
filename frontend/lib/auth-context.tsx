@@ -172,9 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUser(newUser)
         sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(newUser))
-        // Clear stale local data for new user
-        localStorage.removeItem("cart")
-        localStorage.removeItem("wishlist")
+        // Keep cart data — guest cart survives signup
         return { success: true, user: newUser }
       }
 
@@ -219,8 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null)
     sessionStorage.removeItem(SESSION_USER_KEY)
-    // Clear stale local data on logout
-    localStorage.removeItem("cart")
+    // Keep cart in localStorage — cart is guest-friendly
     localStorage.removeItem("wishlist")
   }
 

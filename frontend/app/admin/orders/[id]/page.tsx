@@ -81,75 +81,39 @@ export default function OrderDetailPage({
     fetchOrderDetail();
   }, [id]);
 
-  const handleDispatchDelhivery = async () => {
-    const confirmed = await confirm({
-      title: "Dispatch Order",
-      message: "This will create a Delhivery shipment and the customer will receive a tracking link via email. Proceed?",
-      confirmLabel: "Dispatch",
-      variant: "default",
-    })
-    if (!confirmed) return
-
-    setDispatching(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/admin/dispatch/${order?.order_number || id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: "include"
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        showToast("Order dispatched via Delhivery", "dispatch", `Waybill: ${data.waybill}`)
-        fetchOrderDetail();
-      } else {
-        showToast("Dispatch failed", "error", data.error)
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Failed to dispatch order", "error", "Network error — please try again")
-    } finally {
-      setDispatching(false);
-    }
-  };
-
-  const handleRefund = async () => {
+  const handleCancelOrder = async () => {
     if (!order?.razorpay_payment_id) {
       showToast("No payment found", "warning", "This order has no Razorpay payment ID attached")
       return;
     }
 
     const confirmed = await confirm({
-      title: "Process Refund",
-      message: `This will refund ₹${order.total.toLocaleString('en-IN')} to the customer's original payment method via Razorpay. This action cannot be undone.`,
-      confirmLabel: "Refund ₹" + order.total.toLocaleString('en-IN'),
-      cancelLabel: "Keep Payment",
+      title: "Cancel & Refund Order",
+      message: `This will refund ₹${order.total.toLocaleString('en-IN')} via Razorpay and cancel the Delhivery shipment. This action cannot be undone.`,
+      confirmLabel: "Cancel & Refund ₹" + order.total.toLocaleString('en-IN'),
+      cancelLabel: "Keep Order",
       variant: "danger",
     })
     if (!confirmed) return
 
     setRefunding(true);
     try {
-      const response = await fetch(`${API_BASE}/api/admin/payments/refund`, {
+      const response = await fetch(`${API_BASE}/api/admin/orders/${order.order_number || id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          razorpay_payment_id: order.razorpay_payment_id,
-          amount: order.total
-        }),
         credentials: "include"
       });
 
       const data = await response.json();
       if (data.success) {
-        showToast("Refund processed", "success", `₹${order.total.toLocaleString('en-IN')} returned to customer`)
+        showToast("Order Cancelled", "success", `Delivery cancelled and refund initiated.`)
         fetchOrderDetail();
       } else {
-        showToast("Refund failed", "error", data.error)
+        showToast("Cancellation failed", "error", data.error)
       }
     } catch (err) {
       console.error(err);
-      showToast("Refund failed", "error", "Network error — please contact Razorpay support")
+      showToast("Cancellation failed", "error", "Network error — please check with support")
     } finally {
       setRefunding(false);
     }
@@ -215,15 +179,15 @@ export default function OrderDetailPage({
             Sync
           </button>
 
-          {/* Refund */}
+          {/* Cancel */}
           {canRefund && (
             <button
-              onClick={handleRefund}
+              onClick={handleCancelOrder}
               disabled={refunding}
-              className="px-6 py-3 border border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white transition-all text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-3 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-all text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 disabled:opacity-50"
             >
               <Undo2 size={12} className={refunding ? "animate-spin" : ""} />
-              {refunding ? "Processing..." : "Refund"}
+              {refunding ? "Processing..." : "Cancel Order"}
             </button>
           )}
         </div>
@@ -391,12 +355,12 @@ export default function OrderDetailPage({
             {canRefund && (
               <div className="pt-4 border-t border-white/5 space-y-3">
                 <button
-                  onClick={handleRefund}
+                  onClick={handleCancelOrder}
                   disabled={refunding}
                   className="w-full py-3 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 rounded-sm"
                 >
                   <Undo2 size={12} className={refunding ? "animate-spin" : ""} />
-                  {refunding ? "Processing Refund..." : `Refund ₹${order.total.toLocaleString('en-IN')}`}
+                  {refunding ? "Cancelling Order..." : `Cancel & Refund ₹${order.total.toLocaleString('en-IN')}`}
                 </button>
                 <p className="text-[8px] text-gray-600 text-center uppercase tracking-widest">
                   Via Razorpay · Instant to original method
@@ -414,70 +378,7 @@ export default function OrderDetailPage({
             )}
           </div>
 
-          {/* DISPATCH CONTROL */}
-          <div className="bg-white/[0.02] border border-white/5 p-5 sm:p-8 space-y-6 rounded-sm">
-            <h2 className="uppercase tracking-[0.3em] text-[10px] text-gray-500 flex items-center gap-3">
-              <Truck size={14} />
-              Logistics
-            </h2>
 
-            <button
-              onClick={handleDispatchDelhivery}
-              disabled={!canDispatch}
-              className="w-full py-5 bg-gradient-to-r from-[#e8e8e3] to-[#d4d4cf] text-black disabled:opacity-30 disabled:grayscale uppercase tracking-[0.2em] text-[10px] font-bold transition-all shadow-[0_10px_20px_rgba(232,232,227,0.08)] hover:shadow-[0_10px_30px_rgba(232,232,227,0.15)] hover:from-white hover:to-[#e8e8e3] flex items-center justify-center gap-3 rounded-sm"
-            >
-              {dispatching ? (
-                <>
-                  <RefreshCcw size={14} className="animate-spin" />
-                  Dispatching...
-                </>
-              ) : isDispatched ? (
-                <>
-                  <CheckCircle2 size={14} />
-                  Dispatched via Delhivery
-                </>
-              ) : (
-                <>
-                  <Truck size={14} />
-                  Dispatch via Delhivery
-                </>
-              )}
-            </button>
-            <p className="text-[9px] text-gray-600 text-center uppercase tracking-widest leading-relaxed px-4">
-              {isDispatched ? "Shipment active — status updates via Delhivery webhook" : "Automated handoff — status managed by Delhivery"}
-            </p>
-
-            {/* Automation info */}
-            <div className="pt-6 border-t border-white/10 space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                </div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest text-gray-400 font-medium">Auto Status Updates</p>
-                  <p className="text-[8px] text-gray-600 mt-0.5 tracking-wide">Delhivery webhooks update order status automatically</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                </div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest text-gray-400 font-medium">Customer Notifications</p>
-                  <p className="text-[8px] text-gray-600 mt-0.5 tracking-wide">Email sent on each status change</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                </div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest text-gray-400 font-medium">Instant Refunds</p>
-                  <p className="text-[8px] text-gray-600 mt-0.5 tracking-wide">Razorpay refund to original payment method</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

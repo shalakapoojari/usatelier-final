@@ -43,12 +43,20 @@ export default function ProductPage({
   const [showShareMenu, setShowShareMenu] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
 
+  // Reviews
+  const [reviews, setReviews] = useState<any[]>([])
+  const [newReviewComment, setNewReviewComment] = useState("")
+  const [newReviewRating, setNewReviewRating] = useState(5)
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [showReviewForm, setShowReviewForm] = useState(false)
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productRes, allProductsRes] = await Promise.all([
+        const [productRes, allProductsRes, reviewsRes] = await Promise.all([
           fetch(`${API_BASE}/api/products/${id}`, { credentials: "include" }),
           fetch(`${API_BASE}/api/products`, { credentials: "include" }),
+          fetch(`${API_BASE}/api/products/${id}/reviews`, { credentials: "include" }),
         ])
 
         if (productRes.ok) {
@@ -62,6 +70,11 @@ export default function ProductPage({
           const allData = await allProductsRes.json()
           setAllProducts(allData)
         }
+        
+        if (reviewsRes.ok) {
+          const rData = await reviewsRes.json()
+          setReviews(rData)
+        }
       } catch (err) {
         console.error("Fetch error:", err)
       } finally {
@@ -70,6 +83,84 @@ export default function ProductPage({
     }
     fetchData()
   }, [id])
+
+  // Track recently viewed products (Hook must be before any early returns)
+  useEffect(() => {
+    if (!product) return
+    try {
+      const imagesList = (() => {
+        if (Array.isArray(product.images)) return product.images
+        try {
+          const parsed = JSON.parse(product.images)
+          return Array.isArray(parsed) ? parsed : [product.images]
+        } catch {
+          return [product.images]
+        }
+      })()
+      const key = "recentlyViewed"
+      const existing = JSON.parse(localStorage.getItem(key) || "[]")
+      const filtered = existing.filter((p: any) => p.id !== product.id)
+      const updated = [{
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: resolveMediaUrl(imagesList[0]),
+        category: product.category,
+      }, ...filtered].slice(0, 6)
+      localStorage.setItem(key, JSON.stringify(updated))
+      localStorage.setItem(key, JSON.stringify(updated))
+    } catch { /* ignore */ }
+  }, [product?.id])
+
+  // Handle Hash Nav
+  useEffect(() => {
+    if (window.location.hash === "#write-review") {
+      setShowReviewForm(true)
+      setTimeout(() => {
+        document.getElementById("reviews-section")?.scrollIntoView({ behavior: "smooth" })
+      }, 500)
+    }
+  }, [product?.id])
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!isAuthenticated) {
+      showToast("Please log in to submit a review", "error")
+      return
+    }
+    if (!newReviewComment.trim()) {
+      showToast("Review cannot be empty", "error")
+      return
+    }
+    if (newReviewRating < 1 || newReviewRating > 5) {
+      showToast("Rating must be between 1 and 5", "error")
+      return
+    }
+
+    setSubmittingReview(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/products/${id}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ rating: newReviewRating, comment: newReviewComment }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setReviews([data.review, ...reviews])
+        setNewReviewComment("")
+        setNewReviewRating(5)
+        setShowReviewForm(false)
+        showToast("Review submitted successfully", "success")
+      } else {
+        showToast(data.error || "Failed to submit review", "error")
+      }
+    } catch (err) {
+      showToast("Network error submitting review", "error")
+    } finally {
+      setSubmittingReview(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -93,16 +184,14 @@ export default function ProductPage({
   })()
 
   const isInStock = product.stock !== undefined ? product.stock > 0 : product.inStock
+  const isLowStock = product.stock !== undefined && product.stock > 0 && product.stock < 5
+
 
   const relatedProducts = allProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 8)
 
   const handleAddToCart = () => {
-    if (!isAuthenticated) {
-      router.push("/login")
-      return
-    }
 
     if (!selectedSize) {
       const sizeSection = document.getElementById("size-section")
@@ -125,10 +214,6 @@ export default function ProductPage({
   }
 
   const handleWishlistToggle = () => {
-    if (!isAuthenticated) {
-      router.push("/login")
-      return
-    }
 
     const wasWishlisted = isWishlisted(product.id)
     toggleItem({
@@ -196,10 +281,6 @@ export default function ProductPage({
   }
 
   const handleBuyNow = () => {
-    if (!isAuthenticated) {
-      router.push("/login")
-      return
-    }
 
     if (!selectedSize) {
       const sizeSection = document.getElementById("size-section")
@@ -345,8 +426,8 @@ export default function ProductPage({
               </div>
               <div className="bg-white/5 rounded px-4 py-3">
                 <p className="text-gray-500 uppercase tracking-widest mb-1">Availability</p>
-                <p className={isInStock ? "text-green-400" : "text-red-400"}>
-                  {isInStock ? "In Stock" : "Out of Stock"}
+                <p className={isInStock ? (isLowStock ? "text-amber-400" : "text-green-400") : "text-red-400"}>
+                  {isInStock ? (isLowStock ? `Only ${product.stock} left!` : "In Stock") : "Out of Stock"}
                 </p>
               </div>
               {product.fabric && (
@@ -556,7 +637,7 @@ export default function ProductPage({
                 </button>
                 {showShipping && (
                   <div className="pb-5 text-gray-400 text-sm space-y-2 leading-relaxed">
-                    <p>Complimentary standard shipping on all orders over ₹12,500.</p>
+                    <p>Complimentary standard shipping on all orders over ₹2,000.</p>
                     <p>Express delivery available at checkout.</p>
                     <p>Returns accepted within 30 days of delivery. Items must be unworn and in original packaging.</p>
                   </div>
@@ -593,6 +674,96 @@ export default function ProductPage({
               )}
             </div>
           </div>
+        </div>
+
+        {/* ── REVIEWS ── */}
+        <div id="reviews-section" className="mt-32 border-t border-white/10 pt-20">
+          <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-12">
+            <div>
+              <h2 className="font-serif text-3xl font-light">Client Reviews</h2>
+              <div className="flex items-center gap-2 mt-3">
+                <div className="flex text-amber-500">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={14} fill={i < (reviews.length ? Math.round(reviews.reduce((a, b) => a + b.rating, 0) / reviews.length) : 5) ? "currentColor" : "none"} />
+                  ))}
+                </div>
+                <span className="text-gray-400 text-sm">
+                  {reviews.length > 0 ? `${(reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1)} / 5 (${reviews.length} reviews)` : "No reviews yet"}
+                </span>
+              </div>
+            </div>
+            {isAuthenticated ? (
+              <button
+                onClick={() => setShowReviewForm(!showReviewForm)}
+                className="px-6 py-3 border border-white/30 text-xs uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
+              >
+                {showReviewForm ? "Cancel Review" : "Write a Review"}
+              </button>
+            ) : (
+              <Link href="/login" className="px-6 py-3 border border-white/30 text-xs uppercase tracking-widest hover:bg-white hover:text-black transition-colors">
+                Login to Review
+              </Link>
+            )}
+          </div>
+
+          {showReviewForm && isAuthenticated && (
+            <form onSubmit={submitReview} className="mb-16 p-6 border border-white/10 bg-white/[0.02] max-w-2xl">
+              <h3 className="uppercase tracking-widest text-xs mb-6">Write your review</h3>
+              <div className="mb-6">
+                <label className="block text-[10px] uppercase tracking-widest text-gray-500 mb-3">Rating</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setNewReviewRating(star)}
+                      className={`text-2xl ${newReviewRating >= star ? "text-amber-500" : "text-gray-600"}`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-6">
+                <label className="block text-[10px] uppercase tracking-widest text-gray-500 mb-3">Your Comment</label>
+                <textarea
+                  value={newReviewComment}
+                  onChange={(e) => setNewReviewComment(e.target.value)}
+                  className="w-full bg-transparent border border-white/20 p-4 text-sm focus:border-white focus:outline-none min-h-[120px]"
+                  placeholder="What did you think about this piece?"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={submittingReview}
+                className="px-8 py-3 bg-white text-black text-xs uppercase tracking-widest disabled:opacity-50"
+              >
+                {submittingReview ? "Submitting..." : "Submit Review"}
+              </button>
+            </form>
+          )}
+
+          {reviews.length > 0 ? (
+            <div className="space-y-8">
+              {reviews.map((review) => (
+                <div key={review.id} className="border-b border-white/5 pb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex text-amber-500">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={12} fill={i < review.rating ? "currentColor" : "none"} />
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-gray-500 tracking-widest uppercase">{review.date ? new Date(review.date).toLocaleDateString() : 'Just now'}</span>
+                  </div>
+                  <p className="text-gray-300 text-sm leading-relaxed mb-3">"{review.comment}"</p>
+                  <p className="text-[10px] uppercase tracking-widest text-gray-500">{(review.user || 'Guest').split('@')[0]}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm py-8 border-t border-white/5">Be the first to review this exceptional piece.</p>
+          )}
         </div>
 
         {/* ── RELATED PRODUCTS ── */}
@@ -634,6 +805,29 @@ export default function ProductPage({
       </main>
 
       <SiteFooter />
+
+      {/* Sticky Mobile Add-to-Cart Bar */}
+      {isInStock && (
+        <div className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-[#030303]/95 backdrop-blur-xl border-t border-white/10 px-4 py-3 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs uppercase tracking-widest truncate">{product.name}</p>
+            <p className="text-sm">₹{product.price.toLocaleString('en-IN')}</p>
+          </div>
+          <button
+            onClick={handleAddToCart}
+            disabled={!selectedSize}
+            className={`px-6 py-3 uppercase tracking-widest text-xs font-medium transition-all ${
+              addedToCart
+                ? "bg-green-500 text-white"
+                : selectedSize
+                  ? "bg-white text-black"
+                  : "bg-white/20 text-gray-500"
+            } disabled:cursor-not-allowed`}
+          >
+            {addedToCart ? "Added ✓" : selectedSize ? "Add to Cart" : "Select Size"}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

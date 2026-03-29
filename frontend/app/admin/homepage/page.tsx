@@ -682,6 +682,28 @@ export default function HomepageDesignPage() {
                         </section>
                     </div>
 
+                    {/* MANIFESTO TEXT */}
+                    <div className="w-full">
+                        <section className="space-y-8">
+                            <div>
+                                <h2 className="text-3xl font-serif mb-4 uppercase tracking-widest">Brand Manifesto</h2>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-widest">The statement text displayed below the hero carousel</p>
+                            </div>
+                            <div className="bg-white/2 border border-white/5 p-8">
+                                <Label className="text-[9px] uppercase tracking-[0.3em] text-gray-500 mb-3 block">Manifesto Text</Label>
+                                <Textarea
+                                    value={config.manifesto_text || ""}
+                                    onChange={(e) => setConfig(prev => ({ ...prev, manifesto_text: e.target.value }))}
+                                    className="bg-transparent border-white/10 min-h-40 rounded-none text-sm resize-none leading-relaxed"
+                                    placeholder="U.S Atelier is premium menswear designed for the modern man..."
+                                />
+                                <p className="text-[8px] text-gray-600 mt-3 uppercase tracking-widest">
+                                    This text appears as a large serif statement on the homepage, below the hero carousel.
+                                </p>
+                            </div>
+                        </section>
+                    </div>
+
                     {/* GALLERY CURATION */}
                     <div className="space-y-12">
                         <div className="flex items-center gap-8 mb-12">

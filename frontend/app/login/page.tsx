@@ -21,7 +21,8 @@ export default function LoginPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const oauthError = new URLSearchParams(window.location.search).get("error")
+    const params = new URLSearchParams(window.location.search)
+    const oauthError = params.get("error")
     if (!oauthError) return
 
     const errorMap: Record<string, string> = {
@@ -41,6 +42,10 @@ export default function LoginPage() {
     setError(errorMap[oauthError] || "Google sign-in failed. Please try again.")
   }, [])
 
+  // Read next redirect param
+  const nextUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null
+  const isCheckoutRedirect = nextUrl === "/checkout"
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -49,7 +54,8 @@ export default function LoginPage() {
     const result = await login(email, password)
 
     if (result.success && result.user) {
-      router.push(result.user.role === "admin" ? "/admin" : "/")
+      const redirectTo = nextUrl || (result.user.role === "admin" ? "/admin" : "/")
+      router.push(redirectTo)
     } else {
       setError(result.message || "Invalid email or password")
     }
@@ -69,6 +75,11 @@ export default function LoginPage() {
               className="h-10 w-60 object-contain"
             />
           </Link>
+          {isCheckoutRedirect && (
+            <p className="mt-4 text-xs uppercase tracking-widest text-amber-500/80 animate-pulse">
+              Sign in to complete your purchase
+            </p>
+          )}
         </div>
 
         {/* Login Form */}
@@ -164,7 +175,7 @@ export default function LoginPage() {
         <div className="mt-8 text-center text-xs tracking-widest text-gray-500">
           New to U.S ATELIER?{" "}
           <Link
-            href="/signup"
+            href={`/signup${nextUrl ? `?next=${encodeURIComponent(nextUrl)}` : ""}`}
             className="text-white underline underline-offset-4 hover:text-gray-300 transition-colors"
           >
             Create an account

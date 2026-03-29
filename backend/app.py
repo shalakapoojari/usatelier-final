@@ -1317,6 +1317,44 @@ def delete_product(product_id):
         return jsonify({"error": str(exc)}), 500
 
 # ============================================================
+# REVIEWS
+# ============================================================
+
+@app.route("/api/products/<int:product_id>/reviews", methods=["GET"])
+def get_product_reviews(product_id):
+    reviews = Review.query.filter_by(product_id_str=str(product_id)).order_by(Review.created_at.desc()).all()
+    return jsonify([r.to_dict() for r in reviews]), 200
+
+@app.route("/api/products/<int:product_id>/reviews", methods=["POST"])
+@login_required
+def add_product_review(product_id):
+    data = request.get_json() or {}
+    rating = data.get("rating")
+    comment = data.get("comment", "").strip()
+    
+    if not rating or not (1 <= int(rating) <= 5):
+        return jsonify({"error": "Valid rating between 1 and 5 is required"}), 400
+        
+    user = User.query.get(int(session["user_id"]))
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    try:
+        new_review = Review(
+            user_id=user.id,
+            user_email=user.email,
+            product_id_str=str(product_id),
+            rating=int(rating),
+            comment=comment
+        )
+        db_mysql.session.add(new_review)
+        db_mysql.session.commit()
+        return jsonify({"success": True, "review": new_review.to_dict()}), 201
+    except Exception as exc:
+        db_mysql.session.rollback()
+        return jsonify({"error": str(exc)}), 500
+
+# ============================================================
 # CART
 # ============================================================
 
@@ -1762,16 +1800,22 @@ def get_admin_payments():
     return jsonify([p.to_dict() for p in Payment.query.order_by(Payment.created_at.desc()).all()])
 
 
-@app.route("/api/admin/payments/refund", methods=["POST"])
+@app.route("/api/admin/orders/<order_id>/cancel", methods=["POST"])
 @admin_required
-def refund_payment():
+def cancel_admin_order(order_id):
     if not razorpay_client:
-        return jsonify({"error": "Payment gateway not configured — check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET"}), 500
-    data           = request.get_json() or {}
-    rzp_payment_id = data.get("razorpay_payment_id")
-    amount         = data.get("amount")
-    if not rzp_payment_id:
-        return jsonify({"error": "Razorpay Payment ID required"}), 400
+        return jsonify({"error": "Payment gateway not configured"}), 500
+        
+    order = OrderSQL.query.get(order_id) or OrderSQL.query.filter_by(order_number=order_id).first()
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+        
+    if order.status == "Cancelled":
+        return jsonify({"error": "Order is already cancelled"}), 400
+
+    rzp_payment_id = order.razorpay_payment_id
+    amount         = order.total
+
 
     # ── Idempotency guard: check if already refunded in our DB ───────────
     payment = Payment.query.filter_by(razorpay_payment_id=rzp_payment_id).first()
@@ -1811,23 +1855,35 @@ def refund_payment():
             refund_data["amount"] = int(float(amount) * 100)   # Razorpay uses paise
         refund = client.payment.refund(rzp_payment_id, refund_data)
 
+        # Delhivery Cancellation logic
+        delhivery_cancelled = False
+        if order.delhivery_waybill or order.delhivery_shipment_id:
+            from delhivery_utils import cancel_shipment
+            waybill_to_cancel = order.delhivery_waybill or order.delhivery_shipment_id
+            res = cancel_shipment(waybill_to_cancel)
+            if res.get("success"):
+                delhivery_cancelled = True
+                
+        # Restock items
+        for item in order.items:
+            prod = ProductSQL.query.get(int(item.product_id_str))
+            if prod:
+                prod.stock += item.quantity
+                
         # Update Payment record if it exists
         if payment:
             payment.status = "refunded"
-            if payment.order_id:
-                order = OrderSQL.query.get(payment.order_id)
-                if order:
-                    order.payment_status = "Refunded"
-                    order.status         = "Cancelled"
-
-        # Also look up order directly by payment ID (fallback)
+            
+        order.payment_status = "Refunded"
+        order.status         = "Cancelled"
+        
         if not payment and order_direct:
             order_direct.payment_status = "Refunded"
             order_direct.status         = "Cancelled"
 
-        _audit("payment_refunded", "payment", None, {"razorpay_payment_id": rzp_payment_id})
+        _audit("order_cancelled_admin", "order", order.id, {"razorpay_payment_id": rzp_payment_id, "delhivery_cancelled": delhivery_cancelled})
         db_mysql.session.commit()
-        return jsonify({"success": True, "refund": refund}), 200
+        return jsonify({"success": True, "refund": refund, "delhivery_cancelled": delhivery_cancelled}), 200
     except razorpay.errors.BadRequestError as exc:
         err_msg = str(exc)
         db_mysql.session.rollback()
@@ -1836,14 +1892,14 @@ def refund_payment():
             try:
                 if payment:
                     payment.status = "refunded"
-                    if payment.order_id:
-                        order = OrderSQL.query.get(payment.order_id)
-                        if order:
-                            order.payment_status = "Refunded"
-                            order.status         = "Cancelled"
+                
+                order.payment_status = "Refunded"
+                order.status         = "Cancelled"
+                    
                 if order_direct:
                     order_direct.payment_status = "Refunded"
                     order_direct.status         = "Cancelled"
+                    
                 db_mysql.session.commit()
             except Exception:
                 db_mysql.session.rollback()
@@ -2006,7 +2062,7 @@ def create_order():
             idempotency_key       = idempotency_key,
             user_id               = user.id,
             total                 = client_total,
-            status                = "Processing",
+            status                = "Pickup",
             payment_status        = payment_status,
             shipping_address_json = json.dumps(data.get("shippingAddress", {})),
             coupon_code           = coupon_code,
@@ -2196,73 +2252,6 @@ def update_order_status(order_id):
     return jsonify({"success": True, "message": f"Status updated to {new_status}"}), 200
 
 
-@app.route("/api/admin/dispatch/<order_id>", methods=["POST"])
-@admin_required
-def dispatch_delhivery_order(order_id):
-    order = OrderSQL.query.filter_by(order_number=order_id).first()
-    if not order:
-        return jsonify({"error": "Order not found"}), 404
-    if order.delhivery_shipment_id:
-        return jsonify({"error": "Order already dispatched via Delhivery"}), 400
-
-    user = User.query.get(order.user_id)
-    shipping = order.shipping_address
-
-    pickup_location = {
-        "address": os.getenv("STORE_ADDRESS", ""),
-        "city": os.getenv("STORE_CITY", ""),
-        "state": os.getenv("STORE_STATE", ""),
-        "pincode": os.getenv("STORE_PINCODE", ""),
-    }
-
-    delivery_location = {
-        "address": f"{shipping.get('street', '')}, {shipping.get('city', '')}".strip(", "),
-        "city": shipping.get('city', ''),
-        "state": shipping.get('state', ''),
-        "pincode": shipping.get('zip', ''),
-    }
-
-    customer_phone = (user.phone if user else None) or "9999999999"
-    customer_name = (
-        f"{shipping.get('firstName', '')} {shipping.get('lastName', '')}".strip()
-        or (f"{user.first_name or ''} {user.last_name or ''}".strip() if user else "Customer")
-    )
-
-    res = create_shipment(
-        order_id=order_id,
-        pickup_location=pickup_location,
-        delivery_location=delivery_location,
-        customer_phone=customer_phone,
-        customer_name=customer_name,
-    )
-
-    if res.get("success"):
-        order.delhivery_shipment_id = str(res["delhivery_shipment_id"])
-        order.delhivery_tracking_url = res["tracking_url"]
-        order.delhivery_waybill_number = res.get("waybill_number", "")
-        order.status = "Shipped"
-        _audit("delhivery_dispatch_manual", "order", order.id, {"shipment_id": res["delhivery_shipment_id"]})
-        db_mysql.session.commit()
-
-        if user:
-            try:
-                send_order_status_update(mail, user.email, order_id, "Shipped", res["tracking_url"])
-            except Exception:
-                pass
-
-        return jsonify({
-            "success": True,
-            "message": "Dispatched via Delhivery",
-            "tracking_url": res["tracking_url"],
-            "waybill": res.get("waybill_number", ""),
-        }), 200
-
-    return jsonify({
-        "error": f"Delhivery: {res.get('error', 'Unknown dispatch error')}",
-        "error_code": res.get("error_code", "UNKNOWN"),
-    }), 500
-
-
 @app.route("/api/admin/dispatch-jobs", methods=["GET"])
 @admin_required
 def list_dispatch_jobs():
@@ -2272,18 +2261,31 @@ def list_dispatch_jobs():
         q = q.filter_by(status=status)
     return jsonify([j.to_dict() for j in q.order_by(DispatchJob.created_at.desc()).limit(100).all()])
 
-# ── Public pincode serviceability check ──────────────────────────────────
+# ── Pincode API caching ──────────────────────────────────────────────────
+_pincode_cache = {}   # {pincode: {"data": ..., "ts": time.time()}}
+_PINCODE_CACHE_TTL = 3600  # 1 hour
+
+def _cached_pincode_check(pincode: str) -> bool:
+    import time as _time
+    now = _time.time()
+    cached = _pincode_cache.get(pincode)
+    if cached and (now - cached["ts"]) < _PINCODE_CACHE_TTL:
+        return cached["data"]
+    result = validate_pincode(pincode)
+    _pincode_cache[pincode] = {"data": result, "ts": now}
+    return result
+
+# ── Public pincode serviceability check (no auth required) ───────────────
 @app.route("/api/delivery/check-pincode", methods=["POST"])
-@login_required
 def check_pincode():
-    """Check if Delhivery can deliver to a given pincode."""
+    """Check if Delhivery can deliver to a given pincode. No auth required."""
     data = request.get_json() or {}
     pincode = str(data.get("pincode", "")).strip()
     if not pincode or not re.match(r"^\d{6}$", pincode):
         return jsonify({"error": "Please enter a valid 6-digit pincode"}), 400
 
     try:
-        serviceable = validate_pincode(pincode)
+        serviceable = _cached_pincode_check(pincode)
         return jsonify({
             "success": True,
             "pincode": pincode,
@@ -2298,6 +2300,90 @@ def check_pincode():
             "serviceable": True,  # fail open
             "message": "Unable to verify — delivery will be attempted",
         }), 200
+
+
+# ── Shipping estimate (no auth required) ─────────────────────────────────
+@app.route("/api/delivery/estimate", methods=["POST"])
+def shipping_estimate():
+    """Return estimated shipping cost and delivery date for a pincode."""
+    data = request.get_json() or {}
+    pincode = str(data.get("pincode", "")).strip()
+    if not pincode or not re.match(r"^\d{6}$", pincode):
+        return jsonify({"error": "Please enter a valid 6-digit pincode"}), 400
+
+    # Free shipping threshold
+    FREE_SHIPPING_MIN = 2000
+    SHIPPING_COST = 149
+    subtotal = float(data.get("subtotal", 0))
+    shipping_cost = 0 if subtotal >= FREE_SHIPPING_MIN else SHIPPING_COST
+
+    # GST Calculation
+    is_mumbai = pincode.startswith("400") or pincode.startswith("401")
+    if is_mumbai:
+        cgst = subtotal * 0.025
+        sgst = subtotal * 0.025
+        igst = 0
+    else:
+        cgst = 0
+        sgst = 0
+        igst = subtotal * 0.05
+    tax_total = cgst + sgst + igst
+
+    # ETA: 5-7 business days from now
+    from datetime import timedelta
+    today = datetime.utcnow()
+    eta_min = today + timedelta(days=5)
+    eta_max = today + timedelta(days=7)
+
+    try:
+        serviceable = _cached_pincode_check(pincode)
+    except Exception:
+        serviceable = True  # fail open
+
+    return jsonify({
+        "success": True,
+        "pincode": pincode,
+        "serviceable": serviceable,
+        "shipping_cost": shipping_cost,
+        "free_shipping_min": FREE_SHIPPING_MIN,
+        "cgst": cgst,
+        "sgst": sgst,
+        "igst": igst,
+        "tax_total": tax_total,
+        "eta_min": eta_min.strftime("%b %d, %Y"),
+        "eta_max": eta_max.strftime("%b %d, %Y"),
+        "eta_text": f"Estimated delivery: {eta_min.strftime('%b %d')} – {eta_max.strftime('%b %d, %Y')}",
+    }), 200
+
+
+# ── Pincode lookup for city/state autofill (no auth required) ────────────
+@app.route("/api/delivery/pincode-lookup", methods=["POST"])
+def pincode_lookup():
+    """Lookup city and state from a pincode using India Post API."""
+    data = request.get_json() or {}
+    pincode = str(data.get("pincode", "")).strip()
+    if not pincode or not re.match(r"^\d{6}$", pincode):
+        return jsonify({"error": "Invalid pincode"}), 400
+
+    try:
+        resp = requests.get(
+            f"https://api.postalpincode.in/pincode/{pincode}",
+            timeout=5
+        )
+        if resp.status_code == 200:
+            result = resp.json()
+            if result and result[0].get("Status") == "Success":
+                post_office = result[0]["PostOffice"][0]
+                return jsonify({
+                    "success": True,
+                    "city": post_office.get("District", ""),
+                    "state": post_office.get("State", ""),
+                    "country": "India",
+                }), 200
+    except Exception as exc:
+        app.logger.warning("pincode_lookup_error pincode=%s err=%s", pincode, exc)
+
+    return jsonify({"success": False, "error": "Could not resolve pincode"}), 200
 
 
 @app.route("/api/webhooks/delhivery", methods=["POST"])

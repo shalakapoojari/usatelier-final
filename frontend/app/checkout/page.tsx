@@ -25,8 +25,15 @@ declare global {
 
 export default function CheckoutPage() {
   const { items, total, clearCart, isHydrated } = useCart()
-  const { user } = useAuth()
+  const { user, isAuthenticated, isAuthLoading } = useAuth()
   const router = useRouter()
+
+  // Auth gate: redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
+      router.push("/login?next=/checkout")
+    }
+  }, [isAuthenticated, isAuthLoading, router])
 
   useEffect(() => {
     if (isHydrated && items.length === 0) {
@@ -45,8 +52,6 @@ export default function CheckoutPage() {
     }
   }, [])
 
-  const shipping: number = 0
-  const grandTotal = total + shipping
 
   const [step, setStep] = useState<"shipping" | "review" | "payment">("shipping")
   const [formData, setFormData] = useState({
@@ -68,6 +73,18 @@ export default function CheckoutPage() {
   const [globalError, setGlobalError] = useState("")
   const [pincodeStatus, setPincodeStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle")
   const [pincodeMessage, setPincodeMessage] = useState("")
+  const [shippingEstimate, setShippingEstimate] = useState<any>(null)
+
+  const isMumbai = formData.zip.startsWith("400") || formData.zip.startsWith("401")
+  const isOut = formData.zip.length === 6 && !isMumbai
+  const cgst = shippingEstimate?.cgst ?? (isMumbai ? total * 0.025 : 0)
+  const sgst = shippingEstimate?.sgst ?? (isMumbai ? total * 0.025 : 0)
+  const igst = shippingEstimate?.igst ?? (isOut ? total * 0.05 : 0)
+  const tax = shippingEstimate?.tax_total ?? (cgst + sgst + igst)
+  
+  const shipping = shippingEstimate?.shipping_cost ?? (total >= 2000 ? 0 : 149)
+  const grandTotal = total + shipping + tax
+
 
   useEffect(() => {
     if (user) {
@@ -110,19 +127,50 @@ export default function CheckoutPage() {
     if (!pincode || pincode.length !== 6) return
     setPincodeStatus("checking")
     try {
-      const res = await fetch(`${API_BASE}/api/delivery/check-pincode`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ pincode }),
-      })
-      const data = await res.json()
-      if (data.serviceable) {
+      // Check serviceability + get estimate
+      const [checkRes, estimateRes, lookupRes] = await Promise.all([
+        fetch(`${API_BASE}/api/delivery/check-pincode`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ pincode }),
+        }),
+        fetch(`${API_BASE}/api/delivery/estimate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ pincode, subtotal: total }),
+        }),
+        fetch(`${API_BASE}/api/delivery/pincode-lookup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ pincode }),
+        }),
+      ])
+      const checkData = await checkRes.json()
+      const estimateData = await estimateRes.json()
+      const lookupData = await lookupRes.json()
+
+      if (checkData.serviceable) {
         setPincodeStatus("valid")
-        setPincodeMessage(data.message || "Delivery available")
+        setPincodeMessage(checkData.message || "Delivery available")
       } else {
         setPincodeStatus("invalid")
-        setPincodeMessage(data.message || "Delivery not available")
+        setPincodeMessage(checkData.message || "Delivery not available")
+      }
+
+      if (estimateData.success) {
+        setShippingEstimate(estimateData)
+      }
+
+      // Autofill city/state from pincode lookup
+      if (lookupData.success) {
+        setFormData(prev => ({
+          ...prev,
+          city: lookupData.city || prev.city,
+          state: lookupData.state || prev.state,
+        }))
       }
     } catch {
       setPincodeStatus("valid") // fail open
@@ -249,12 +297,16 @@ export default function CheckoutPage() {
                 items,
                 subtotal: total,
                 shipping,
+                tax,
+                cgst,
+                sgst,
+                igst,
                 total: grandTotal,
                 address: formData,
                 paymentId: response.razorpay_payment_id,
               }))
               clearCart()
-              router.push("/checkout/confirmation")
+              router.push(`/account/orders/${finalData.orderId}`)
             } else {
               const errorData = await finalizeRes.json()
               setGlobalError(errorData.error || "Order creation failed after payment. Contact support.")
@@ -638,6 +690,24 @@ export default function CheckoutPage() {
                   <span>Shipping</span>
                   <span className="text-green-400 text-xs uppercase tracking-widest">{shipping === 0 ? "Free" : `₹${shipping.toLocaleString('en-IN')}`}</span>
                 </div>
+                {cgst > 0 && (
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>CGST (2.5%)</span>
+                    <span>₹{cgst.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                {sgst > 0 && (
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>SGST (2.5%)</span>
+                    <span>₹{sgst.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                {igst > 0 && (
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>IGST (5%)</span>
+                    <span>₹{igst.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div className="border-t border-white/10 pt-4 flex justify-between text-white font-medium">
                   <span>Total</span>
                   <span className="text-lg">₹{grandTotal.toLocaleString('en-IN')}</span>

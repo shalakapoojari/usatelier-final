@@ -63,6 +63,11 @@ export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeDesktopCategory, setActiveDesktopCategory] = useState<string | null>(null)
   const profileRef = useRef<HTMLDivElement>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const [searchQuery, setSearchQuery] = useState("")
   const [placeholder, setPlaceholder] = useState("")
@@ -298,7 +303,9 @@ export function SiteHeader() {
         <div className="flex items-center gap-3 sm:gap-4 md:gap-8 ml-auto">
           {/* Mobile login/profile */}
           <div className="md:hidden flex items-center">
-            {!user ? (
+            {!isMounted ? (
+              <div className="w-8 h-8 opacity-0" />
+            ) : !user ? (
               <Link
                 href="/login"
                 className="text-[10px] uppercase tracking-[0.2em] text-gray-300 hover:text-white transition-colors"
@@ -364,7 +371,9 @@ export function SiteHeader() {
 
           {/* Profile / Login - Moved to the end */}
           <div className="flex items-center ml-2">
-            {!user ? (
+            {!isMounted ? (
+              <div className="w-16 h-8 opacity-0" />
+            ) : !user ? (
               <Link
                 href="/login"
                 className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-white transition-colors border border-white/10 px-4 py-2 hover:bg-white/5 hidden md:inline-flex"
@@ -561,7 +570,9 @@ export function SiteHeader() {
               <div className="mobile-menu-item mt-14 h-px bg-white/12" />
 
               <div className="mobile-menu-item mt-8 flex flex-col gap-4 text-[18px] sm:text-[20px] font-serif text-[#e6e6e2]">
-                {!user ? (
+                {!isMounted ? (
+                   <div className="h-10" />
+                ) : !user ? (
                   <Link href="/login" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
                     Login
                   </Link>

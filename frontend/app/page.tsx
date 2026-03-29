@@ -69,13 +69,11 @@ function SectionProductCard({ product, index }: { product: any; index?: number }
 import { ProductSkeleton } from "@/components/product-skeleton"
 
 function CollectionSection({ title, subtitle, products, sectionId }: { title: string, subtitle: string, products: any[], sectionId?: string }) {
-  if (!products || products.length === 0) return null;
-  
   const titleRef = useRef<HTMLDivElement | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (!titleRef.current) return
+    if (!products || products.length === 0 || !titleRef.current) return
     
     gsap.fromTo(
       titleRef.current.querySelectorAll('h2, .divider-line'),
@@ -93,10 +91,10 @@ function CollectionSection({ title, subtitle, products, sectionId }: { title: st
         },
       }
     )
-  }, [])
+  }, [products])
 
   useEffect(() => {
-    if (!contentRef.current) return
+    if (!products || products.length === 0 || !contentRef.current) return
     
     gsap.fromTo(
       contentRef.current.querySelectorAll('.product-card'),
@@ -114,7 +112,9 @@ function CollectionSection({ title, subtitle, products, sectionId }: { title: st
         },
       }
     )
-  }, [])
+  }, [products])
+
+  if (!products || products.length === 0) return null;
 
   return (
     <div id={sectionId} className="flex flex-col justify-center px-6 md:px-24 scroll-mt-52">
@@ -287,16 +287,30 @@ export default function HomePage() {
     }
   }, [loadingConfig])
 
-  const slides = config?.hero_slides || [
-    {
-      image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564&auto=format&fit=crop",
-      subtitle: "Fall Winter 2025",
-      title1: "ETHEREAL",
-      title2: "SHADOWS",
-      cta_text: "View The Lookbook",
-      cta_link: "/view-all"
-    }
-  ]
+  const slides = config?.hero_slides && config.hero_slides.length > 0
+    ? config.hero_slides.map((s: any) => ({
+        image: s.image || "/placeholder.jpg",
+        content: s.content || "",
+        product_id: s.product_id || "",
+        // Split content into two title lines for hero display
+        title1: (s.content || "ETHEREAL").split("\n")[0] || (s.content || "").split(" ").slice(0, Math.ceil((s.content || "").split(" ").length / 2)).join(" ") || "ETHEREAL",
+        title2: (s.content || "SHADOWS").split("\n")[1] || (s.content || "").split(" ").slice(Math.ceil((s.content || "").split(" ").length / 2)).join(" ") || "SHADOWS",
+        cta_text: s.product_id ? "Shop Now" : "View The Lookbook",
+        cta_link: s.product_id ? `/product/${s.product_id}` : "/view-all",
+      }))
+    : [
+        {
+          image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564&auto=format&fit=crop",
+          content: "ETHEREAL\nSHADOWS",
+          title1: "ETHEREAL",
+          title2: "SHADOWS",
+          cta_text: "View The Lookbook",
+          cta_link: "/view-all",
+        }
+      ]
+
+  const manifestoText = config?.manifesto_text ||
+    "U.S Atelier is premium menswear designed for the modern man who values style, comfort, and craftsmanship with innovative tailoring to deliver clothing that makes a statement—confident, stylish, and refined."
 
   return (
     <>
@@ -304,15 +318,7 @@ export default function HomePage() {
 
       <div ref={rootRef} className="bg-[#030303] text-[#e8e8e3] overflow-x-hidden min-h-screen">
         <SiteHeader />
-        <style jsx global>{`
-          ::-webkit-scrollbar {
-            display: none !important;
-          }
-          body {
-            -ms-overflow-style: none !important;
-            scrollbar-width: none !important;
-          }
-        `}</style>
+
 
         {/* HERO CAROUSEL */}
         <section className="hero-carousel relative h-screen bg-[#030303]">
@@ -344,22 +350,22 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {/* Mobile hero title */}
+                  {/* Mobile hero title — reads from admin config */}
                   <div className="absolute inset-0 z-10 flex items-start justify-center pt-70 text-center px-6 pointer-events-none md:hidden">
                     <div className="max-w-4xl mx-auto overflow-hidden text-center hero-line">
                       <h1 className="leading-[0.82] tracking-[0.04em] uppercase font-serif">
-                        <span className="block bg-linear-to-r from-[#d8c892] to-[#8d7748] bg-clip-text text-[18vw] font-medium text-transparent sm:text-[13vw]">Ethereal</span>
-                        <span className="-mt-2 block bg-linear-to-r from-[#8d7748] to-[#374633] bg-clip-text text-[18vw] italic text-transparent sm:text-[13vw]">Shadows</span>
+                        <span className="block bg-linear-to-r from-[#d8c892] to-[#8d7748] bg-clip-text text-[18vw] font-medium text-transparent sm:text-[13vw]">{slide.title1}</span>
+                        <span className="-mt-2 block bg-linear-to-r from-[#8d7748] to-[#374633] bg-clip-text text-[18vw] italic text-transparent sm:text-[13vw]">{slide.title2}</span>
                       </h1>
                     </div>
                   </div>
 
-                  {/* Desktop hero title */}
+                  {/* Desktop hero title — reads from admin config */}
                   <div className="absolute inset-x-0 top-0 z-10 hidden pt-60 md:flex flex-col items-center justify-start text-center px-6">
                     <div className="max-w-4xl mx-auto overflow-hidden text-center">
                       <h1 className="leading-[0.82] tracking-[0.05em] uppercase font-serif hero-line m-10">
-                        <span className="block bg-linear-to-r from-[#d8c892] to-[#8d7748] bg-clip-text text-[8vw] font-medium text-transparent">Ethereal</span>
-                        <span className="-mt-3 block bg-linear-to-r from-[#8d7748] to-[#374633] bg-clip-text text-[8vw] italic text-transparent">Shadows</span>
+                        <span className="block bg-linear-to-r from-[#d8c892] to-[#8d7748] bg-clip-text text-[8vw] font-medium text-transparent">{slide.title1}</span>
+                        <span className="-mt-3 block bg-linear-to-r from-[#8d7748] to-[#374633] bg-clip-text text-[8vw] italic text-transparent">{slide.title2}</span>
                       </h1>
                     </div>
                   </div>
@@ -413,7 +419,7 @@ export default function HomePage() {
           </div>
           <div className="max-w-5xl mx-auto text-center relative z-10">
             <p className="text-[8vw] sm:text-5xl md:text-6xl leading-[1.35] md:leading-[1.3] font-serif text-[#d8d8d6] text-balance">
-              U.S Atelier is premium menswear designed for the modern man who values style, comfort, and craftsmanship with innovative tailoring to deliver clothing that makes a statement—confident, stylish, and refined.
+              {manifestoText}
             </p>
             <p className="mt-8 text-sm md:text-base uppercase tracking-[0.3em] text-[#a99d73] font-light">
               &ldquo;Made with Pride, Worn with Confidence&rdquo;
@@ -445,3 +451,4 @@ export default function HomePage() {
     </>
   )
 }
+

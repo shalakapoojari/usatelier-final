@@ -6,7 +6,9 @@ import { SiteFooter } from "@/components/site-footer"
 import { useCart } from "@/lib/cart-context"
 import Image from "next/image"
 import Link from "next/link"
-import { Minus, Plus, X } from "lucide-react"
+import { Minus, Plus, X, ShoppingBag, Truck } from "lucide-react"
+
+const FREE_SHIPPING_MIN = 2000
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, total, clearUnseen } = useCart()
@@ -14,8 +16,10 @@ export default function CartPage() {
   // Clear the navbar badge as soon as the user lands here
   useEffect(() => { clearUnseen() }, [])
 
-  const shipping = 0
+  const shipping = total >= FREE_SHIPPING_MIN ? 0 : 149
   const grandTotal = total + shipping
+  const freeShippingRemaining = Math.max(0, FREE_SHIPPING_MIN - total)
+  const freeShippingProgress = Math.min(100, (total / FREE_SHIPPING_MIN) * 100)
 
   /* ================= EMPTY STATE ================= */
   if (items.length === 0) {
@@ -25,6 +29,10 @@ export default function CartPage() {
 
         <main className="pt-60 pb-32 flex items-center justify-center px-6">
           <div className="text-center max-w-md">
+            <div className="inline-flex items-center justify-center w-24 h-24 border border-white/10 rounded-full mb-8">
+              <ShoppingBag size={32} className="text-gray-600" />
+            </div>
+
             <h1 className="font-serif text-4xl font-light mb-6">
               Your Cart Is Empty
             </h1>
@@ -35,7 +43,7 @@ export default function CartPage() {
             </p>
 
             <Link
-              href="/shop"
+              href="/view-all"
               className="inline-block px-10 py-4 border border-white/40 uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all"
             >
               Continue Shopping
@@ -57,6 +65,34 @@ export default function CartPage() {
         <h1 className="font-serif text-5xl font-light mb-20 text-center">
           Shopping Cart
         </h1>
+
+        {/* Free Shipping Progress Bar */}
+        <div className="max-w-[1400px] mx-auto mb-12">
+          <div className="border border-white/10 px-6 py-4">
+            {freeShippingRemaining > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <Truck size={14} className="text-amber-500" />
+                    Add ₹{freeShippingRemaining.toLocaleString('en-IN')} more for free shipping
+                  </span>
+                  <span className="text-gray-500">₹{FREE_SHIPPING_MIN.toLocaleString('en-IN')} min</span>
+                </div>
+                <div className="w-full h-1 bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-700 to-amber-500 transition-all duration-700"
+                    style={{ width: `${freeShippingProgress}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-green-400 uppercase tracking-widest">
+                <Truck size={14} />
+                You qualify for free shipping!
+              </div>
+            )}
+          </div>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-20 max-w-[1400px] mx-auto">
           {/* ================= ITEMS ================= */}
@@ -91,6 +127,10 @@ export default function CartPage() {
 
                     <p className="text-sm mt-4">
                       ₹{item.price.toLocaleString('en-IN')}
+                    </p>
+
+                    <p className="text-[10px] text-gray-600 mt-2 uppercase tracking-widest">
+                      Delivery in 5-7 business days
                     </p>
                   </div>
 
@@ -155,7 +195,11 @@ export default function CartPage() {
 
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>₹{shipping.toLocaleString('en-IN')}</span>
+                  {shipping === 0 ? (
+                    <span className="text-green-400">Free</span>
+                  ) : (
+                    <span>₹{shipping.toLocaleString('en-IN')}</span>
+                  )}
                 </div>
 
                 <div className="border-t border-white/10 pt-4 flex justify-between text-white">
@@ -172,7 +216,7 @@ export default function CartPage() {
               </Link>
 
               <Link
-                href="/shop"
+                href="/view-all"
                 className="block w-full py-4 border border-white/20 uppercase tracking-widest text-xs text-gray-500 text-center hover:text-white transition-colors"
               >
                 Continue Shopping
@@ -186,3 +230,4 @@ export default function CartPage() {
     </div>
   )
 }
+

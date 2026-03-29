@@ -22,11 +22,11 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 DELHIVERY_API_BASE = "https://track.delhivery.com/api/cmu"
-DELHIVERY_API_KEY  = os.getenv("DELHIVERY_API_KEY", "")
-DELHIVERY_FACILITY = os.getenv("DELHIVERY_FACILITY_CODE", "")
-STORE_PHONE        = os.getenv("STORE_PHONE", "")
-STORE_NAME         = os.getenv("STORE_NAME", "U.S Atelier")
-STORE_ADDRESS      = os.getenv("STORE_ADDRESS", "")
+DELHIVERY_API_KEY  = os.getenv("DELHIVERY_API_KEY")
+DELHIVERY_FACILITY = os.getenv("DELHIVERY_FACILITY_CODE")
+STORE_PHONE        = os.getenv("STORE_PHONE")
+STORE_NAME         = os.getenv("STORE_NAME")
+STORE_ADDRESS      = os.getenv("STORE_ADDRESS")
 
 _MAX_RETRIES       = 3
 _BACKOFF_FACTOR    = 1.5   # waits: 0 s, 1.5 s, 3 s
@@ -319,12 +319,24 @@ def create_shipment(
             "retryable": False,
         }
 
+    customer_phone = re.sub(r"\D", "", str(customer_phone))[:10]
+    if len(customer_phone) < 10:
+        customer_phone = "9999999999"
+
     # ── Guard: configuration ────────────────────────────────────────────
     if not DELHIVERY_API_KEY:
         return {
             "success": False,
             "error": "Delhivery API key not configured",
             "error_code": "DELHIVERY_AUTH",
+            "retryable": False,
+        }
+        
+    if not DELHIVERY_FACILITY:
+        return {
+            "success": False,
+            "error": "Delhivery facility not configured properly",
+            "error_code": "DELHIVERY_CONFIG",
             "retryable": False,
         }
 
@@ -339,12 +351,16 @@ def create_shipment(
         }
 
     # ── Build correct CMU payload ───────────────────────────────────────
-    pickup_pin = str(pickup_location.get("pincode", "")).strip()
+    pickup_pin = str(pickup_location.get("pincode") or os.getenv("STORE_PINCODE") or "400001").strip()
+    pickup_city = pickup_location.get("city") or os.getenv("STORE_CITY") or "Mumbai"
+    pickup_state = pickup_location.get("state") or os.getenv("STORE_STATE") or "Maharashtra"
+    pickup_address = pickup_location.get("address") or os.getenv("STORE_ADDRESS") or "Default Store Address"
+    seller_gst = os.getenv("SELLER_GST_TIN", "")
 
     shipment_data = {
         "shipments": [{
             "name":             customer_name,
-            "add":              delivery_location.get("address", ""),
+            "add":              delivery_location.get("address") or "Default Address, Mumbai",
             "pin":              delivery_pin,
             "city":             delivery_location.get("city", ""),
             "state":            delivery_location.get("state", ""),
@@ -352,21 +368,38 @@ def create_shipment(
             "phone":            str(customer_phone).strip(),
             "order":            str(order_id),
             "payment_mode":     "Prepaid",
-            "cod_amount":       0,
-            "total_amount":     0,
+            "cod_amount":       "0",
+            "total_amount":     max(100, float(weight_kg) * 100),
             "weight":           weight_kg,
             "shipment_length":  10,
             "shipment_width":   10,
             "shipment_height":  5,
             "quantity":         1,
+            "product_desc":     items_description,
+            "shipping_mode":    "Surface",
+            "cod_info":         "",
+            # Return address (required by Delhivery)
+            "return_pin":       pickup_pin,
+            "return_city":      pickup_city,
+            "return_phone":     STORE_PHONE,
+            "return_add":       pickup_address,
+            "return_state":     pickup_state,
+            "return_country":   "India",
+            "return_name":      STORE_NAME,
+            # Seller info
+            "seller_name":      STORE_NAME,
+            "seller_add":       pickup_address,
+            "seller_phone":     STORE_PHONE,
+            "seller_gst_tin":   seller_gst,
         }],
         "pickup_location": {
-            "name":     STORE_NAME,
-            "add":      pickup_location.get("address", ""),
-            "city":     pickup_location.get("city", ""),
+            "name":     DELHIVERY_FACILITY,
+            "add":      pickup_address,
+            "city":     pickup_city,
             "pin_code": pickup_pin,
             "country":  "India",
             "phone":    STORE_PHONE,
+            "state":    pickup_state,
         }
     }
 
@@ -380,15 +413,24 @@ def create_shipment(
         "delhivery_shipment_start order=%s delivery_pin=%s pickup_pin=%s",
         order_id, _mask(delivery_pin), _mask(pickup_pin),
     )
+    logger.info("DELHIVERY FACILITY: %s", DELHIVERY_FACILITY)
+    logger.info("DELHIVERY PAYLOAD: %s", json.dumps(shipment_data))
 
     # ── Send request to CMU create endpoint ─────────────────────────────
+    # CRITICAL: Delhivery CMU expects form-urlencoded POST, NOT JSON.
+    # The "format key missing" error occurs when sending as application/json.
     url = f"{DELHIVERY_API_BASE}/create.json"
     try:
         session = _make_session()
+        headers = {
+            "Authorization": f"Token {DELHIVERY_API_KEY}",
+            "Content-Type":  "application/x-www-form-urlencoded",
+            "Accept":        "application/json",
+        }
         resp = session.post(
             url,
-            headers=_get_headers(),
-            json=payload,
+            headers=headers,
+            data=payload,          # form-urlencoded, NOT json=
             timeout=_TIMEOUT,
         )
     except requests.exceptions.Timeout:

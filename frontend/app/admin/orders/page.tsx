@@ -55,10 +55,11 @@ export default function OrdersPage() {
   >("all")
 
   const filteredOrders = orders.filter((order) => {
+    const s = (order.status || "").toLowerCase()
     if (activeTab === "pending")
-      return order.status === "pending" || order.status === "processing"
+      return !["shipped", "delivered", "cancelled", "refunded", "out for delivery", "returned"].includes(s)
     if (activeTab === "completed")
-      return order.status === "shipped" || order.status === "delivered"
+      return ["shipped", "delivered", "out for delivery"].includes(s)
     return true
   })
 
@@ -102,9 +103,10 @@ export default function OrdersPage() {
           Pending (
           {
             orders.filter(
-              (o) =>
-                o.status === "pending" ||
-                o.status === "processing"
+              (o) => {
+                const s = (o.status || "").toLowerCase()
+                return !["shipped", "delivered", "cancelled", "refunded", "out for delivery", "returned"].includes(s)
+              }
             ).length
           }
           )
@@ -120,9 +122,10 @@ export default function OrdersPage() {
           Completed (
           {
             orders.filter(
-              (o) =>
-                o.status === "shipped" ||
-                o.status === "delivered"
+              (o) => {
+                const s = (o.status || "").toLowerCase()
+                return ["shipped", "delivered", "out for delivery"].includes(s)
+              }
             ).length
           }
           )

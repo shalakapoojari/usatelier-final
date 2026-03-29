@@ -25,9 +25,10 @@ export default function AdminDashboard() {
 
   const revenue = orders.reduce((s: number, o: any) => s + (o.total || 0), 0)
   const totalOrders = orders.length
-  const pendingOrders = orders.filter((o: any) =>
-    o.status === "pending" || o.status === "Pending" || o.status === "Processing" || o.status === "processing"
-  ).length
+  const pendingOrders = orders.filter((o: any) => {
+    const s = (o.status || "").toLowerCase()
+    return !["shipped", "delivered", "cancelled", "refunded", "out for delivery", "returned"].includes(s)
+  }).length
   const customers = new Set(orders.map((o: any) => o.user_id || o.customerId)).size
   const avgOrder = totalOrders > 0 ? revenue / totalOrders : 0
 

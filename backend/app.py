@@ -82,6 +82,25 @@ is_production = (
     or os.getenv("FLASK_ENV") == "production"
 )
 
+# ── Delhivery env validation (fail early if config missing) ──────────────
+_delhivery_required_env = [
+    "DELHIVERY_API_KEY",
+    "DELHIVERY_FACILITY_CODE",
+    "STORE_ADDRESS",
+    "STORE_CITY",
+    "STORE_STATE",
+    "STORE_PINCODE",
+    "STORE_PHONE",
+]
+_delhivery_missing = [v for v in _delhivery_required_env if not os.getenv(v)]
+if _delhivery_missing:
+    import warnings as _warnings
+    _warnings.warn(
+        f"Missing Delhivery env variables: {', '.join(_delhivery_missing)}. "
+        f"Shipment creation will fail until these are set.",
+        RuntimeWarning,
+    )
+
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 if os.getenv("TRUST_PROXY_HEADERS", "1") == "1":
@@ -354,6 +373,8 @@ def _run_dispatch_job(job_id: int):
     """
     Called by the scheduler. Processes one DispatchJob row.
     Uses exponential back-off: delay = 60 * 2^attempt seconds.
+    Only retries on network errors and 5xx responses.
+    Does NOT retry on validation errors (400) or auth errors (401).
     """
     with app.app_context():
         job = DispatchJob.query.get(job_id)
@@ -369,6 +390,25 @@ def _run_dispatch_job(job_id: int):
             if not order:
                 job.status     = "failed"
                 job.last_error = "Order not found"
+                db_mysql.session.commit()
+                return
+
+            # ── Idempotency guard: skip if already shipped ──────────────
+            if order.delhivery_shipment_id:
+                app.logger.info(
+                    "dispatch_job_skipped_already_shipped job=%s order=%s shipment=%s",
+                    job_id, order.order_number, order.delhivery_shipment_id,
+                )
+                job.status       = "done"
+                job.completed_at = datetime.utcnow()
+                job.last_error   = "Already shipped (idempotency guard)"
+                db_mysql.session.commit()
+                return
+
+            # ── Skip cancelled/refunded orders ──────────────────────────
+            if order.status in ("Cancelled", "Refunded"):
+                job.status       = "failed"
+                job.last_error   = f"Order is {order.status} — skipping dispatch"
                 db_mysql.session.commit()
                 return
 
@@ -403,6 +443,8 @@ def _run_dispatch_job(job_id: int):
                 delivery_location=delivery_location,
                 customer_phone=customer_phone,
                 customer_name=customer_name,
+                existing_shipment_id=order.delhivery_shipment_id,
+                existing_tracking_url=order.delhivery_tracking_url,
             )
 
             if res.get("success"):
@@ -424,7 +466,24 @@ def _run_dispatch_job(job_id: int):
                         app.logger.warning("dispatch_email_failed order=%s err=%s",
                                            order.order_number, exc)
             else:
-                raise RuntimeError(res.get("error", "Unknown Delhivery error"))
+                # ── Determine if error is retryable ─────────────────────
+                is_retryable = res.get("retryable", True)
+                error_code   = res.get("error_code", "UNKNOWN")
+                error_msg    = res.get("error", "Unknown Delhivery error")
+
+                if not is_retryable:
+                    # Validation / auth errors — do NOT retry
+                    job.status     = "failed"
+                    job.last_error = f"[{error_code}] {error_msg}"[:500]
+                    app.logger.error(
+                        "dispatch_job_permanent_failure job=%s order=%s code=%s err=%s",
+                        job_id, order.order_number, error_code, error_msg,
+                    )
+                    db_mysql.session.commit()
+                    return
+
+                # Retryable error — raise to trigger retry logic below
+                raise RuntimeError(f"[{error_code}] {error_msg}")
 
         except Exception as exc:
             delay = min(60 * (2 ** job.attempts), 3600)  # cap at 1 h
@@ -1713,6 +1772,38 @@ def refund_payment():
     amount         = data.get("amount")
     if not rzp_payment_id:
         return jsonify({"error": "Razorpay Payment ID required"}), 400
+
+    # ── Idempotency guard: check if already refunded in our DB ───────────
+    payment = Payment.query.filter_by(razorpay_payment_id=rzp_payment_id).first()
+    order_via_payment = None
+    order_direct = OrderSQL.query.filter_by(razorpay_payment_id=rzp_payment_id).first()
+
+    if payment and payment.status == "refunded":
+        # Already refunded — update order status if needed, but don't call Razorpay again
+        if payment.order_id:
+            order_via_payment = OrderSQL.query.get(payment.order_id)
+            if order_via_payment and order_via_payment.payment_status != "Refunded":
+                order_via_payment.payment_status = "Refunded"
+                order_via_payment.status = "Cancelled"
+                db_mysql.session.commit()
+        if order_direct and order_direct.payment_status != "Refunded":
+            order_direct.payment_status = "Refunded"
+            order_direct.status = "Cancelled"
+            db_mysql.session.commit()
+        return jsonify({
+            "success": True,
+            "message": "Payment was already refunded",
+            "already_refunded": True,
+        }), 200
+
+    # Also check order-level payment status
+    if order_direct and order_direct.payment_status == "Refunded":
+        return jsonify({
+            "success": True,
+            "message": "Payment was already refunded",
+            "already_refunded": True,
+        }), 200
+
     try:
         client      = get_razorpay_client()
         refund_data = {}
@@ -1721,7 +1812,6 @@ def refund_payment():
         refund = client.payment.refund(rzp_payment_id, refund_data)
 
         # Update Payment record if it exists
-        payment = Payment.query.filter_by(razorpay_payment_id=rzp_payment_id).first()
         if payment:
             payment.status = "refunded"
             if payment.order_id:
@@ -1731,18 +1821,38 @@ def refund_payment():
                     order.status         = "Cancelled"
 
         # Also look up order directly by payment ID (fallback)
-        if not payment:
-            order = OrderSQL.query.filter_by(razorpay_payment_id=rzp_payment_id).first()
-            if order:
-                order.payment_status = "Refunded"
-                order.status         = "Cancelled"
+        if not payment and order_direct:
+            order_direct.payment_status = "Refunded"
+            order_direct.status         = "Cancelled"
 
         _audit("payment_refunded", "payment", None, {"razorpay_payment_id": rzp_payment_id})
         db_mysql.session.commit()
         return jsonify({"success": True, "refund": refund}), 200
     except razorpay.errors.BadRequestError as exc:
+        err_msg = str(exc)
         db_mysql.session.rollback()
-        return jsonify({"error": f"Razorpay rejected the refund: {str(exc)}"}), 400
+        # If Razorpay says "already fully refunded", update our DB accordingly
+        if "fully refunded" in err_msg.lower() or "already refunded" in err_msg.lower():
+            try:
+                if payment:
+                    payment.status = "refunded"
+                    if payment.order_id:
+                        order = OrderSQL.query.get(payment.order_id)
+                        if order:
+                            order.payment_status = "Refunded"
+                            order.status         = "Cancelled"
+                if order_direct:
+                    order_direct.payment_status = "Refunded"
+                    order_direct.status         = "Cancelled"
+                db_mysql.session.commit()
+            except Exception:
+                db_mysql.session.rollback()
+            return jsonify({
+                "success": True,
+                "message": "Payment was already refunded via Razorpay — records updated",
+                "already_refunded": True,
+            }), 200
+        return jsonify({"error": f"Razorpay rejected the refund: {err_msg}"}), 400
     except Exception as exc:
         db_mysql.session.rollback()
         app.logger.error("Refund failed: %s", traceback.format_exc())

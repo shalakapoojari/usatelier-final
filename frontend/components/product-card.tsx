@@ -42,22 +42,28 @@ export function ProductCard({ product }: ProductCardProps) {
     if (!imgRef.current) return
     gsap.to(imgRef.current, { scale: 1.04, duration: 0.5, ease: "power2.out" })
     gsap.to(rootRef.current, {
-      boxShadow: "0 0 0 1px rgba(155,48,255,0.35), 0 8px 32px rgba(155,48,255,0.18)",
-      duration: 0.35,
+      boxShadow: "0 8px 40px rgba(123,47,190,0.2), 0 0 0 1px rgba(123,47,190,0.35)",
+      duration: 0.3,
     })
   }
 
   const handleLeave = () => {
     if (!imgRef.current) return
     gsap.to(imgRef.current, { scale: 1, duration: 0.35, ease: "power2.out" })
-    gsap.to(rootRef.current, { boxShadow: "0 0px 0px rgba(0,0,0,0)", duration: 0.35 })
+    gsap.to(rootRef.current, { boxShadow: "0 0 0 1px rgba(123,47,190,0.12)", duration: 0.35 })
   }
 
   return (
     <Link
       href={`/product/${product.id}`}
       ref={rootRef}
-      className="group block rounded-sm focus:outline-none focus:ring-2 focus:ring-white/20"
+      className="product-card group block rounded-sm focus:outline-none focus:ring-1 focus:ring-[rgba(123,47,190,0.4)]"
+      style={{
+        boxShadow: "0 0 0 1px rgba(123,47,190,0.12)",
+        background: "rgba(10,10,20,0.6)",
+        backdropFilter: "blur(8px)",
+        transition: "box-shadow 0.3s ease",
+      }}
       onMouseEnter={handleHover}
       onMouseLeave={handleLeave}
     >

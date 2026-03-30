@@ -85,126 +85,206 @@ type GalleryChapter = {
   link: string
 }
 
-function StickyGallery({ chapters }: { chapters: GalleryChapter[] }) {
-  const [activeIdx, setActiveIdx] = useState(0)
-  const chapterRefs = useRef<(HTMLDivElement | null)[]>([])
+/* ════════════════════════════════════════════════════════════
+   VERTICAL SNAP RUNWAY — one slide per product, snap-scroll
+════════════════════════════════════════════════════════════ */
+function VerticalSnapRunway({ products }: { products: any[] }) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [activeSlide, setActiveSlide] = useState(0)
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([])
 
+  // IntersectionObserver for slide entrance animation + progress indicator
   useEffect(() => {
-    if (chapters.length === 0) return
-    const observers = chapterRefs.current.map((ref, index) => {
-      if (!ref) return null
-      const observer = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActiveIdx(index) },
-        { threshold: 0.5, rootMargin: "0px 0px -10% 0px" }
+    if (!products || products.length === 0) return
+    const observers = slideRefs.current.map((slide, idx) => {
+      if (!slide) return null
+      const imgEl  = slide.querySelector('.runway-slide-img')
+      const cntEl  = slide.querySelector('.runway-slide-content')
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setActiveSlide(idx)
+            imgEl?.classList.add('entered')
+            cntEl?.classList.add('entered')
+          }
+        },
+        { threshold: 0.5 }
       )
-      observer.observe(ref)
-      return observer
+      obs.observe(slide)
+      return obs
     })
-    return () => observers.forEach(obs => obs?.disconnect())
-  }, [chapters.length])
+    return () => observers.forEach(o => o?.disconnect())
+  }, [products])
 
-  if (chapters.length === 0) return null
+  if (!products || products.length === 0) return null
 
   return (
-    <section className="relative flex bg-black" style={{ minHeight: `${chapters.length * 100}vh` }}>
-      {/* Far-left progress line */}
-      <div className="hidden md:block absolute left-6 top-0 bottom-0 w-px bg-white/5 z-10">
+    <section id="best-sellers" className="relative">
+      {/* Right-side vertical progress indicator */}
+      <div
+        className="fixed right-6 top-1/2 -translate-y-1/2 z-50 hidden md:flex flex-col items-center"
+        style={{ height: "60vh", gap: 0 }}
+        aria-hidden="true"
+      >
         <div
-          className="bg-[#c8a45d]/30 w-full transition-all duration-500"
-          style={{ height: `${((activeIdx + 1) / chapters.length) * 100}%` }}
-        />
+          style={{
+            width: 1,
+            flex: 1,
+            background: "rgba(123,47,190,0.25)",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: `${(activeSlide / Math.max(products.length - 1, 1)) * 100}%`,
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "#fff",
+              boxShadow: "0 0 8px rgba(123,47,190,0.8)",
+              transition: "top 400ms ease",
+            }}
+          />
+        </div>
       </div>
 
-      {/* LEFT: scrolling chapters */}
-      <div className="w-full md:w-1/2 flex flex-col">
-        {chapters.map((chapter, i) => (
-          <div
-            key={i}
-            ref={el => { chapterRefs.current[i] = el }}
-            className="flex flex-col justify-center px-10 md:px-16 lg:px-24"
-            style={{ minHeight: "100vh" }}
-          >
-            {/* Progress dot + label */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${
-                activeIdx === i ? "bg-[#c8a45d]/70 scale-125" : "bg-white/15"
-              }`} />
-              <span className="text-[9px] uppercase tracking-[0.5em] text-white/25">
-                {String(i + 1).padStart(2, "0")} — {chapter.label}
-              </span>
-            </div>
+      {/* Snap scroll container */}
+      <div ref={containerRef} className="runway-snap-container">
+        {products.map((product, idx) => {
+          const imgs = typeof product.images === 'string'
+            ? (() => { try { return JSON.parse(product.images) } catch { return [product.images] } })()
+            : product.images
+          const imgUrl = resolveMediaUrl(imgs?.[0] || '/placeholder.jpg')
 
-            {/* Chapter title */}
-            <h2
-              className={`font-serif leading-none uppercase mb-4 transition-all duration-500 ${
-                activeIdx === i ? "opacity-100" : "opacity-30"
-              }`}
-              style={{ fontSize: "clamp(28px, 4vw, 58px)" }}
+          return (
+            <div
+              key={product.id || idx}
+              ref={(el) => { slideRefs.current[idx] = el }}
+              className="runway-slide"
             >
-              <span className={activeIdx === i ? "gradient-text" : "text-white/30"}>
-                {chapter.title}
-              </span>
-            </h2>
+              {/* LEFT — Full-bleed image */}
+              <div className="runway-slide-img relative overflow-hidden">
+                <Image
+                  src={imgUrl}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                  style={{ filter: "brightness(0.85)" }}
+                  priority={idx === 0}
+                />
+                {/* Subtle purple tint */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: "radial-gradient(ellipse at 30% 60%, rgba(123,47,190,0.12) 0%, transparent 70%)"
+                  }}
+                />
+                {/* Slide number watermark */}
+                <span
+                  className="absolute bottom-8 left-8 font-serif select-none pointer-events-none"
+                  style={{ fontSize: 80, lineHeight: 1, color: "rgba(255,255,255,0.04)" }}
+                >
+                  {String(idx + 1).padStart(2, '0')}
+                </span>
+              </div>
 
-            {/* Chapter subtitle */}
-            <p className={`text-[10px] uppercase tracking-[0.4em] mb-8 transition-all duration-500 ${
-              activeIdx === i ? "text-white/40" : "text-white/12"
-            }`}>
-              {chapter.subtitle}
-            </p>
+              {/* RIGHT — Product details */}
+              <div
+                className="runway-slide-content flex flex-col justify-center px-10 md:px-16 lg:px-20"
+                style={{ background: "rgba(0,0,0,0.88)" }}
+              >
+                {/* Label */}
+                <p
+                  className="text-[9px] uppercase tracking-[0.6em] mb-6"
+                  style={{ color: "rgba(240,240,240,0.3)" }}
+                >
+                  {idx === 0 ? "Runway 01" : `— Piece ${String(idx + 1).padStart(2, '0')}`}
+                </p>
 
-            {/* CTA */}
-            <Link
-              href={chapter.link}
-              className={`inline-flex w-fit items-center gap-3 text-[9px] uppercase tracking-[0.4em] border-b pb-0.5 transition-all duration-500 ${
-                activeIdx === i
-                  ? "text-white/60 border-white/30 hover:text-white hover:border-white"
-                  : "text-transparent border-transparent pointer-events-none"
-              }`}
-            >
-              Explore Collection
-            </Link>
+                {/* Product name */}
+                <h2
+                  className="font-serif leading-none uppercase mb-4 gradient-text"
+                  style={{ fontSize: "clamp(28px, 3.5vw, 52px)" }}
+                >
+                  {product.name}
+                </h2>
 
-            {/* Mobile: show photo inline */}
-            <div className="md:hidden mt-10 relative h-72 overflow-hidden">
-              <Image
-                src={resolveMediaUrl(chapter.photo)}
-                alt={chapter.title}
-                fill
-                className="object-cover brightness-50"
-                loading="lazy"
-              />
+                {/* Category */}
+                {product.category && (
+                  <p
+                    className="text-[10px] uppercase tracking-[0.4em] mb-4"
+                    style={{ color: "rgba(240,240,240,0.35)" }}
+                  >
+                    {product.category}
+                  </p>
+                )}
+
+                {/* Description */}
+                {product.description && (
+                  <p
+                    className="text-sm leading-relaxed mb-8 max-w-xs"
+                    style={{ color: "rgba(240,240,240,0.5)", fontWeight: 300 }}
+                  >
+                    {product.description.slice(0, 140)}{product.description.length > 140 ? '...' : ''}
+                  </p>
+                )}
+
+                {/* Price — gradient-text */}
+                <p
+                  className="font-serif text-3xl mb-8 gradient-text"
+                  style={{ letterSpacing: "-0.01em" }}
+                >
+                  ₹{Number(product.price).toLocaleString('en-IN')}
+                </p>
+
+                {/* CTA — view product */}
+                <Link
+                  href={`/product/${product.id}`}
+                  className="inline-flex w-fit items-center justify-center px-8 py-3 text-[10px] uppercase tracking-[0.4em] transition-all duration-300"
+                  style={{
+                    border: "1px solid rgba(123,47,190,0.4)",
+                    color: "rgba(240,240,240,0.7)",
+                  }}
+                  onMouseEnter={(e) => {
+                    const el = e.currentTarget as HTMLAnchorElement
+                    el.style.background = "rgba(123,47,190,0.12)"
+                    el.style.borderColor = "rgba(123,47,190,0.7)"
+                    el.style.color = "#F0F0F0"
+                    el.style.boxShadow = "0 0 20px rgba(123,47,190,0.25)"
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.currentTarget as HTMLAnchorElement
+                    el.style.background = "transparent"
+                    el.style.borderColor = "rgba(123,47,190,0.4)"
+                    el.style.color = "rgba(240,240,240,0.7)"
+                    el.style.boxShadow = "none"
+                  }}
+                >
+                  View Piece →
+                </Link>
+
+                {/* Progress dots */}
+                <div className="flex gap-1.5 mt-10">
+                  {products.map((_, dotIdx) => (
+                    <div
+                      key={dotIdx}
+                      style={{
+                        width: dotIdx === idx ? 20 : 4,
+                        height: 1,
+                        background: dotIdx === idx ? "rgba(240,240,240,0.6)" : "rgba(240,240,240,0.15)",
+                        transition: "all 400ms ease",
+                        borderRadius: 2,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* RIGHT: sticky photo panel (desktop only) */}
-      <div className="hidden md:block w-1/2 sticky top-0 h-screen overflow-hidden">
-        {chapters.map((chapter, i) => (
-          <div
-            key={i}
-            className="absolute inset-0 transition-opacity duration-600"
-            style={{ opacity: activeIdx === i ? 1 : 0, transitionDuration: "0.6s" }}
-          >
-            <Image
-              src={resolveMediaUrl(chapter.photo)}
-              alt={chapter.title}
-              fill
-              className="object-cover brightness-45"
-              priority={i === 0}
-              loading={i === 0 ? "eager" : "lazy"}
-            />
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
-            {/* Chapter number watermark */}
-            <div className="absolute bottom-10 right-10">
-              <span className="font-serif text-[120px] leading-none text-white/4 select-none">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )
@@ -505,50 +585,21 @@ export default function HomePage() {
   // Season label from config or default
   const seasonLabel = config?.season_label || "Fall Winter 2025"
 
-  // Build sticky gallery chapters from fetched product sections
-  const galleryChapters: GalleryChapter[] = (
-    [
-      bestsellers.length > 0
-        ? {
-            photo: (() => {
-              const p = bestsellers[0]
-              const imgs = typeof p.images === "string" ? JSON.parse(p.images || "[]") : (p.images || [])
-              return imgs[0] || "/placeholder.jpg"
-            })(),
-            label: "Best Sellers",
-            title: "The Runway",
-            subtitle: "Our most coveted pieces, loved by many",
-            link: "/#best-sellers",
-          }
-        : null,
-      featured.length > 0
-        ? {
-            photo: (() => {
-              const p = featured[0]
-              const imgs = typeof p.images === "string" ? JSON.parse(p.images || "[]") : (p.images || [])
-              return imgs[0] || "/placeholder.jpg"
-            })(),
-            label: "Editorial",
-            title: "Featured",
-            subtitle: "Curated selections from our editorial team",
-            link: "/#featured-products",
-          }
-        : null,
-      newArrivals.length > 0
-        ? {
-            photo: (() => {
-              const p = newArrivals[0]
-              const imgs = typeof p.images === "string" ? JSON.parse(p.images || "[]") : (p.images || [])
-              return imgs[0] || "/placeholder.jpg"
-            })(),
-            label: "New Drop",
-            title: "New Arrivals",
-            subtitle: "Fresh pieces just landed in the studio",
-            link: "/#new-arrivals",
-          }
-        : null,
-    ].filter(Boolean) as GalleryChapter[]
-  )
+  // Only keep the Best Sellers chapter (Runway 01) for the snap gallery
+  // Editorial 02 (Featured) and Editorial 03 (New Arrivals) are removed
+  const galleryChapters = bestsellers.length > 0
+    ? [{
+        photo: (() => {
+          const p = bestsellers[0]
+          const imgs = typeof p.images === "string" ? JSON.parse(p.images || "[]") : (p.images || [])
+          return imgs[0] || "/placeholder.jpg"
+        })(),
+        label: "Best Sellers",
+        title: "The Runway",
+        subtitle: "Our most coveted pieces, loved by many",
+        link: "/#best-sellers",
+      }]
+    : []
 
   return (
     <>
@@ -578,8 +629,13 @@ export default function HomePage() {
                     />
                     {/* Purple-tinted overlay */}
                     <div className="absolute inset-0 bg-gradient-to-br from-[#0a0215]/60 via-transparent to-[#0d0510]/50" />
-                    {/* Vignette */}
-                    <div className="absolute inset-0 bg-radial-[ellipse_at_center] from-transparent via-transparent to-black/55" />
+                    {/* Purple radial glow overlay */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background: "radial-gradient(ellipse at 70% 50%, rgba(123,47,190,0.15) 0%, transparent 60%)"
+                      }}
+                    />
                   </div>
 
                   {/* Season label — top left */}
@@ -725,58 +781,17 @@ export default function HomePage() {
         <MarqueeTicker />
 
         {/* ═══════════════════════════════════════════════════════════
-            STICKY GALLERY — editorial chapters
+            RUNWAY 01 — vertical snap scroll, one slide per bestseller
         ═══════════════════════════════════════════════════════════ */}
-        {galleryChapters.length > 0 && (
-          <StickyGallery chapters={galleryChapters} />
+        {bestsellers.length > 0 && (
+          <VerticalSnapRunway products={bestsellers} />
         )}
 
         {/* ═══════════════════════════════════════════════════════════
-            THE RUNWAY — product showcase sections
+            THE RUNWAY — FIN
         ═══════════════════════════════════════════════════════════ */}
-        <section className="reveal bg-black py-16 md:py-24 space-y-24 md:space-y-40">
-          {/* Runway intro block */}
-          <div className="px-8 md:px-20">
-            <div className="border-t border-white/8 pt-12">
-              <p className="text-[9px] uppercase tracking-[0.5em] text-white/20 mb-6">— The Collection</p>
-              <p className="text-xs uppercase tracking-[0.3em] text-white/20 max-w-sm">
-                Featuring raw hems, structured shoulders, liquid silk drapes.
-              </p>
-            </div>
-          </div>
-
-          {/* Best Sellers runway */}
-          <RunwaySection
-            sectionId="best-sellers"
-            title="The Runway"
-            subtitle="Best Selling"
-            tagline="Scroll to Explore →"
-            products={bestsellers}
-          />
-
-          {/* Featured Products */}
-          {featured.length > 0 && (
-            <RunwaySection
-              sectionId="featured-products"
-              title="Featured"
-              subtitle="Editorial Spotlight"
-              tagline="Curated Selections"
-              products={featured}
-            />
-          )}
-
-          {/* New Arrivals */}
-          {newArrivals.length > 0 && (
-            <RunwaySection
-              sectionId="new-arrivals"
-              title="New Arrivals"
-              subtitle="Latest Drop"
-              tagline="Fresh From The Studio"
-              products={newArrivals}
-            />
-          )}
-
-          {/* FIN block */}
+        {/* FIN */}
+        <section className="bg-black">
           <div className="px-8 md:px-20">
             <div className="border-t border-white/8 pt-12 flex items-center justify-between">
               <p className="font-serif italic text-2xl text-white/20">FIN</p>

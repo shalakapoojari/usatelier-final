@@ -472,11 +472,10 @@ export function SiteHeader() {
             </div>
           )}
 
-          {/* Hamburger circle — hidden on homepage */}
-          {!isHomePage && (
+          {/* Hamburger — mobile only (pill nav serves desktop) */}
           <button
             onClick={() => (mobileMenuOpen ? closeMobileMenu() : setMobileMenuOpen(true))}
-            className="relative w-9 h-9 rounded-full border border-white/30 flex items-center justify-center text-white/60 hover:text-white hover:border-white/60 transition-colors"
+            className="md:hidden relative w-9 h-9 rounded-full border border-white/30 flex items-center justify-center text-white/60 hover:text-white hover:border-white/60 transition-colors"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {hasMobileUnseen && (
@@ -484,7 +483,7 @@ export function SiteHeader() {
             )}
             {mobileMenuOpen ? <X size={14} /> : <Menu size={14} />}
           </button>
-          )}
+
         </div>
       </div>
 

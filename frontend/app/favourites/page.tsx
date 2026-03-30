@@ -21,7 +21,10 @@ export default function FavouritesPage() {
 
     const handleAddToCart = (item: typeof items[0]) => {
         // Add with default size — user can pick on product page
-        addItem({ id: item.id, name: item.name, price: item.price, image: item.image, size: "M" })
+        addItem({
+            id: item.id, name: item.name, price: item.price, image: item.image, size: "M",
+            stock: 0
+        })
         showToast("Added to cart", "cart", item.name)
     }
 

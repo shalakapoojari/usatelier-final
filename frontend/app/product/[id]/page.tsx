@@ -223,6 +223,7 @@ export default function ProductPage({
       price: product.price,
       image: resolveMediaUrl(images[0]),
       category: product.category,
+      stock: product.stock,
     })
     if (wasWishlisted) {
       showToast("Removed from favourites", "info", product.name)

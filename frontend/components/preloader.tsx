@@ -76,23 +76,10 @@ export function Preloader() {
           50%  { transform: rotate(180deg) scale(1.05); opacity: 1;   }
           100% { transform: rotate(360deg) scale(0.95); opacity: 0.7; }
         }
-        @keyframes glowPulse {
-          0%, 100% {
-            filter: drop-shadow(0 0 8px rgba(123,47,190,0.6))
-                    drop-shadow(0 0 20px rgba(100,181,246,0.3));
-          }
-          50% {
-            filter: drop-shadow(0 0 16px rgba(194,24,91,0.7))
-                    drop-shadow(0 0 40px rgba(123,47,190,0.5));
-          }
-        }
         .loader-logo {
-          animation: logoSpin 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite,
-                     glowPulse 2.5s ease-in-out infinite;
+          animation: logoSpin 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
           /* Force white color on the SVG regardless of its internal fill */
-          filter: brightness(0) invert(1)
-                  drop-shadow(0 0 8px rgba(123,47,190,0.6))
-                  drop-shadow(0 0 20px rgba(100,181,246,0.3));
+          filter: brightness(0) invert(1);
         }
       `}</style>
 
@@ -109,21 +96,7 @@ export function Preloader() {
           background: "#000000",
         }}
       >
-        {/* Faint radial purple glow behind logo */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 400,
-            height: 400,
-            borderRadius: "50%",
-            background: "radial-gradient(ellipse at center, rgba(123,47,190,0.15) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
+
 
         {/* Spinning logo mark */}
         <div style={{ position: "relative", marginBottom: 40 }}>
@@ -151,12 +124,12 @@ export function Preloader() {
           U.S ATELIER
         </p>
 
-        {/* Multi-stop gradient progress bar */}
+        {/* Monochromatic progress bar */}
         <div
           style={{
             width: 200,
             height: 2,
-            background: "rgba(123,47,190,0.15)",
+            background: "rgba(255,255,255,0.15)",
             position: "relative",
             overflow: "hidden",
           }}
@@ -169,8 +142,7 @@ export function Preloader() {
               left: 0,
               height: "100%",
               width: "0%",
-              background: "linear-gradient(135deg, #1565C0 0%, #7B2FBE 30%, #C2185B 60%, #F9A825 80%, #2E7D32 100%)",
-              boxShadow: "0 0 8px rgba(123,47,190,0.6)",
+              background: "rgba(255,255,255,0.8)",
               transition: "width 0.05s linear",
             }}
           />
@@ -183,7 +155,7 @@ export function Preloader() {
             marginTop: 10,
             fontSize: 9,
             letterSpacing: "0.4em",
-            color: "rgba(123,47,190,0.5)",
+            color: "rgba(255,255,255,0.5)",
             fontFamily: "'Geist Mono', monospace",
           }}
         >

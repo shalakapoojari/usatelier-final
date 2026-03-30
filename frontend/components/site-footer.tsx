@@ -23,28 +23,14 @@ export function SiteFooter() {
         boxShadow: "0 -1px 30px rgba(123,47,190,0.1)",
       }}
     >
-      {/* Glow orbs */}
-      <div
-        className="glow-orb glow-orb-purple"
-        style={{ width: 400, height: 400, bottom: -150, left: -100 }}
-        aria-hidden="true"
-      />
-      <div
-        className="glow-orb glow-orb-blue"
-        style={{ width: 300, height: 300, top: -80, right: -80 }}
-        aria-hidden="true"
-      />
+      {/* Removed glow orbs to match clean styling */}
 
       {/* Giant background brand text — galaxy tinted */}
       <span
         className="font-serif font-bold absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none leading-none select-none whitespace-nowrap"
         style={{
           fontSize: "18vw",
-          color: "transparent",
-          backgroundImage: "linear-gradient(90deg, #64B5F6, #CE93D8, #F48FB1, #FFF176, #A5D6A7)",
-          WebkitBackgroundClip: "text",
-          backgroundClip: "text",
-          opacity: 0.04,
+          color: "rgba(255,255,255,0.03)",
         }}
       >
         U.S ATELIER

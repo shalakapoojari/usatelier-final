@@ -434,8 +434,7 @@ export function SiteHeader() {
                       <Link
                         href="/admin"
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest hover:bg-purple-500/10 transition-colors border-b border-white/5"
-                        style={{ color: "rgba(155,48,255,0.85)" }}
+                        className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-[#d8d4cc] hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
                       >
                         <LayoutDashboard size={13} />
                         Admin Panel

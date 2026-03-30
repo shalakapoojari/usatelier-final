@@ -104,21 +104,7 @@ export function SearchOverlay({ isOpen, onClose, categories = [] }: SearchOverla
       aria-modal="true"
       role="dialog"
     >
-      {/* Faint purple ambient glow */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          top: "30%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "60vw",
-          height: "40vh",
-          borderRadius: "50%",
-          background: "radial-gradient(ellipse at center, rgba(155,48,255,0.08) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
+
 
       {/* Close button */}
       <div className="flex justify-end px-6 md:px-12 pt-6 relative z-10">
@@ -140,20 +126,20 @@ export function SearchOverlay({ isOpen, onClose, categories = [] }: SearchOverla
           <div
             className="relative flex items-center transition-all duration-300"
             style={{
-              borderBottom: "1px solid rgba(155,48,255,0.3)",
+              borderBottom: "1px solid rgba(255,255,255,0.3)",
             }}
             onFocusCapture={(e) => {
               const el = e.currentTarget as HTMLDivElement
-              el.style.borderBottomColor = "rgba(155,48,255,0.7)"
-              el.style.boxShadow = "0 4px 20px rgba(155,48,255,0.15)"
+              el.style.borderBottomColor = "rgba(255,255,255,0.7)"
+              el.style.boxShadow = "0 4px 20px rgba(255,255,255,0.05)"
             }}
             onBlurCapture={(e) => {
               const el = e.currentTarget as HTMLDivElement
-              el.style.borderBottomColor = "rgba(155,48,255,0.3)"
+              el.style.borderBottomColor = "rgba(255,255,255,0.3)"
               el.style.boxShadow = "none"
             }}
           >
-            <Search size={18} className="shrink-0 mr-4" style={{ color: "rgba(155,48,255,0.5)" }} />
+            <Search size={18} className="shrink-0 mr-4" style={{ color: "rgba(255,255,255,0.5)" }} />
             <input
               ref={inputRef}
               type="text"
@@ -164,13 +150,13 @@ export function SearchOverlay({ isOpen, onClose, categories = [] }: SearchOverla
               style={{
                 fontSize: "clamp(20px, 4vw, 40px)",
                 color: "#f0ecff",
-                caretColor: "#9B30FF",
+                caretColor: "rgba(255,255,255,0.8)",
               }}
             />
             {searching && (
               <div
                 className="shrink-0 ml-4 w-4 h-4 rounded-full border-2 animate-spin"
-                style={{ borderColor: "rgba(155,48,255,0.3)", borderTopColor: "#9B30FF" }}
+                style={{ borderColor: "rgba(255,255,255,0.2)", borderTopColor: "rgba(255,255,255,0.8)" }}
               />
             )}
           </div>
@@ -181,7 +167,7 @@ export function SearchOverlay({ isOpen, onClose, categories = [] }: SearchOverla
           <div
             className="w-full max-w-3xl mt-4 overflow-hidden"
             style={{
-              border: "1px solid rgba(155,48,255,0.15)",
+              border: "1px solid rgba(255,255,255,0.1)",
               background: "rgba(8,4,18,0.96)",
             }}
           >
@@ -199,8 +185,8 @@ export function SearchOverlay({ isOpen, onClose, categories = [] }: SearchOverla
                     borderLeft: "2px solid transparent",
                   }}
                   onMouseEnter={(e) => {
-                    ;(e.currentTarget as HTMLElement).style.borderLeftColor = "rgba(155,48,255,0.6)"
-                    ;(e.currentTarget as HTMLElement).style.background = "rgba(155,48,255,0.05)"
+                    ;(e.currentTarget as HTMLElement).style.borderLeftColor = "rgba(255,255,255,0.6)"
+                    ;(e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"
                   }}
                   onMouseLeave={(e) => {
                     ;(e.currentTarget as HTMLElement).style.borderLeftColor = "transparent"
@@ -225,9 +211,9 @@ export function SearchOverlay({ isOpen, onClose, categories = [] }: SearchOverla
                       ₹{Number(p.price).toLocaleString("en-IN")}
                     </p>
                   </div>
-                  {/* Purple right arrow */}
+                  {/* Arrow */}
                   <span className="text-[9px] uppercase tracking-widest opacity-0 group-hover/result:opacity-100 transition-opacity"
-                    style={{ color: "#9B30FF" }}>
+                    style={{ color: "rgba(255,255,255,0.8)" }}>
                     →
                   </span>
                 </button>
@@ -238,11 +224,11 @@ export function SearchOverlay({ isOpen, onClose, categories = [] }: SearchOverla
               onClick={handleSubmit as any}
               className="w-full px-5 py-3 text-[9px] uppercase tracking-[0.4em] text-left transition-colors"
               style={{
-                color: "rgba(155,48,255,0.6)",
-                borderTop: "1px solid rgba(155,48,255,0.1)",
+                color: "rgba(255,255,255,0.6)",
+                borderTop: "1px solid rgba(255,255,255,0.1)",
               }}
-              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "#9B30FF")}
-              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "rgba(155,48,255,0.6)")}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.9)")}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.6)")}
             >
               View all results for "{query}" →
             </button>
@@ -259,7 +245,7 @@ export function SearchOverlay({ isOpen, onClose, categories = [] }: SearchOverla
         {/* Category suggestions — shown when no query */}
         {!query && categories.length > 0 && (
           <div className="w-full max-w-3xl mt-12">
-            <p className="text-[9px] uppercase tracking-[0.5em] mb-6" style={{ color: "rgba(155,48,255,0.4)" }}>
+            <p className="text-[9px] uppercase tracking-[0.5em] mb-6" style={{ color: "rgba(255,255,255,0.4)" }}>
               Browse Collections
             </p>
             <div className="flex flex-wrap gap-2">

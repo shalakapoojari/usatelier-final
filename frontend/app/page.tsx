@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import useEmblaCarousel from 'embla-carousel-react'
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react"
 
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
@@ -18,8 +18,13 @@ import { resolveMediaUrl } from "@/lib/media-url"
 
 gsap.registerPlugin(ScrollTrigger)
 
+/* ════════════════════════════════════════════════════════════
+   RUNWAY PRODUCT CARD — used in horizontal strip sections
+════════════════════════════════════════════════════════════ */
 function RunwayProductCard({ product, index }: { product: any; index?: number }) {
-  const images = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
+  const images = typeof product.images === 'string'
+    ? (() => { try { return JSON.parse(product.images) } catch { return [product.images] } })()
+    : product.images
   const imageUrl = resolveMediaUrl(images && images[0] ? images[0] : "/placeholder.jpg")
   const cardRef = useRef<HTMLDivElement | null>(null)
 
@@ -64,7 +69,7 @@ function RunwayProductCard({ product, index }: { product: any; index?: number })
             {product.name}
           </p>
           <p className="text-xs uppercase tracking-[0.25em] text-white/50 group-hover:text-white/70 transition-colors">
-            ₹{product.price.toLocaleString()}
+            ₹{Number(product.price).toLocaleString('en-IN')}
           </p>
         </div>
       </Link>
@@ -73,17 +78,6 @@ function RunwayProductCard({ product, index }: { product: any; index?: number })
 }
 
 import { ProductSkeleton } from "@/components/product-skeleton"
-
-/* ════════════════════════════════════════════════════════════
-   STICKY GALLERY — vertical scroll chapters, no GSAP
-════════════════════════════════════════════════════════════ */
-type GalleryChapter = {
-  photo: string
-  label: string
-  title: string
-  subtitle: string
-  link: string
-}
 
 /* ════════════════════════════════════════════════════════════
    VERTICAL SNAP RUNWAY — one slide per product, snap-scroll
@@ -120,7 +114,7 @@ function VerticalSnapRunway({ products }: { products: any[] }) {
 
   return (
     <section id="best-sellers" className="relative">
-      {/* Right-side vertical progress indicator */}
+      {/* Right-side vertical progress indicator — clean monochromatic */}
       <div
         className="fixed right-6 top-1/2 -translate-y-1/2 z-50 hidden md:flex flex-col items-center"
         style={{ height: "60vh", gap: 0 }}
@@ -130,7 +124,7 @@ function VerticalSnapRunway({ products }: { products: any[] }) {
           style={{
             width: 1,
             flex: 1,
-            background: "rgba(123,47,190,0.25)",
+            background: "rgba(255,255,255,0.1)",
             position: "relative",
           }}
         >
@@ -140,11 +134,10 @@ function VerticalSnapRunway({ products }: { products: any[] }) {
               top: `${(activeSlide / Math.max(products.length - 1, 1)) * 100}%`,
               left: "50%",
               transform: "translate(-50%, -50%)",
-              width: 6,
-              height: 6,
+              width: 5,
+              height: 5,
               borderRadius: "50%",
-              background: "#fff",
-              boxShadow: "0 0 8px rgba(123,47,190,0.8)",
+              background: "rgba(255,255,255,0.7)",
               transition: "top 400ms ease",
             }}
           />
@@ -172,15 +165,8 @@ function VerticalSnapRunway({ products }: { products: any[] }) {
                   alt={product.name}
                   fill
                   className="object-cover"
-                  style={{ filter: "brightness(0.85)" }}
+                  style={{ filter: "brightness(0.75)" }}
                   priority={idx === 0}
-                />
-                {/* Subtle purple tint */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: "radial-gradient(ellipse at 30% 60%, rgba(123,47,190,0.12) 0%, transparent 70%)"
-                  }}
                 />
                 {/* Slide number watermark */}
                 <span
@@ -194,7 +180,7 @@ function VerticalSnapRunway({ products }: { products: any[] }) {
               {/* RIGHT — Product details */}
               <div
                 className="runway-slide-content flex flex-col justify-center px-10 md:px-16 lg:px-20"
-                style={{ background: "rgba(0,0,0,0.88)" }}
+                style={{ background: "rgba(0,0,0,0.92)" }}
               >
                 {/* Label */}
                 <p
@@ -204,10 +190,10 @@ function VerticalSnapRunway({ products }: { products: any[] }) {
                   {idx === 0 ? "Runway 01" : `— Piece ${String(idx + 1).padStart(2, '0')}`}
                 </p>
 
-                {/* Product name */}
+                {/* Product name — clean white serif */}
                 <h2
-                  className="font-serif leading-none uppercase mb-4 gradient-text"
-                  style={{ fontSize: "clamp(28px, 3.5vw, 52px)" }}
+                  className="font-serif leading-none uppercase mb-4 text-white"
+                  style={{ fontSize: "clamp(28px, 3.5vw, 52px)", fontWeight: 300 }}
                 >
                   {product.name}
                 </h2>
@@ -232,36 +218,18 @@ function VerticalSnapRunway({ products }: { products: any[] }) {
                   </p>
                 )}
 
-                {/* Price — gradient-text */}
+                {/* Price — clean white */}
                 <p
-                  className="font-serif text-3xl mb-8 gradient-text"
-                  style={{ letterSpacing: "-0.01em" }}
+                  className="font-serif text-3xl mb-8 text-white/90"
+                  style={{ letterSpacing: "-0.01em", fontWeight: 300 }}
                 >
                   ₹{Number(product.price).toLocaleString('en-IN')}
                 </p>
 
-                {/* CTA — view product */}
+                {/* CTA — clean border style */}
                 <Link
                   href={`/product/${product.id}`}
-                  className="inline-flex w-fit items-center justify-center px-8 py-3 text-[10px] uppercase tracking-[0.4em] transition-all duration-300"
-                  style={{
-                    border: "1px solid rgba(123,47,190,0.4)",
-                    color: "rgba(240,240,240,0.7)",
-                  }}
-                  onMouseEnter={(e) => {
-                    const el = e.currentTarget as HTMLAnchorElement
-                    el.style.background = "rgba(123,47,190,0.12)"
-                    el.style.borderColor = "rgba(123,47,190,0.7)"
-                    el.style.color = "#F0F0F0"
-                    el.style.boxShadow = "0 0 20px rgba(123,47,190,0.25)"
-                  }}
-                  onMouseLeave={(e) => {
-                    const el = e.currentTarget as HTMLAnchorElement
-                    el.style.background = "transparent"
-                    el.style.borderColor = "rgba(123,47,190,0.4)"
-                    el.style.color = "rgba(240,240,240,0.7)"
-                    el.style.boxShadow = "none"
-                  }}
+                  className="inline-flex w-fit items-center justify-center px-8 py-3 text-[10px] uppercase tracking-[0.4em] transition-all duration-300 hover:bg-white/8 hover:border-white/50 hover:text-white text-white/60 border border-white/20"
                 >
                   View Piece →
                 </Link>
@@ -274,7 +242,7 @@ function VerticalSnapRunway({ products }: { products: any[] }) {
                       style={{
                         width: dotIdx === idx ? 20 : 4,
                         height: 1,
-                        background: dotIdx === idx ? "rgba(240,240,240,0.6)" : "rgba(240,240,240,0.15)",
+                        background: dotIdx === idx ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.15)",
                         transition: "all 400ms ease",
                         borderRadius: 2,
                       }}
@@ -290,14 +258,153 @@ function VerticalSnapRunway({ products }: { products: any[] }) {
   )
 }
 
-function RunwaySection({ title, subtitle, tagline, products, sectionId }: { title: string, subtitle: string, tagline?: string, products: any[], sectionId?: string }) {
-  const titleRef = useRef<HTMLDivElement | null>(null)
-  const scrollRef = useRef<HTMLDivElement | null>(null)
+/* ════════════════════════════════════════════════════════════
+   BEST SELLERS SECTION — admin-controlled, static fallback
+   Placed between the FIN runway section and the footer
+════════════════════════════════════════════════════════════ */
+
+// Placeholder product cards shown when admin hasn't set up products yet
+const PLACEHOLDER_BESTSELLERS = [
+  {
+    id: "placeholder-1",
+    name: "Essential Crew Tee",
+    price: 4500,
+    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1480&auto=format&fit=crop",
+    badge: "Best Seller",
+  },
+  {
+    id: "placeholder-2",
+    name: "Structured Overcoat",
+    price: 18900,
+    image: "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?q=80&w=1374&auto=format&fit=crop",
+    badge: "Most Loved",
+  },
+  {
+    id: "placeholder-3",
+    name: "Tailored Slim Trouser",
+    price: 8200,
+    image: "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?q=80&w=1374&auto=format&fit=crop",
+    badge: "",
+  },
+  {
+    id: "placeholder-4",
+    name: "Merino Ribbed Knit",
+    price: 7600,
+    image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?q=80&w=1372&auto=format&fit=crop",
+    badge: "New Drop",
+  },
+  {
+    id: "placeholder-5",
+    name: "Raw Hem Cargo",
+    price: 9800,
+    image: "https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=1526&auto=format&fit=crop",
+    badge: "",
+  },
+  {
+    id: "placeholder-6",
+    name: "Linen Relaxed Shirt",
+    price: 6400,
+    image: "https://images.unsplash.com/photo-1596755389378-c31d21fd1273?q=80&w=1374&auto=format&fit=crop",
+    badge: "Staff Pick",
+  },
+]
+
+function BestSellerCard({ product, isPlaceholder = false }: { product: any; isPlaceholder?: boolean }) {
+  const cardRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (!products || products.length === 0 || !titleRef.current) return
+    if (!cardRef.current) return
     gsap.fromTo(
-      titleRef.current,
+      cardRef.current,
+      { opacity: 0, y: 32 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: cardRef.current,
+          start: "top 88%",
+          toggleActions: "play none none reverse",
+        },
+      }
+    )
+  }, [])
+
+  const imageUrl = isPlaceholder
+    ? product.image
+    : (() => {
+        const imgs = typeof product.images === 'string'
+          ? (() => { try { return JSON.parse(product.images) } catch { return [product.images] } })()
+          : product.images
+        return resolveMediaUrl(imgs?.[0] || '/placeholder.jpg')
+      })()
+
+  const productLink = isPlaceholder ? "/view-all" : `/product/${product.id}`
+  const price = isPlaceholder ? product.price : Number(product.price)
+
+  return (
+    <div
+      ref={cardRef}
+      className="group flex-shrink-0 w-[240px] md:w-[280px] bg-[#0a0a0a] border border-white/5 hover:border-white/15 transition-all duration-300 overflow-hidden"
+    >
+      {/* Product image */}
+      <div className="relative h-[320px] w-full overflow-hidden bg-[#111]">
+        <Image
+          src={imageUrl}
+          alt={product.name}
+          fill
+          className="object-cover transition-transform duration-700 group-hover:scale-105 brightness-70 group-hover:brightness-85"
+        />
+        {/* Badge */}
+        {product.badge && (
+          <span className="absolute top-4 left-4 text-[8px] uppercase tracking-[0.3em] text-white/70 bg-black/60 backdrop-blur-sm px-3 py-1 border border-white/10">
+            {product.badge}
+          </span>
+        )}
+      </div>
+
+      {/* Product info */}
+      <div className="p-5">
+        <h3 className="font-serif text-base text-white/90 leading-tight mb-1 group-hover:text-white transition-colors">
+          {product.name}
+        </h3>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-white/40 mb-5">
+          ₹{price.toLocaleString('en-IN')}
+        </p>
+
+        {/* Add to Cart button */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!isPlaceholder && typeof window !== "undefined") {
+              window.location.href = productLink
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-[9px] uppercase tracking-[0.35em] text-white/55 border border-white/15 hover:border-white/40 hover:text-white hover:bg-white/5 transition-all duration-200 active:scale-[0.98]"
+          aria-label={`Add ${product.name} to cart`}
+        >
+          <ShoppingCart size={12} strokeWidth={1.5} />
+          {isPlaceholder ? "Shop Now" : "Add to Cart"}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function BestSellersSection({ products }: { products: any[] }) {
+  const sectionRef = useRef<HTMLElement | null>(null)
+  const headingRef = useRef<HTMLDivElement | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+
+  // Use API products if available, otherwise show placeholders
+  const displayProducts = products.length > 0 ? products : PLACEHOLDER_BESTSELLERS
+  const isPlaceholder = products.length === 0
+
+  useEffect(() => {
+    if (!headingRef.current) return
+    gsap.fromTo(
+      headingRef.current,
       { opacity: 0, x: -30 },
       {
         opacity: 1,
@@ -305,39 +412,44 @@ function RunwaySection({ title, subtitle, tagline, products, sectionId }: { titl
         duration: 0.9,
         ease: "power2.out",
         scrollTrigger: {
-          trigger: titleRef.current,
+          trigger: headingRef.current,
           start: "top 80%",
           toggleActions: "play none none reverse",
         },
       }
     )
-  }, [products])
-
-  if (!products || products.length === 0) return null
+  }, [])
 
   return (
-    <div id={sectionId} className="scroll-mt-32">
+    /* ── BEST SELLERS ──────────────────────────────────────────────── */
+    <section
+      ref={sectionRef}
+      id="best-sellers-grid"
+      className="relative bg-[#040404] py-20 md:py-32 overflow-hidden"
+      aria-labelledby="best-sellers-heading"
+    >
       {/* Section header */}
-      <div className="px-8 md:px-20 mb-10" ref={titleRef}>
+      <div className="px-8 md:px-20 mb-12" ref={headingRef}>
         <div className="flex items-end justify-between">
           <div>
-            {/* small label */}
+            {/* Eyebrow label */}
             <p className="text-[10px] uppercase tracking-[0.4em] text-white/30 mb-3">
-              {subtitle}
+              Curated by the Studio
             </p>
-            {/* Large italic serif title */}
-            <h2 className="font-serif italic text-5xl md:text-7xl font-light text-white/90 leading-none">
-              {title}
+            {/* Section title — matches reference h2 style */}
+            <h2
+              id="best-sellers-heading"
+              className="font-serif text-5xl md:text-7xl font-light text-white/90 leading-none"
+            >
+              Best Sellers
             </h2>
-            {tagline && (
-              <p className="text-xs uppercase tracking-[0.3em] text-white/30 mt-4 max-w-xs">
-                {tagline}
-              </p>
-            )}
+            <p className="text-xs uppercase tracking-[0.3em] text-white/25 mt-4 max-w-xs">
+              Our most coveted pieces, loved by many.
+            </p>
           </div>
           <Link
             href="/view-all"
-            className="hidden md:inline-flex text-[10px] uppercase tracking-[0.3em] text-white/40 hover:text-white transition-colors border-b border-white/20 hover:border-white pb-0.5 mb-2"
+            className="hidden md:inline-flex text-[10px] uppercase tracking-[0.3em] text-white/35 hover:text-white transition-colors border-b border-white/15 hover:border-white/50 pb-0.5 mb-2"
           >
             View All →
           </Link>
@@ -346,29 +458,37 @@ function RunwaySection({ title, subtitle, tagline, products, sectionId }: { titl
         <div className="mt-8 h-px w-full bg-white/5" />
       </div>
 
-      {/* Horizontal scroll product strip */}
+      {/* Horizontal scrollable card strip */}
       <div
         ref={scrollRef}
-        className="flex gap-4 md:gap-6 px-8 md:px-20 pb-6 overflow-x-auto no-scrollbar"
+        className="flex gap-4 md:gap-6 px-8 md:px-20 pb-4 overflow-x-auto no-scrollbar"
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {products.map((p, idx) => (
-          <RunwayProductCard key={`${p.id}-${idx}`} product={p} index={idx} />
+        {displayProducts.map((p: any, idx: number) => (
+          <BestSellerCard
+            key={isPlaceholder ? `ph-${idx}` : `${p.id}-${idx}`}
+            product={p}
+            isPlaceholder={isPlaceholder}
+          />
         ))}
       </div>
 
-      {/* Mobile view all */}
-      <div className="md:hidden px-8 mt-6">
+      {/* Mobile — View All link */}
+      <div className="md:hidden px-8 mt-8">
         <Link
           href="/view-all"
-          className="text-[10px] uppercase tracking-[0.3em] text-white/40 hover:text-white transition-colors border-b border-white/20 hover:border-white pb-0.5"
+          className="text-[10px] uppercase tracking-[0.3em] text-white/35 hover:text-white transition-colors border-b border-white/15 hover:border-white/50 pb-0.5"
         >
           View All →
         </Link>
       </div>
-    </div>
+    </section>
   )
 }
 
+/* ════════════════════════════════════════════════════════════
+   HOME PAGE
+════════════════════════════════════════════════════════════ */
 export default function HomePage() {
   const [API_BASE, setApiBase] = useState("")
   useEffect(() => {
@@ -380,8 +500,6 @@ export default function HomePage() {
 
   const [config, setConfig] = useState<any>(null)
   const [bestsellers, setBestsellers] = useState<any[]>([])
-  const [featured, setFeatured] = useState<any[]>([])
-  const [newArrivals, setNewArrivals] = useState<any[]>([])
   const [loadingConfig, setLoadingConfig] = useState(true)
   const router = useRouter()
 
@@ -394,6 +512,7 @@ export default function HomePage() {
     setSelectedIndex(emblaApi.selectedScrollSnap())
   }, [emblaApi])
 
+  /* ── Embla autoplay ── */
   useEffect(() => {
     if (!emblaApi) return
     onSelect()
@@ -423,6 +542,7 @@ export default function HomePage() {
     }
   }, [emblaApi, onSelect])
 
+  /* ── Homepage config + products ── */
   useEffect(() => {
     const fetchConfig = async () => {
       if (!API_BASE) return
@@ -439,14 +559,8 @@ export default function HomePage() {
             const results = await Promise.all(promises)
             return results.filter(Boolean)
           }
-          const [b, f, n] = await Promise.all([
-            fetchCategory(data.bestseller_product_ids),
-            fetchCategory(data.featured_product_ids),
-            fetchCategory(data.new_arrival_product_ids)
-          ])
+          const b = await fetchCategory(data.bestseller_product_ids)
           setBestsellers(b)
-          setFeatured(f)
-          setNewArrivals(n)
         }
       } catch (err) {
         console.error("Failed to fetch homepage config:", err)
@@ -457,7 +571,7 @@ export default function HomePage() {
     fetchConfig()
   }, [API_BASE])
 
-  /* ================= HERO ANIMATION ================= */
+  /* ── HERO ANIMATION ── */
   useEffect(() => {
     if (loadingConfig) return
     let ctxHost: gsap.Context | null = null
@@ -473,19 +587,16 @@ export default function HomePage() {
           stagger: 0.12,
         })
 
-        // Animate the bottom-left tagline
-        gsap.fromTo(".hero-tagline", 
+        gsap.fromTo(".hero-tagline",
           { opacity: 0, y: 10 },
           { opacity: 1, y: 0, duration: 1.2, ease: "power2.out", delay: 0.6 }
         )
 
-        // Animate the season label
         gsap.fromTo(".hero-season",
           { opacity: 0 },
           { opacity: 1, duration: 1, ease: "power2.out", delay: 0.3 }
         )
 
-        // CTA button fades in with the title
         gsap.to(".hero-cta-desktop", {
           opacity: 1,
           y: 0,
@@ -510,7 +621,7 @@ export default function HomePage() {
     }
   }, [loadingConfig])
 
-  /* ================= MANIFESTO ANIMATION ================= */
+  /* ── MANIFESTO ANIMATION ── */
   useEffect(() => {
     if (!manifestoRef.current) return
     gsap.fromTo(
@@ -530,7 +641,7 @@ export default function HomePage() {
     )
   }, [])
 
-  /* ================= HERO PARALLAX SCROLL ================= */
+  /* ── HERO PARALLAX SCROLL ── */
   useEffect(() => {
     let ticking = false
     const onScroll = () => {
@@ -552,6 +663,7 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
+  /* ── Slide data from config or defaults ── */
   const slides = config?.hero_slides && config.hero_slides.length > 0
     ? config.hero_slides.map((s: any) => {
         const content = (s.content || "").trim()
@@ -582,60 +694,37 @@ export default function HomePage() {
   const manifestoText = config?.manifesto_text ||
     "U.S Atelier is premium menswear designed for the modern man who values style, comfort, and craftsmanship with innovative tailoring to deliver clothing that makes a statement—confident, stylish, and refined."
 
-  // Season label from config or default
   const seasonLabel = config?.season_label || "Fall Winter 2025"
-
-  // Only keep the Best Sellers chapter (Runway 01) for the snap gallery
-  // Editorial 02 (Featured) and Editorial 03 (New Arrivals) are removed
-  const galleryChapters = bestsellers.length > 0
-    ? [{
-        photo: (() => {
-          const p = bestsellers[0]
-          const imgs = typeof p.images === "string" ? JSON.parse(p.images || "[]") : (p.images || [])
-          return imgs[0] || "/placeholder.jpg"
-        })(),
-        label: "Best Sellers",
-        title: "The Runway",
-        subtitle: "Our most coveted pieces, loved by many",
-        link: "/#best-sellers",
-      }]
-    : []
 
   return (
     <>
       <Preloader />
 
-      <div ref={rootRef} className="bg-black text-white overflow-x-hidden min-h-screen">
+      {/* ── Root wrapper: overflow-x hidden to prevent horizontal bleed on mobile ── */}
+      <div ref={rootRef} className="bg-black text-white min-h-screen" style={{ overflowX: "hidden" }}>
         <SiteHeader />
 
         {/* ═══════════════════════════════════════════════════════════
-            HERO CAROUSEL — full-screen with centered title overlay
+            HERO CAROUSEL — full-screen with left-anchored title
         ═══════════════════════════════════════════════════════════ */}
         <section className="hero-carousel relative h-screen bg-black">
           <div className="embla h-full w-full" ref={emblaRef}>
             <div className="embla__container flex h-full">
               {slides.map((slide: any, idx: number) => (
-                <div key={idx} className="embla__slide relative flex-[0_0_100%] h-full w-full">
+                <div key={idx} className="embla__slide relative flex-[0_0_100%] h-full w-full" style={{ minWidth: 0 }}>
 
                   {/* Background image with parallax class */}
                   <div className="absolute inset-0 overflow-hidden">
                     <Image
                       src={resolveMediaUrl(slide.image || "/placeholder.jpg")}
-                      alt={`Hero Slide ${idx}`}
+                      alt={`Hero Slide ${idx + 1}`}
                       fill
                       priority={idx === 0}
                       className="object-cover object-center hero-parallax-img"
                       style={{ filter: "brightness(0.42)", willChange: "transform" }}
                     />
-                    {/* Purple-tinted overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#0a0215]/60 via-transparent to-[#0d0510]/50" />
-                    {/* Purple radial glow overlay */}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background: "radial-gradient(ellipse at 70% 50%, rgba(123,47,190,0.15) 0%, transparent 60%)"
-                      }}
-                    />
+                    {/* Clean dark gradient overlay — no rainbow */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-black/55 via-transparent to-black/45" />
                   </div>
 
                   {/* Season label — top left */}
@@ -652,9 +741,9 @@ export default function HomePage() {
                   >
                     <div className="hero-line overflow-hidden">
                       <h1 className="leading-none uppercase font-serif">
-                        {/* First line — purple→pink gradient */}
+                        {/* First line — clean white */}
                         <span
-                          className="block font-semibold gradient-text"
+                          className="block font-semibold text-white"
                           style={{
                             fontSize: "clamp(36px, 9vw, 120px)",
                             letterSpacing: "-0.01em",
@@ -664,17 +753,13 @@ export default function HomePage() {
                         >
                           {slide.title1}
                         </span>
-                        {/* Second line — muted italic, subtle purple-white */}
+                        {/* Second line — muted italic white */}
                         <span
-                          className="block italic font-light"
+                          className="block italic font-light text-white/45"
                           style={{
                             fontSize: "clamp(36px, 11vw, 140px)",
                             letterSpacing: "-0.02em",
                             marginTop: "-0.05em",
-                            background: "linear-gradient(135deg, rgba(155,48,255,0.55) 0%, rgba(200,180,255,0.4) 50%, rgba(255,45,155,0.4) 100%)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            backgroundClip: "text",
                             display: "block",
                             transform: "translateY(110%)",
                           }}
@@ -688,7 +773,7 @@ export default function HomePage() {
                     <div className="mt-8 md:mt-10 pointer-events-auto hero-cta-desktop" style={{ opacity: 0, transform: "translateY(20px)" }}>
                       <Link
                         href={slide.cta_link || "/view-all"}
-                        className="inline-flex items-center justify-center rounded-full border border-white/25 bg-transparent px-10 py-4 text-[10px] md:text-[11px] uppercase tracking-[0.4em] text-white/60 transition-all duration-500 hover:border-purple-500/60 hover:text-white hover:bg-purple-500/10 min-w-[220px] md:min-w-[280px] active:scale-95"
+                        className="inline-flex items-center justify-center rounded-full border border-white/25 bg-transparent px-10 py-4 text-[10px] md:text-[11px] uppercase tracking-[0.4em] text-white/60 transition-all duration-500 hover:border-white/60 hover:text-white hover:bg-white/8 min-w-[220px] md:min-w-[280px] active:scale-95"
                       >
                         {slide.cta_text || "View The Lookbook"}
                       </Link>
@@ -697,13 +782,13 @@ export default function HomePage() {
 
                   {/* Animated scroll indicator — bottom center */}
                   <div className="absolute bottom-10 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center gap-2 hero-tagline" style={{ opacity: 0 }}>
-                    <div className="h-10 w-px overflow-hidden rounded-full" style={{ background: "rgba(155,48,255,0.2)" }}>
-                      <div className="h-full w-full scroll-indicator-line" style={{ background: "linear-gradient(#9B30FF, #FF2D9B)" }} />
+                    <div className="h-10 w-px overflow-hidden rounded-full bg-white/15">
+                      <div className="h-full w-full scroll-indicator-line bg-white/50" />
                     </div>
                     <span className="text-[8px] uppercase tracking-[0.4em] text-white/20">Scroll</span>
                   </div>
 
-                  {/* Bottom-left tagline — "Designed in Paris. Crafted in Milan." */}
+                  {/* Bottom-left tagline */}
                   <div className="hero-tagline absolute bottom-12 left-8 md:left-12 z-20 opacity-0">
                     <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-white/35 leading-relaxed">
                       Designed in India.
@@ -720,7 +805,7 @@ export default function HomePage() {
                       <button
                         key={dotIdx}
                         onClick={() => emblaApi?.scrollTo(dotIdx)}
-                        className={`transition-all duration-500 rounded-full ${idx === dotIdx ? 'w-6 h-1 bg-white/60' : 'w-1 h-1 bg-white/20'}`}
+                        className={`transition-all duration-500 rounded-full ${selectedIndex === dotIdx ? 'w-6 h-1 bg-white/60' : 'w-1 h-1 bg-white/20'}`}
                         aria-label={`Go to slide ${dotIdx + 1}`}
                       />
                     ))}
@@ -751,23 +836,22 @@ export default function HomePage() {
 
         {/* ═══════════════════════════════════════════════════════════
             MANIFESTO — large centered serif text, deep black
+            Adopted from frontend2 reference layout
         ═══════════════════════════════════════════════════════════ */}
-        <section className="reveal bg-black py-24 md:py-40 px-8 md:px-20">
-          <div className="max-w-6xl mx-auto">
+        <section className="reveal bg-[#030303] py-24 md:py-40 px-8 md:px-20">
+          <div className="max-w-4xl mx-auto text-center">
             <p
               ref={manifestoRef}
-              className="font-serif text-3xl md:text-5xl lg:text-6xl leading-[1.25] md:leading-[1.2] text-white font-light"
+              className="font-serif text-3xl md:text-5xl leading-[1.25] md:leading-[1.2] text-gray-300 font-light"
               style={{ opacity: 0 }}
             >
               {manifestoText.split(" ").map((word: string, i: number, arr: string[]) => {
-                // Fade the last few words to create a fade-out effect
                 const fromEnd = arr.length - 1 - i
                 const isEnd = fromEnd < 5
                 return (
                   <span
                     key={i}
-                    className="transition-opacity"
-                    style={{ color: isEnd ? `rgba(255,255,255,${Math.max(0.15, 1 - (5 - fromEnd) * 0.17)})` : "rgb(255,255,255)" }}
+                    style={{ color: isEnd ? `rgba(200,200,196,${Math.max(0.15, 1 - (5 - fromEnd) * 0.17)})` : "rgb(200,200,196)" }}
                   >
                     {word}{" "}
                   </span>
@@ -777,7 +861,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Marquee ticker strip between manifesto and runway */}
+        {/* ── Marquee ticker strip between manifesto and runway ── */}
         <MarqueeTicker />
 
         {/* ═══════════════════════════════════════════════════════════
@@ -788,19 +872,29 @@ export default function HomePage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════════
-            THE RUNWAY — FIN
+            BEST SELLERS — admin-curated product grid section
+            Inserted before the FIN panel and footer
         ═══════════════════════════════════════════════════════════ */}
-        {/* FIN */}
-        <section className="bg-black">
+        <BestSellersSection products={bestsellers} />
+
+        {/* ═══════════════════════════════════════════════════════════
+            FIN — closing runway panel before footer
+        ═══════════════════════════════════════════════════════════ */}
+        <section className="bg-[#030303]">
           <div className="px-8 md:px-20">
-            <div className="border-t border-white/8 pt-12 flex items-center justify-between">
-              <p className="font-serif italic text-2xl text-white/20">FIN</p>
-              <Link
-                href="/view-all"
-                className="inline-flex items-center justify-center rounded-full border border-white/20 bg-transparent px-8 py-3 text-[10px] uppercase tracking-[0.35em] text-white/50 transition-all duration-500 hover:border-white/50 hover:text-white"
-              >
-                Shop The Collection
-              </Link>
+            <div className="border-t border-white/5 py-20 md:py-28 flex flex-col md:flex-row items-center justify-between gap-8">
+              <p className="font-serif italic text-7xl md:text-9xl text-white/8 leading-none select-none">FIN</p>
+              <div className="text-center md:text-right">
+                <p className="text-[10px] uppercase tracking-[0.4em] text-white/25 mb-6">
+                  The full collection awaits
+                </p>
+                <Link
+                  href="/view-all"
+                  className="inline-flex items-center justify-center rounded-full border border-white/20 bg-transparent px-10 py-4 text-[10px] uppercase tracking-[0.35em] text-white/50 transition-all duration-500 hover:border-white/50 hover:text-white hover:bg-white/5 active:scale-95"
+                >
+                  Shop The Collection
+                </Link>
+              </div>
             </div>
           </div>
         </section>

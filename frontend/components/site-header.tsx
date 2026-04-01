@@ -304,308 +304,309 @@ export function SiteHeader() {
 
   return (
     <>
-    <header className={`fixed top-0 left-0 w-full z-100 transition-all duration-400 ${
-      scrolled ? "nav-scrolled" : isHomePage ? "bg-transparent" : "bg-[#030303]"
-    }`}>
+      <header className={`fixed top-0 left-0 w-full z-[999] transition-all duration-500 
+          ? "bg-black/60 backdrop-blur-md border-b"
+          : isHomePage
+            ? "bg-transparent"
+            : "bg-[#030303]"
+        }`}>
 
-      {/* ── REFERENCE-STYLE SINGLE NAV ROW ── */}
-      <div
-        ref={navRef}
-        className={`relative z-160 w-full flex items-center justify-between px-6 md:px-10 py-4 md:py-5 ${
-          isHomePage ? "" : "border-b border-white/5"
-        }`}
-      >
-        {/* LEFT: Brand wordmark — gradient-text treatment */}
-        <Link href="/" className="shrink-0">
-          <span
-            className="gradient-text font-serif text-base md:text-lg tracking-[0.06em] hover:opacity-80 transition-opacity whitespace-nowrap"
-            style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}
-          >
-            U.S ATELIER.
-          </span>
-        </Link>
-
-        {/* CENTER: Desktop nav — inline category pills + Shop */}
-        <nav className="hidden md:flex items-center gap-2 lg:gap-3 absolute left-1/2 -translate-x-1/2" style={{ maxWidth: "60vw", overflowX: "auto" }}>
-          <Link
-            href="/view-all"
-            className={`pill-cat nav-link-underline ${
-              pathname === "/view-all" && !new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("category") ? "active" : ""
+        {/* ── REFERENCE-STYLE SINGLE NAV ROW ── */}
+        <div
+          ref={navRef}
+          className={`relative z-160 w-full flex items-center justify-between px-6 md:px-10 py-4 md:py-5 ${isHomePage ? "" : "border-b border-white/5"
             }`}
-          >
-            All
+        >
+          {/* LEFT: Brand wordmark — gradient-text treatment */}
+          <Link href="/" className="shrink-0">
+            <span
+              className="gradient-text font-serif text-base md:text-lg tracking-[0.06em] hover:opacity-80 transition-opacity whitespace-nowrap"
+              style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}
+            >
+              U.S ATELIER.
+            </span>
           </Link>
+
+          {/* CENTER: Desktop nav — inline category pills + Shop */}
+          <nav className="hidden md:flex items-center gap-2 lg:gap-3 absolute left-1/2 -translate-x-1/2" style={{ maxWidth: "60vw", overflowX: "auto" }}>
+            <Link
+              href="/view-all"
+              className={`pill-cat nav-link-underline ${pathname === "/view-all" && !new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("category") ? "active" : ""
+                }`}
+            >
+              All
+            </Link>
+            {dynamicCategories.map(cat => (
+              <Link
+                key={cat.id || cat.name}
+                href={`/view-all?category=${encodeURIComponent(cat.name)}`}
+                className="pill-cat"
+              >
+                {cat.name}
+              </Link>
+            ))}
+          </nav>
+
+          {/* RIGHT: Search + Wishlist + Cart + Login + Hamburger */}
+          <div className="flex items-center gap-4 md:gap-6">
+            {/* Search icon — visible on ALL screen sizes */}
+            <button
+              onClick={() => setSearchOverlayOpen(true)}
+              className="flex items-center text-white/60 hover:text-white transition-colors"
+              title="Search"
+              aria-label="Open search"
+            >
+              <Search size={16} strokeWidth={1.5} />
+            </button>
+
+            {/* Search on non-homepage desktop (form) — removed; replaced by icon */}
+            {!isHomePage && (
+              <form onSubmit={handleSearchSubmit} className="hidden lg:flex items-center relative" style={{ display: 'none' }}>
+                <input type="text" placeholder={placeholder} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-white/5 border border-white/10 px-8 py-2 text-[10px] tracking-widest rounded focus:outline-none focus:border-white/30 placeholder:text-gray-600 w-48" />
+                <Search size={12} className="absolute left-2.5 text-gray-500" />
+                <button type="submit" className="hidden">Search</button>
+              </form>
+            )}
+
+            {/* Wishlist — desktop only */}
+            <button
+              onClick={handleFavouritesClick}
+              className="relative hidden md:flex items-center text-white/60 hover:text-white transition-colors"
+              title="Favourites"
+            >
+              <Heart size={16} strokeWidth={1.5} className={wishlistUnseen > 0 ? "fill-red-400 text-red-400" : ""} />
+              {wishlistUnseen > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-black" />
+              )}
+            </button>
+
+            {/* Cart */}
+            <button
+              onClick={handleCartClick}
+              className="relative hidden md:flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white transition-colors"
+              title="Cart"
+            >
+              <ShoppingBag size={16} strokeWidth={1.5} />
+              {isMounted && (
+                <span>Cart</span>
+              )}
+              {cartUnseen > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-black" />
+              )}
+            </button>
+
+            {/* Login / Profile */}
+            {!isMounted ? (
+              <div className="w-12 h-4 opacity-0 hidden md:block" />
+            ) : !user ? (
+              <Link
+                href="/login"
+                className="hidden md:inline-flex text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white transition-colors"
+              >
+                Login
+              </Link>
+            ) : (
+              <div className="relative hidden md:block z-170" ref={profileRef}>
+                <button
+                  onClick={() => setProfileOpen((o) => !o)}
+                  className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors"
+                  title="Account"
+                >
+                  <div className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center bg-white/5 hover:border-white/50 transition-colors">
+                    <User size={13} strokeWidth={1.5} />
+                  </div>
+                  <ChevronDown
+                    size={11}
+                    className={`transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {/* Dropdown */}
+                {profileOpen && (
+                  <div className="absolute right-0 top-full mt-3 w-52 bg-[#0e0e0e] border border-white/10 shadow-2xl z-220">
+                    <div className="px-4 py-3 border-b border-white/10">
+                      <p className="text-xs uppercase tracking-widest text-gray-400 truncate">
+                        {user.email}
+                      </p>
+                    </div>
+                    <div className="py-1">
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-[#d8d4cc] hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                        >
+                          <LayoutDashboard size={13} />
+                          Admin Panel
+                        </Link>
+                      )}
+                      <Link
+                        href="/account"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        <User size={13} />
+                        My Account
+                      </Link>
+                      <Link
+                        href="/account/orders"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        <Package size={13} />
+                        Orders
+                      </Link>
+                    </div>
+                    <div className="border-t border-white/10 py-1">
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        <LogOut size={13} />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Hamburger — mobile only (pill nav serves desktop) */}
+            <button
+              onClick={() => (mobileMenuOpen ? closeMobileMenu() : setMobileMenuOpen(true))}
+              className="md:hidden relative w-9 h-9 rounded-full border border-white/30 flex items-center justify-center text-white/60 hover:text-white hover:border-white/60 transition-colors"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {hasMobileUnseen && (
+                <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border border-black bg-red-500 animate-pulse" />
+              )}
+              {mobileMenuOpen ? <X size={14} /> : <Menu size={14} />}
+            </button>
+
+          </div>
+        </div>
+
+
+        {/* ── Mobile category pills row — all pages ── */}
+        <div
+          className="hidden md:flex w-full overflow-x-auto no-scrollbar flex gap-2 px-4 py-2"
+          style={{ background: "rgba(4,2,10,0.92)", borderBottom: "1px solid rgba(155,48,255,0.1)" }}
+        >
+          <Link href="/view-all" className="pill-cat shrink-0">All</Link>
           {dynamicCategories.map(cat => (
             <Link
               key={cat.id || cat.name}
               href={`/view-all?category=${encodeURIComponent(cat.name)}`}
-              className="pill-cat"
+              className="pill-cat shrink-0"
             >
               {cat.name}
             </Link>
           ))}
-        </nav>
-
-        {/* RIGHT: Search + Wishlist + Cart + Login + Hamburger */}
-        <div className="flex items-center gap-4 md:gap-6">
-          {/* Search icon — visible on ALL screen sizes */}
-          <button
-            onClick={() => setSearchOverlayOpen(true)}
-            className="flex items-center text-white/60 hover:text-white transition-colors"
-            title="Search"
-            aria-label="Open search"
-          >
-            <Search size={16} strokeWidth={1.5} />
-          </button>
-
-          {/* Search on non-homepage desktop (form) — removed; replaced by icon */}
-          {!isHomePage && (
-            <form onSubmit={handleSearchSubmit} className="hidden lg:flex items-center relative" style={{ display: 'none' }}>
-              <input type="text" placeholder={placeholder} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-white/5 border border-white/10 px-8 py-2 text-[10px] tracking-widest rounded focus:outline-none focus:border-white/30 placeholder:text-gray-600 w-48" />
-              <Search size={12} className="absolute left-2.5 text-gray-500" />
-              <button type="submit" className="hidden">Search</button>
-            </form>
-          )}
-
-          {/* Wishlist — desktop only */}
-          <button
-            onClick={handleFavouritesClick}
-            className="relative hidden md:flex items-center text-white/60 hover:text-white transition-colors"
-            title="Favourites"
-          >
-            <Heart size={16} strokeWidth={1.5} className={wishlistUnseen > 0 ? "fill-red-400 text-red-400" : ""} />
-            {wishlistUnseen > 0 && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-black" />
-            )}
-          </button>
-
-          {/* Cart */}
-          <button
-            onClick={handleCartClick}
-            className="relative hidden md:flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white transition-colors"
-            title="Cart"
-          >
-            <ShoppingBag size={16} strokeWidth={1.5} />
-            {isMounted && (
-              <span>Cart</span>
-            )}
-            {cartUnseen > 0 && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-black" />
-            )}
-          </button>
-
-          {/* Login / Profile */}
-          {!isMounted ? (
-            <div className="w-12 h-4 opacity-0 hidden md:block" />
-          ) : !user ? (
-            <Link
-              href="/login"
-              className="hidden md:inline-flex text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white transition-colors"
-            >
-              Login
-            </Link>
-          ) : (
-            <div className="relative hidden md:block z-170" ref={profileRef}>
-              <button
-                onClick={() => setProfileOpen((o) => !o)}
-                className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors"
-                title="Account"
-              >
-                <div className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center bg-white/5 hover:border-white/50 transition-colors">
-                  <User size={13} strokeWidth={1.5} />
-                </div>
-                <ChevronDown
-                  size={11}
-                  className={`transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {/* Dropdown */}
-              {profileOpen && (
-                <div className="absolute right-0 top-full mt-3 w-52 bg-[#0e0e0e] border border-white/10 shadow-2xl z-220">
-                  <div className="px-4 py-3 border-b border-white/10">
-                    <p className="text-xs uppercase tracking-widest text-gray-400 truncate">
-                      {user.email}
-                    </p>
-                  </div>
-                  <div className="py-1">
-                    {isAdmin && (
-                      <Link
-                        href="/admin"
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-[#d8d4cc] hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
-                      >
-                        <LayoutDashboard size={13} />
-                        Admin Panel
-                      </Link>
-                    )}
-                    <Link
-                      href="/account"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                    >
-                      <User size={13} />
-                      My Account
-                    </Link>
-                    <Link
-                      href="/account/orders"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                    >
-                      <Package size={13} />
-                      Orders
-                    </Link>
-                  </div>
-                  <div className="border-t border-white/10 py-1">
-                    <button
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-xs uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-                    >
-                      <LogOut size={13} />
-                      Sign Out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Hamburger — mobile only (pill nav serves desktop) */}
-          <button
-            onClick={() => (mobileMenuOpen ? closeMobileMenu() : setMobileMenuOpen(true))}
-            className="md:hidden relative w-9 h-9 rounded-full border border-white/30 flex items-center justify-center text-white/60 hover:text-white hover:border-white/60 transition-colors"
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-          >
-            {hasMobileUnseen && (
-              <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border border-black bg-red-500 animate-pulse" />
-            )}
-            {mobileMenuOpen ? <X size={14} /> : <Menu size={14} />}
-          </button>
-
         </div>
-      </div>
 
 
-      {/* ── Mobile category pills row — all pages ── */}
-      <div
-        className="md:hidden w-full overflow-x-auto no-scrollbar flex gap-2 px-4 py-2"
-        style={{ background: "rgba(4,2,10,0.92)", borderBottom: "1px solid rgba(155,48,255,0.1)" }}
-      >
-        <Link href="/view-all" className="pill-cat shrink-0">All</Link>
-        {dynamicCategories.map(cat => (
-          <Link
-            key={cat.id || cat.name}
-            href={`/view-all?category=${encodeURIComponent(cat.name)}`}
-            className="pill-cat shrink-0"
-          >
-            {cat.name}
-          </Link>
-        ))}
-      </div>
+        {/* ── MOBILE DRAWER: ALL NAV CONTENT ── */}
+        {mobileMenuOpen && (
+          <div ref={mobileMenuOverlayRef} className="md:hidden fixed inset-0 bg-black/45 backdrop-blur-[1px] z-300" onClick={() => closeMobileMenu()}>
+            <div
+              ref={mobileMenuRef}
+              onClick={(e) => e.stopPropagation()}
+              className="fixed right-0 top-0 h-dvh w-[86vw] max-w-110 bg-[#020202] border-l border-white/10 px-6 pt-10 pb-8 overflow-y-auto overscroll-y-contain touch-pan-y"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+              <div className="mx-auto max-w-120 flex min-h-full flex-col">
+                <div className="mobile-menu-item flex items-center justify-between text-[20px] sm:text-[22px] uppercase tracking-[0.12em] font-serif text-[#e6e6e2]">
+                  <span>Menu</span>
+                  <button onClick={() => closeMobileMenu()} className="text-[#e6e6e2] hover:text-white transition-colors" aria-label="Close menu">
+                    Close
+                  </button>
+                </div>
 
-
-      {/* ── MOBILE DRAWER: ALL NAV CONTENT ── */}
-      {mobileMenuOpen && (
-        <div ref={mobileMenuOverlayRef} className="md:hidden fixed inset-0 bg-black/45 backdrop-blur-[1px] z-300" onClick={() => closeMobileMenu()}>
-          <div
-            ref={mobileMenuRef}
-            onClick={(e) => e.stopPropagation()}
-            className="fixed right-0 top-0 h-dvh w-[86vw] max-w-110 bg-[#020202] border-l border-white/10 px-6 pt-10 pb-8 overflow-y-auto overscroll-y-contain touch-pan-y"
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            <div className="mx-auto max-w-120 flex min-h-full flex-col">
-              <div className="mobile-menu-item flex items-center justify-between text-[20px] sm:text-[22px] uppercase tracking-[0.12em] font-serif text-[#e6e6e2]">
-                <span>Menu</span>
-                <button onClick={() => closeMobileMenu()} className="text-[#e6e6e2] hover:text-white transition-colors" aria-label="Close menu">
-                  Close
-                </button>
-              </div>
-
-              <div className="mt-16 flex flex-col gap-6">
-                <Link href="/about" onClick={closeMobileMenuForNavigation} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
-                  About
-                </Link>
-                <Link href="/help" onClick={closeMobileMenuForNavigation} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
-                  Help
-                </Link>
-                <Link href="/view-all" onClick={closeMobileMenuForNavigation} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
-                  View All
-                </Link>
-                <button onClick={handleMobileFavouritesClick} className="mobile-menu-item text-left font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
-                  <span className="inline-flex items-center gap-2">
-                    Favourites
-                    {wishlistUnseen > 0 && <span className="h-2 w-2 rounded-full bg-red-500" />}
-                  </span>
-                </button>
-                <button onClick={handleMobileCartClick} className="mobile-menu-item text-left font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
-                  <span className="inline-flex items-center gap-2">
-                    Cart
-                    {cartUnseen > 0 && <span className="h-2 w-2 rounded-full bg-red-500" />}
-                  </span>
-                </button>
-              </div>
-
-              <div className="mobile-menu-item mt-14 h-px bg-white/12" />
-
-              <div className="mobile-menu-item mt-8 flex flex-col gap-4 text-[18px] sm:text-[20px] font-serif text-[#e6e6e2]">
-                {!isMounted ? (
-                   <div className="h-10" />
-                ) : !user ? (
-                  <Link href="/login" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
-                    Login
+                <div className="mt-16 flex flex-col gap-6">
+                  <Link href="/about" onClick={closeMobileMenuForNavigation} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                    About
                   </Link>
-                ) : (
-                  <>
-                    <Link href="/account" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
-                      My Account
+                  <Link href="/help" onClick={closeMobileMenuForNavigation} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                    Help
+                  </Link>
+                  <Link href="/view-all" onClick={closeMobileMenuForNavigation} className="mobile-menu-item font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                    View All
+                  </Link>
+                  <button onClick={handleMobileFavouritesClick} className="mobile-menu-item text-left font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                    <span className="inline-flex items-center gap-2">
+                      Favourites
+                      {wishlistUnseen > 0 && <span className="h-2 w-2 rounded-full bg-red-500" />}
+                    </span>
+                  </button>
+                  <button onClick={handleMobileCartClick} className="mobile-menu-item text-left font-serif text-[20px] sm:text-[22px] leading-none text-[#e8e8e3] hover:text-white transition-colors">
+                    <span className="inline-flex items-center gap-2">
+                      Cart
+                      {cartUnseen > 0 && <span className="h-2 w-2 rounded-full bg-red-500" />}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="mobile-menu-item mt-14 h-px bg-white/12" />
+
+                <div className="mobile-menu-item mt-8 flex flex-col gap-4 text-[18px] sm:text-[20px] font-serif text-[#e6e6e2]">
+                  {!isMounted ? (
+                    <div className="h-10" />
+                  ) : !user ? (
+                    <Link href="/login" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
+                      Login
                     </Link>
-                    <Link href="/account/orders" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
-                      Orders
-                    </Link>
-                    <Link href="/account/profile" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
-                      Settings
-                    </Link>
-                    {isAdmin && (
-                      <Link href="/admin" onClick={closeMobileMenuForNavigation} className="text-amber-300 hover:text-amber-200 transition-colors">
-                        Admin Panel
+                  ) : (
+                    <>
+                      <Link href="/account" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
+                        My Account
                       </Link>
-                    )}
-                    <button onClick={handleLogout} className="text-left text-[#bdbdb8] hover:text-white transition-colors">
-                      Sign Out
-                    </button>
-                  </>
-                )}
-              </div>
+                      <Link href="/account/orders" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
+                        Orders
+                      </Link>
+                      <Link href="/account/profile" onClick={closeMobileMenuForNavigation} className="hover:text-white transition-colors">
+                        Settings
+                      </Link>
+                      {isAdmin && (
+                        <Link href="/admin" onClick={closeMobileMenuForNavigation} className="text-amber-300 hover:text-amber-200 transition-colors">
+                          Admin Panel
+                        </Link>
+                      )}
+                      <button onClick={handleLogout} className="text-left text-[#bdbdb8] hover:text-white transition-colors">
+                        Sign Out
+                      </button>
+                    </>
+                  )}
+                </div>
 
-              <div className="mobile-menu-item mt-8 h-px bg-white/12" />
+                <div className="mobile-menu-item mt-8 h-px bg-white/12" />
 
-              <p className="mobile-menu-item mt-8 text-[10px] uppercase tracking-[0.35em] text-gray-500">Categories</p>
-              <div className="mt-8 flex flex-col gap-5">
-                {dynamicCategories.map((cat) => (
-                  <div key={cat.id || cat.name} className="mobile-menu-item">
-                    <Link
-                      href={`/view-all?category=${encodeURIComponent(cat.name)}`}
-                      onClick={closeMobileMenuForNavigation}
-                      className="font-serif text-[17px] sm:text-[18px] leading-none text-[#d4d4cf] hover:text-white transition-colors"
-                    >
-                      {cat.name}
-                    </Link>
-                  </div>
-                ))}
+                <p className="mobile-menu-item mt-8 text-[10px] uppercase tracking-[0.35em] text-gray-500">Categories</p>
+                <div className="mt-8 flex flex-col gap-5">
+                  {dynamicCategories.map((cat) => (
+                    <div key={cat.id || cat.name} className="mobile-menu-item">
+                      <Link
+                        href={`/view-all?category=${encodeURIComponent(cat.name)}`}
+                        onClick={closeMobileMenuForNavigation}
+                        className="font-serif text-[17px] sm:text-[18px] leading-none text-[#d4d4cf] hover:text-white transition-colors"
+                      >
+                        {cat.name}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </header>
+        )}
+      </header>
 
-    {/* Full-screen search overlay */}
-    <SearchOverlay
-      isOpen={searchOverlayOpen}
-      onClose={() => setSearchOverlayOpen(false)}
-      categories={dynamicCategories}
-    />
+      {/* Full-screen search overlay */}
+      <SearchOverlay
+        isOpen={searchOverlayOpen}
+        onClose={() => setSearchOverlayOpen(false)}
+        categories={dynamicCategories}
+      />
     </>
   )
 }

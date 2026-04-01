@@ -1,130 +1,46 @@
 "use client";
-
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ShoppingCart } from "lucide-react";
-
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
+import { useCart } from "@/lib/cart-context";
 import { getApiBase } from "@/lib/api-base";
 import { resolveMediaUrl } from "@/lib/media-url";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+
 
 gsap.registerPlugin(ScrollTrigger);
 
 const PLACEHOLDER_BESTSELLERS = [
   {
     id: "placeholder-1",
-    name: "Essential Crew Tee",
-    price: 4500,
+    name: "Vantablack Coat",
+    price: 2400,
     image:
-      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1480&auto=format&fit=crop",
-    badge: "Best Seller",
-  },
-  {
-    id: "placeholder-2",
-    name: "Structured Overcoat",
-    price: 18900,
-    image:
-      "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?q=80&w=1374&auto=format&fit=crop",
-    badge: "Most Loved",
-  },
-  {
-    id: "placeholder-3",
-    name: "Tailored Slim Trouser",
-    price: 8200,
-    image:
-      "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?q=80&w=1374&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1485230405346-71acb9518d9c?q=80&w=2694&auto=format&fit=crop",
     badge: "",
   },
   {
-    id: "placeholder-4",
-    name: "Merino Ribbed Knit",
-    price: 7600,
+    id: "placeholder-2",
+    name: "Marble Silk",
+    price: 1850,
     image:
-      "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?q=80&w=1372&auto=format&fit=crop",
-    badge: "New Drop",
+      "https://images.unsplash.com/photo-1529139574466-a302c2d56aee?q=80&w=2576&auto=format&fit=crop",
+    badge: "",
   },
 ];
-
-function FeaturedPieceCard({
-  product,
-  isPlaceholder = false,
-}: {
-  product: any;
-  isPlaceholder?: boolean;
-}) {
-  const imageUrl = isPlaceholder
-    ? product.image
-    : (() => {
-      const imgs =
-        typeof product.images === "string"
-          ? (() => {
-            try {
-              return JSON.parse(product.images);
-            } catch {
-              return [product.images];
-            }
-          })()
-          : product.images;
-      return resolveMediaUrl(imgs?.[0] || "/placeholder.jpg");
-    })();
-
-  const productLink = isPlaceholder ? "/view-all" : `/product/${product.id}`;
-  const price = isPlaceholder ? product.price : Number(product.price);
-
-  return (
-    <div className="group flex-shrink-0 w-[260px] md:w-[320px] bg-[#0a0a0a] border border-white/5 hover:border-white/10 transition-all duration-500 overflow-hidden">
-      <Link href={productLink} className="block relative h-[360px] w-full overflow-hidden bg-[#111]">
-        <img
-          src={imageUrl}
-          alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110 brightness-[0.85] group-hover:brightness-100"
-        />
-        {product.badge && (
-          <span className="absolute top-4 left-4 text-[8px] uppercase tracking-[0.3em] text-white/70 bg-black/60 backdrop-blur-sm px-3 py-1 border border-white/10">
-            {product.badge}
-          </span>
-        )}
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
-      </Link>
-
-      <div className="p-6">
-        <Link href={productLink} className="block group/title">
-          <h3 className="serif text-xl text-white/90 leading-tight mb-2 group-hover/title:text-white transition-colors">
-            {product.name}
-          </h3>
-        </Link>
-        <p className="sans text-[11px] uppercase tracking-[0.2em] text-white/40 mb-6">
-          ₹{price.toLocaleString("en-IN")}
-        </p>
-
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            // Logic for add to cart handled by the button itself or context
-            // For now just prevent link navigation if this was a link
-          }}
-          className="w-full flex items-center justify-center gap-2 px-4 py-4 text-[9px] uppercase tracking-[0.4em] text-white/50 border border-white/10 hover:border-white/40 hover:text-white hover:bg-white/5 transition-all duration-300"
-        >
-          <ShoppingCart size={12} strokeWidth={1.5} />
-          {isPlaceholder ? "Shop Now" : "Add to Cart"}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function HomePage() {
   const [loadingPercent, setLoadingPercent] = useState(0);
   const pathname = usePathname();
+  const { items: cartItems = [] } = useCart() || {};
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   const [API_BASE, setApiBase] = useState("");
   const [config, setConfig] = useState<any>(null);
   const [featuredItems, setFeaturedItems] = useState<any[] | null>(null);
-  const [bestsellers, setBestsellers] = useState<any[] | null>(null);
 
   useEffect(() => {
     setApiBase(getApiBase());
@@ -149,24 +65,20 @@ export default function HomePage() {
             return results.filter(Boolean);
           };
           const f = await fetchCategory(data.featured_product_ids);
-          const b = await fetchCategory(data.bestseller_product_ids);
           setFeaturedItems(f);
-          setBestsellers(b);
         } else {
           setFeaturedItems([]);
-          setBestsellers([]);
         }
       } catch (err) {
         console.error("Failed to fetch homepage config:", err);
         setFeaturedItems([]);
-        setBestsellers([]);
       }
     };
     fetchConfig();
   }, [API_BASE]);
 
   useEffect(() => {
-    if (featuredItems === null) return; // wait for API
+    if (featuredItems === null) return;
 
     const progress = { val: 0 };
     const loadTl = gsap.timeline();
@@ -192,7 +104,10 @@ export default function HomePage() {
     const mm = gsap.matchMedia();
     mm.add("(min-width: 1024px)", () => {
       const sections = gsap.utils.toArray<HTMLElement>(".panel");
-      if (sections.length === 0) return;
+      const container = document.querySelector(
+        ".horizontal-section",
+      ) as HTMLElement;
+      if (sections.length === 0 || !container) return;
 
       gsap.to(sections, {
         xPercent: -100 * (sections.length - 1),
@@ -201,10 +116,7 @@ export default function HomePage() {
           trigger: "#scroll-container",
           pin: true,
           scrub: 1,
-          end: () =>
-            "+=" +
-            (document.querySelector("#scroll-container") as HTMLElement)
-              ?.offsetWidth,
+          end: () => "+=" + container.offsetWidth,
         },
       });
     });
@@ -216,7 +128,6 @@ export default function HomePage() {
       const textContent = highlightText.innerText;
       highlightText.dataset.split = "true";
       highlightText.innerHTML = "";
-
       textContent.split(" ").forEach((word) => {
         const span = document.createElement("span");
         span.innerText = `${word} `;
@@ -292,16 +203,23 @@ export default function HomePage() {
       });
     });
 
-    gsap.to(".hero-bg", {
-      yPercent: 30,
-      scale: 1,
-      scrollTrigger: {
-        trigger: "header",
-        start: "top top",
-        end: "bottom top",
-        scrub: true,
+    gsap.fromTo(".hero-bg",
+      {
+        y: 0,
+        scale: 1.12   // 🔥 slightly more zoom at start
       },
-    });
+      {
+        y: 200,       // 🔥 more movement (but still controlled)
+        scale: 1.06,  // 🔥 slightly more zoom-out range
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".hero-bg",
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      }
+    );
 
     const preloaderSafety = window.setTimeout(() => {
       gsap.to(".preloader", {
@@ -328,8 +246,8 @@ export default function HomePage() {
 
   let title1 = "ETHEREAL";
   let title2 = "SHADOWS";
-  if (heroSlide) {
-    const words = (heroSlide.content || "").split(" ");
+  if (heroSlide && heroSlide.content) {
+    const words = heroSlide.content.split(" ");
     if (words.length > 1) {
       title1 = words.slice(0, Math.ceil(words.length / 2)).join(" ");
       title2 = words.slice(Math.ceil(words.length / 2)).join(" ");
@@ -338,7 +256,7 @@ export default function HomePage() {
 
   const manifesto =
     config?.manifesto_text ||
-    "We believe in the quiet power of silence. In a world of noise, U.S ATELIER is the absence of it. We strip away the unnecessary to reveal the essential structure of the human form. This is not just clothing; this is architecture for the soul.";
+    "We believe in the quiet power of silence. In a world of noise, U.S Atelier is the absence of it. We strip away the unnecessary to reveal the essential structure of the human form. This is not just clothing; this is architecture for the soul.";
   const seasonText = config?.season_label || "Fall Winter 2025";
 
   const displayProducts =
@@ -348,30 +266,19 @@ export default function HomePage() {
   const isPlaceholder = !featuredItems || featuredItems.length === 0;
 
   return (
-    <>
-      {/* Retained global styles block from user */}
+    <div className="antialiased text-[#e8e8e3] bg-[#030303]">
       <style jsx global>{`
-        @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=Cinzel:wght@400;600;800&family=Inter:wght@300;400&display=swap");
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=Cinzel:wght@400;600;800&family=Inter:wght@300;400&display=swap');
 
         :root {
           --bg-color: #030303;
           --text-color: #e8e8e3;
           --gold: #d4af37;
         }
-        body {
-          background-color: var(--bg-color);
-          color: var(--text-color);
-          font-family: "Inter", sans-serif;
-          overflow-x: hidden;
-          margin: 0;
-          padding: 0;
-        }
-        .serif {
-          font-family: "Cinzel", serif;
-        }
-        .sans {
-          font-family: "Space Grotesk", sans-serif;
-        }
+
+        .serif { font-family: 'Cinzel', serif; }
+        .sans { font-family: 'Space Grotesk', sans-serif; }
+
         .grain-overlay {
           position: fixed;
           top: 0;
@@ -383,29 +290,47 @@ export default function HomePage() {
           opacity: 0.05;
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
         }
+
         .preloader {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100vh;
-          background: #000;
+          position: absolute;
+          inset:0;
+          background: #000000ff;
           z-index: 9999;
           display: flex;
+          pointer-events: none;
           justify-content: center;
           align-items: center;
           color: white;
         }
+
+        /* 4-point star */
+        .star-loader {
+          display: inline-block;
+          font-size: 3rem;
+          line-height: 1;
+          color: white;
+          animation: star-spin 6s linear infinite;
+        }
+        @keyframes star-spin {
+          0%   { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
         .magnetic-wrap {
           display: inline-block;
           position: relative;
         }
+        .magnetic-area {
+          position: absolute;
+          top: -20px; left: -20px; right: -20px; bottom: -20px;
+          z-index: 10;
+        }
+
+        /* Horizontal scroll */
         .horizontal-section {
-          width: auto;
-          min-width: 100vw;
-          height: 100vh;
           display: flex;
           flex-wrap: nowrap;
+          height: 100vh;
         }
         .panel {
           width: 100vw;
@@ -414,9 +339,25 @@ export default function HomePage() {
           justify-content: center;
           align-items: center;
           position: relative;
-          border-right: 1px solid rgba(255, 255, 255, 0.1);
+          border-right: 1px solid rgba(255,255,255,0.1);
           flex-shrink: 0;
         }
+
+        /* On mobile, stack panels vertically */
+        @media (max-width: 1023px) {
+          .horizontal-section {
+            flex-direction: column;
+            height: auto;
+            width: 100% !important;
+          }
+          .panel {
+            width: 100%;
+            min-height: 85vh;
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+          }
+        }
+
         .line-mask {
           overflow: hidden;
         }
@@ -424,307 +365,218 @@ export default function HomePage() {
           display: block;
           transform: translateY(100%);
         }
+
         .highlight-text span {
           opacity: 0.2;
           transition: opacity 0.3s;
         }
-        .drag-container {
+        .highlight-text span.active {
+          opacity: 1;
+        }
+
+        /* Hide nav on mobile */
+        @media (max-width: 767px) {
+          .site-nav {
+            display: none !important;
+          }
+        }
+
+        .no-scrollbar {
           -ms-overflow-style: none;
           scrollbar-width: none;
-          cursor: grab;
         }
-        .drag-container::-webkit-scrollbar {
+        .no-scrollbar::-webkit-scrollbar {
           display: none;
-        }
-        .drag-container:active {
-          cursor: grabbing;
-        }
-        .skew-img {
-          will-change: transform;
-        }
-        @media (max-width: 1023px) {
-          .horizontal-section {
-            width: 100%;
-            height: auto;
-            flex-direction: column;
-          }
-          .panel {
-            width: 100%;
-            min-height: 85vh;
-            border-right: none;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          }
         }
       `}</style>
 
+      {/* Grain overlay */}
       <div className="grain-overlay" />
+
+      {/* Preloader — 4-point star + progress bar */}
       <div className="preloader">
-        <div className="text-center">
-          <h1 className="serif mb-2 text-4xl tracking-widest">U.S ATELIER</h1>
-          <div className="relative mt-4 h-px w-48 overflow-hidden bg-gray-800">
+        <div className="text-center flex flex-col items-center gap-4">
+          {/* 4-point star using ✦ unicode */}
+          <span className="star-loader">✦</span>
+          <div className="w-48 h-[1px] bg-gray-800 relative overflow-hidden">
             <div
-              className="loading-bar absolute left-0 top-0 h-full bg-white"
+              className="absolute top-0 left-0 h-full bg-white transition-none"
               style={{ width: `${loadingPercent}%` }}
             />
           </div>
-          <p className="sans loading-percent mt-2 text-xs text-gray-500">{`${loadingPercent}%`}</p>
+          <p className="text-[10px] sans uppercase tracking-[0.4em] text-gray-500">
+            {loadingPercent}%
+          </p>
         </div>
       </div>
 
-      {/* Global navbar instead of local hardcoded one */}
+      {/* Navbar — hidden on mobile via CSS */}
       <SiteHeader />
 
-      <main>
-        <header className="relative flex h-screen w-full items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <img
-              src={heroImage}
-              className="hero-bg h-full w-full scale-110 object-cover opacity-60"
-              alt="Hero"
-            />
+      {/* ─── HERO SECTION (from reference) ─── */}
+      <header className="relative w-full h-screen overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 z-0">
+          <img
+            src={heroImage}
+            className="w-full h-full object-cover opacity-60 scale-110 hero-bg"
+            alt="Hero"
+          />
+        </div>
+        <div className="absolute inset-0" />
+        <div className="z-10 text-center relative mix-blend-difference px-4">
+          <div className="line-mask mb-2">
+            <h2 className="text-sm sans uppercase tracking-[0.5em] text-gray-300">
+              {seasonText}
+            </h2>
           </div>
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="relative z-10 px-4 text-center mix-blend-difference">
-            <div className="line-mask mb-2">
-              <h2 className="reveal-hero sans text-sm uppercase tracking-[0.5em] text-gray-300">
-                {seasonText}
+          <div className="line-mask">
+            <h1 className="text-[14vw] leading-[0.8] serif text-white hero-main-text">
+              {title1}
+            </h1>
+          </div>
+          <div className="line-mask">
+            <h1 className="text-[14vw] leading-[0.8] serif italic text-gray-400 hero-main-text">
+              {title2}
+            </h1>
+          </div>
+          <div className="mt-12 opacity-0 hero-cta">
+            <div className="magnetic-wrap">
+              <Link
+                href="/view-all"
+                className="inline-block px-8 py-4 border border-white/50 rounded-full text-xs uppercase tracking-widest hover:bg-white hover:text-black transition-all duration-500 magnetic-target"
+              >
+                View The Lookbook
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="absolute bottom-10 left-10 hidden md:block">
+          <p className="text-[10px] uppercase tracking-widest w-32 leading-relaxed opacity-60">
+            Designed in Paris.
+            <br />
+            Crafted in Milan.
+            <br />
+            Worn in Darkness.
+          </p>
+        </div>
+      </header>
+
+      {/* ─── MANIFESTO SECTION ─── */}
+      <section className="min-h-screen flex items-center justify-center px-6 md:px-32 py-24 bg-[#030303]">
+        <div className="max-w-4xl text-center">
+          <p className="highlight-text text-3xl md:text-5xl serif leading-relaxed text-gray-300">
+            {manifesto}
+          </p>
+        </div>
+      </section>
+
+      {/* ─── RUNWAY HORIZONTAL SCROLL (from reference, desktop-only pin) ─── */}
+      <div className="overflow-hidden bg-[#0a0a0a]" id="scroll-container">
+        <div
+          className="horizontal-section"
+          id="runway"
+          style={{ width: `${(displayProducts.length + 2) * 100}vw` }}
+        >
+          {/* Intro panel */}
+          <div className="panel bg-[#0a0a0a]">
+            <div className="flex flex-col items-start px-10 md:px-24 w-full h-full justify-center relative">
+              <span className="text-[16vw] md:text-9xl serif opacity-10 absolute md:top-10 md:left-10 top-5 left-5 pointer-events-none">
+                01
+              </span>
+              <h2 className="text-4xl md:text-6xl serif mb-6 md:mb-8 z-10 text-white">
+                The Runway
               </h2>
+              <p className="text-xs md:text-sm sans uppercase tracking-widest max-w-sm z-10 text-gray-400 mb-8">
+                Featuring raw hems, structured shoulders, and liquid silk
+                drapes.
+              </p>
+              <span className="text-[10px] md:text-xs text-white border-b border-white pb-1">
+                Scroll to Explore &rarr;
+              </span>
             </div>
-            <div className="line-mask">
-              <h1 className="hero-main-text serif text-[14vw] leading-[0.8] text-white">
-                {title1}
-              </h1>
+            <div className="absolute right-0 top-0 h-full w-1/2 overflow-hidden hidden md:block">
+              <img
+                src="https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=2576&auto=format&fit=crop"
+                className="w-full h-full object-cover opacity-50 grayscale hover:grayscale-0 transition-all duration-700"
+                alt="Runway"
+              />
             </div>
-            <div className="line-mask">
-              <h1 className="hero-main-text serif text-[14vw] leading-[0.8] italic text-gray-400">
-                {title2}
-              </h1>
-            </div>
-            <div className="hero-cta mt-12 opacity-0">
+          </div>
+
+          {/* Dynamic product panels */}
+          {displayProducts.map((product, i) => {
+            const pImageUrl = isPlaceholder
+              ? product.image
+              : (() => {
+                const imgs =
+                  typeof product.images === "string"
+                    ? (() => {
+                      try {
+                        return JSON.parse(product.images);
+                      } catch {
+                        return [product.images];
+                      }
+                    })()
+                    : product.images;
+                return resolveMediaUrl(imgs?.[0] || "/placeholder.jpg");
+              })();
+
+            const bgColors = ["#050505", "#080808", "#030303"];
+            const bg = bgColors[i % bgColors.length];
+
+            return (
+              <div
+                className="panel"
+                style={{ backgroundColor: bg }}
+                key={product.id || i}
+              >
+                <Link
+                  href={
+                    isPlaceholder ? "/view-all" : `/product/${product.id}`
+                  }
+                  className="relative w-[320px] md:w-[400px] h-[480px] md:h-[600px] overflow-hidden group block"
+                >
+                  <img
+                    src={pImageUrl}
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                    alt={product.name}
+                  />
+                  <div className="absolute bottom-6 left-6 z-10">
+                    <h3 className="text-3xl serif italic text-white">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs sans uppercase mt-2 text-white/70">
+                      ₹{Number(product.price).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
+                </Link>
+              </div>
+            );
+          })}
+
+          {/* Outro panel */}
+          <div className="panel bg-[#030303]">
+            <div className="text-center">
+              <h2 className="text-6xl md:text-8xl serif mb-6 text-white">
+                FIN
+              </h2>
               <div className="magnetic-wrap">
                 <Link
                   href="/view-all"
-                  className="magnetic-target inline-block rounded-full border border-white/50 px-8 py-4 text-xs uppercase tracking-widest transition-all duration-500 hover:bg-white hover:text-black"
+                  className="inline-block px-12 py-5 border border-white/20 rounded-full uppercase text-sm tracking-widest text-white hover:bg-white hover:text-black transition-all magnetic-target"
                 >
-                  View The Lookbook
+                  Shop The Collection
                 </Link>
               </div>
             </div>
           </div>
-          <div className="absolute bottom-10 left-10 hidden md:block">
-            <p className="w-32 text-[10px] uppercase tracking-widest opacity-60">
-              Designed in Paris.
-              <br />
-              Crafted in Milan.
-              <br />
-              Worn in Darkness.
-            </p>
-          </div>
-        </header>
-
-        <section className="flex min-h-screen items-center justify-center bg-[#030303] px-6 py-24 md:px-32">
-          <div className="max-w-4xl text-center">
-            <p className="highlight-text serif text-3xl leading-relaxed text-gray-300 md:text-5xl">
-              {manifesto}
-            </p>
-          </div>
-        </section>
-
-        {/* Dynamic Runway Section */}
-        <div id="scroll-container" className="overflow-hidden bg-[#0a0a0a]">
-          <div
-            className="horizontal-section"
-            id="runway"
-            style={{ width: `${100 * (displayProducts.length + 2)}vw` }}
-          >
-            {/* Intro panel */}
-            <div className="panel bg-[#0a0a0a]">
-              <div className="flex flex-col items-start px-10 md:px-24">
-                <span className="serif absolute left-10 top-10 text-9xl opacity-10">
-                  01
-                </span>
-                <h2 className="serif z-10 mb-8 text-4xl md:text-6xl">
-                  The Runway
-                </h2>
-                <p className="sans z-10 mb-8 max-w-sm text-sm uppercase tracking-widest text-gray-400">
-                  Featuring raw hems, structured shoulders, and liquid silk
-                  drapes.
-                </p>
-                <span className="border-b border-white pb-1 text-xs text-white">
-                  Scroll to Explore →
-                </span>
-              </div>
-              <div className="absolute right-0 top-0 h-full w-1/2 overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=2576&auto=format&fit=crop"
-                  className="h-full w-full object-cover opacity-50 grayscale transition-all duration-700 hover:grayscale-0"
-                />
-              </div>
-            </div>
-
-            {/* Dynamic Product panels */}
-            {displayProducts.map((product, idx) => {
-              const bgColors = ["#050505", "#080808", "#0a0a0a"];
-              const bg = bgColors[idx % bgColors.length];
-              const pImageUrl = isPlaceholder
-                ? product.image
-                : (() => {
-                  const imgs =
-                    typeof product.images === "string"
-                      ? (() => {
-                        try {
-                          return JSON.parse(product.images);
-                        } catch {
-                          return [product.images];
-                        }
-                      })()
-                      : product.images;
-                  return resolveMediaUrl(imgs?.[0] || "/placeholder.jpg");
-                })();
-
-              return (
-                <div key={product.id || idx} className={`panel bg-[${bg}]`}>
-                  <Link
-                    href={isPlaceholder ? "/view-all" : `/product/${product.id}`}
-                    className="group relative h-[520px] w-[320px] overflow-hidden md:h-[600px] md:w-[400px] cursor-pointer"
-                  >
-                    <img
-                      src={pImageUrl}
-                      className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                    />
-                    <div className="absolute bottom-6 left-6 z-10">
-                      <h3 className="serif text-3xl italic text-white/95">
-                        {product.name}
-                      </h3>
-                      <p className="sans mt-2 text-xs uppercase text-white/70">
-                        ₹{Number(product.price).toLocaleString("en-IN")}
-                      </p>
-                    </div>
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-all pointer-events-none" />
-                  </Link>
-                </div>
-              );
-            })}
-
-            {/* Outro panel */}
-            <div className="panel bg-[#030303]">
-              <div className="text-center">
-                <h2 className="serif mb-6 text-8xl">FIN</h2>
-                <div className="magnetic-wrap">
-                  <Link
-                    href="/view-all"
-                    className="magnetic-target inline-block rounded-full border border-white/20 px-12 py-5 text-sm uppercase tracking-widest transition-all hover:bg-white hover:text-black"
-                  >
-                    Shop The Collection
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
+      </div>
 
-        {/* Best Sellers Section - Managed by Admin */}
-        <section className="bg-[#030303] py-20 md:py-32 overflow-hidden border-t border-white/5">
-          <div className="px-8 md:px-20 mb-12">
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="sans text-[10px] uppercase tracking-[0.4em] text-white/30 mb-3">
-                  Curated by the Studio
-                </p>
-                <h2 className="serif text-5xl md:text-7xl font-light text-white/90 leading-none">
-                  Best Sellers
-                </h2>
-              </div>
-              <Link
-                href="/view-all"
-                className="hidden md:inline-flex sans text-[10px] uppercase tracking-[0.3em] text-white/35 hover:text-white transition-colors border-b border-white/15 hover:border-white/50 pb-0.5 mb-2"
-              >
-                View All →
-              </Link>
-            </div>
-            <div className="mt-8 h-px w-full bg-white/5" />
-          </div>
-
-          <div
-            className="flex gap-4 md:gap-6 px-8 md:px-20 pb-4 overflow-x-auto no-scrollbar"
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            {(bestsellers && bestsellers.length > 0 ? bestsellers : PLACEHOLDER_BESTSELLERS).map((p: any, idx: number) => (
-              <FeaturedPieceCard
-                key={!bestsellers || bestsellers.length === 0 ? `ph-${idx}` : `${p.id}-${idx}`}
-                product={p}
-                isPlaceholder={!bestsellers || bestsellers.length === 0}
-              />
-            ))}
-          </div>
-
-          <div className="md:hidden px-8 mt-8">
-            <Link
-              href="/view-all"
-              className="sans text-[10px] uppercase tracking-[0.3em] text-white/35 hover:text-white transition-colors border-b border-white/15 hover:border-white/50 pb-0.5"
-            >
-              View All →
-            </Link>
-          </div>
-        </section>
-
-        <section className="relative z-10 bg-[#030303] px-6 py-20 md:px-12 md:py-32">
-          <div className="flex flex-col gap-8 md:flex-row">
-            <div className="w-full pt-12 md:w-1/3">
-              <div className="sticky top-32">
-                <span className="mb-4 block text-xs uppercase tracking-widest text-[#d4af37]">
-                  The Details
-                </span>
-                <h3 className="serif mb-6 text-4xl">
-                  Obsession with <br />{" "}
-                  <span className="italic text-gray-500">Imperfection</span>.
-                </h3>
-                <p className="mb-8 text-sm leading-7 text-gray-400">
-                  Every stitch is calculated. Every tear is intentional. We
-                  source our wool from the highlands of Peru and our silk from
-                  the forgotten mills of Lyon.
-                </p>
-                <ul className="space-y-4 border-t border-white/10 pt-8 text-xs uppercase tracking-widest text-gray-500">
-                  <li className="flex justify-between text-white">
-                    <span>Material</span> <span>100% Cashmere</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>Origin</span> <span>Italy</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>Year</span> <span>2025</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="grid w-full grid-cols-2 gap-4 md:w-2/3">
-              <div className="mt-12 space-y-4">
-                <img
-                  src="https://images.unsplash.com/photo-1445205170230-053b83016050?q=80&w=2671&auto=format&fit=crop"
-                  className="parallax-img-slow aspect-[3/4] w-full object-cover"
-                />
-                <img
-                  src="https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?q=80&w=2670&auto=format&fit=crop"
-                  className="parallax-img-slow aspect-[3/4] w-full object-cover"
-                />
-              </div>
-              <div className="space-y-4">
-                <img
-                  src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=2670&auto=format&fit=crop"
-                  className="parallax-img-fast aspect-[3/4] w-full object-cover"
-                />
-                <img
-                  src="https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?q=80&w=2670&auto=format&fit=crop"
-                  className="parallax-img-fast aspect-[3/4] w-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <SiteFooter />
-      </main>
-    </>
+      {/* ─── FOOTER ─── */}
+      <SiteFooter />
+    </div>
   );
+
 }

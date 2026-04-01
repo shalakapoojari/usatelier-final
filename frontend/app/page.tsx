@@ -102,11 +102,10 @@ export default function HomePage() {
       .to(".hero-cta", { opacity: 1, duration: 1 }, "-=1");
 
     const mm = gsap.matchMedia();
-    mm.add("(min-width: 1024px)", () => {
+
+    mm.add("(min-width: 1px)", () => {
       const sections = gsap.utils.toArray<HTMLElement>(".panel");
-      const container = document.querySelector(
-        ".horizontal-section",
-      ) as HTMLElement;
+      const container = document.querySelector(".horizontal-section") as HTMLElement;
       if (sections.length === 0 || !container) return;
 
       gsap.to(sections, {
@@ -116,6 +115,8 @@ export default function HomePage() {
           trigger: "#scroll-container",
           pin: true,
           scrub: 1,
+          snap: 1 / (sections.length - 1),
+          start: "top 10%",
           end: () => "+=" + container.offsetWidth,
         },
       });
@@ -346,7 +347,7 @@ export default function HomePage() {
         /* On mobile, stack panels vertically */
         @media (max-width: 1023px) {
           .horizontal-section {
-            flex-direction: column;
+            flex-direction: row;
             height: auto;
             width: 100% !important;
           }

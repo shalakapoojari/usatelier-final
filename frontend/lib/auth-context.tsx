@@ -178,8 +178,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null)
     localStorage.removeItem(SESSION_USER_KEY)
-    // Keep cart in localStorage — cart is guest-friendly
-    localStorage.removeItem("wishlist")
+    // Keep cart and wishlist in localStorage — both are guest-friendly
+    // localStorage.removeItem("wishlist")
   }
 
 

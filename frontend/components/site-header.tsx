@@ -169,19 +169,11 @@ export function SiteHeader() {
   }, [])
 
   const handleCartClick = () => {
-    if (!user) {
-      router.push("/login")
-      return
-    }
     clearCartUnseen()
     router.push("/cart")
   }
 
   const handleFavouritesClick = () => {
-    if (!user) {
-      router.push("/login")
-      return
-    }
     clearWishlistUnseen()
     router.push("/favourites")
   }

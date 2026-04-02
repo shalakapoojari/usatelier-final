@@ -57,19 +57,9 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("wishlist", JSON.stringify(items))
     }, [items, isHydrated])
 
-    // Reset items when logged out
-    useEffect(() => {
-        if (!isAuthenticated) {
-            setItems([])
-        }
-    }, [isAuthenticated])
+    // Wishlist persists in local storage — guests can use it too.
 
     const addItem = (item: WishlistItem) => {
-        if (!isAuthenticated) {
-            const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
-            router.push(`/signup${currentPath ? `?next=${encodeURIComponent(currentPath)}` : ""}`)
-            return
-        }
         setItems((prev) => {
             if (prev.find((i) => i.id === item.id)) return prev
             return [...prev, item]
@@ -81,11 +71,6 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     }
 
     const toggleItem = (item: WishlistItem) => {
-        if (!isAuthenticated) {
-            const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
-            router.push(`/signup${currentPath ? `?next=${encodeURIComponent(currentPath)}` : ""}`)
-            return
-        }
         // Check BEFORE the state update using the ref (always current)
         const alreadySaved = latestItems.current.some((i) => i.id === item.id)
         if (!alreadySaved) {

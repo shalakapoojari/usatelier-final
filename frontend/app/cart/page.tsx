@@ -17,26 +17,17 @@ export default function CartPage() {
   const { isAuthenticated, isAuthLoading } = useAuth()
   const router = useRouter()
 
-  // Authentication guard
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      router.push("/login?next=/cart")
-    }
-  }, [isAuthLoading, isAuthenticated, router])
-  
   // Clear the navbar badge as soon as the user lands here
   useEffect(() => { 
-    if (isAuthenticated) {
-        clearUnseen() 
-    }
-  }, [isAuthenticated, clearUnseen])
+    clearUnseen() 
+  }, [clearUnseen])
 
-  if (isAuthLoading || !isAuthenticated) {
+  if (isAuthLoading) {
     return (
       <div className="bg-[#030303] text-[#e8e8e3] min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
            <div className="w-8 h-8 border-2 border-white/20 border-t-white animate-spin rounded-full" />
-           <p className="text-[10px] uppercase tracking-widest text-gray-500">Checking session...</p>
+           <p className="text-[10px] uppercase tracking-widest text-gray-500">Initializing cart...</p>
         </div>
       </div>
     )

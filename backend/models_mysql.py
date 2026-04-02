@@ -10,11 +10,10 @@ Enterprise additions:
 """
 
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 db_mysql = SQLAlchemy()
-
 
 # ---------------------------------------------------------------------------
 # User
@@ -53,7 +52,7 @@ class User(db_mysql.Model):
         self.addresses_json = json.dumps(value)
 
     def is_locked(self) -> bool:
-        return bool(self.locked_until and self.locked_until > datetime.utcnow())
+        return bool(self.locked_until and self.locked_until > datetime.now(timezone.utc))
 
     def to_dict(self):
         return {
@@ -489,7 +488,7 @@ class Coupon(db_mysql.Model):
         """
         if not self.is_active:
             return False, "Coupon is inactive"
-        if self.expires_at and self.expires_at < datetime.utcnow():
+        if self.expires_at and self.expires_at < datetime.now(timezone.utc):
             return False, "Coupon has expired"
         if self.max_uses is not None and self.uses >= self.max_uses:
             return False, "Coupon usage limit reached"
@@ -532,7 +531,7 @@ class PasswordResetToken(db_mysql.Model):
     created_at = db_mysql.Column(db_mysql.DateTime, default=datetime.utcnow)
 
     def is_valid(self) -> bool:
-        return not self.used and self.expires_at > datetime.utcnow()
+        return not self.used and self.expires_at > datetime.now(timezone.utc)
 
 
 # ---------------------------------------------------------------------------

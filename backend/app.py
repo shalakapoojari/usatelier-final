@@ -18,7 +18,7 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from functools import wraps
 from urllib.parse import urlparse, urlunparse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os, json, re, time, hashlib, traceback, logging
 
 import requests as http_requests
@@ -36,6 +36,7 @@ from mail_utils import (
     send_order_confirmation,
     send_order_status_update,
     send_new_arrival_notification,
+    send_otp_email,
 )
 from models_mysql import (
     db_mysql,
@@ -232,6 +233,10 @@ app.config["MAIL_USERNAME"]       = os.getenv("MAIL_USERNAME")
 app.config["MAIL_PASSWORD"]       = os.getenv("MAIL_PASSWORD")
 app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
 
+
+db_mysql.init_app(app)
+mail = Mail(app)
+
 if not is_production:
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -397,7 +402,7 @@ def _run_dispatch_job(job_id: int):
                     job_id, order.order_number, order.delhivery_shipment_id,
                 )
                 job.status       = "done"
-                job.completed_at = datetime.utcnow()
+                job.completed_at = datetime.now(timezone.utc)
                 job.last_error   = "Already shipped (idempotency guard)"
                 db_mysql.session.commit()
                 return
@@ -450,7 +455,7 @@ def _run_dispatch_job(job_id: int):
                 order.delhivery_waybill_number = res.get("waybill_number", "")
                 order.status            = "Shipped"
                 job.status              = "done"
-                job.completed_at        = datetime.utcnow()
+                job.completed_at        = datetime.now(timezone.utc)
                 db_mysql.session.commit()
 
                 if user:
@@ -492,7 +497,7 @@ def _run_dispatch_job(job_id: int):
             else:
                 job.status          = "retry"
                 job.last_error      = str(exc)[:500]
-                job.next_attempt_at = datetime.utcnow() + timedelta(seconds=delay)
+                job.next_attempt_at = datetime.now(timezone.utc) + timedelta(seconds=delay)
                 app.logger.warning("dispatch_job_retry job=%s attempt=%s next_in=%ss",
                                    job_id, job.attempts, delay)
             db_mysql.session.commit()
@@ -503,7 +508,7 @@ def _poll_dispatch_jobs():
     with app.app_context():
         due = DispatchJob.query.filter(
             DispatchJob.status.in_(["pending", "retry"]),
-            DispatchJob.next_attempt_at <= datetime.utcnow(),
+            DispatchJob.next_attempt_at <= datetime.now(timezone.utc),
         ).all()
         for job in due:
             try:
@@ -814,7 +819,7 @@ def login():
         if user:
             user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
             if user.failed_login_attempts >= 5:
-                user.locked_until = datetime.utcnow() + timedelta(minutes=15)
+                user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
                 app.logger.warning("account_locked user_id=%s", user.id)
             db_mysql.session.commit()
         return jsonify({"error": "Invalid credentials"}), 401
@@ -825,7 +830,7 @@ def login():
     # Successful login — reset lockout, migrate hash if needed
     user.failed_login_attempts = 0
     user.locked_until          = None
-    user.last_login_at         = datetime.utcnow()
+    user.last_login_at         = datetime.now(timezone.utc)
     user.last_login_ip         = request.remote_addr
 
     if not _is_password_hashed(user.password):
@@ -949,7 +954,7 @@ def forgot_password():
         prt = PasswordResetToken(
             user_id    = user.id,
             token_hash = token_hash,
-            expires_at = datetime.utcnow() + timedelta(hours=1),
+            expires_at = datetime.now(timezone.utc) + timedelta(hours=1),
         )
         db_mysql.session.add(prt)
         try:
@@ -1015,12 +1020,12 @@ def send_otp():
         user = User(
             email=email,
             is_admin=False,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         db_mysql.session.add(user)
     
     user.otp_hash = otp_hash
-    user.otp_expires_at = datetime.utcnow() + timedelta(minutes=10)
+    user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
     
     try:
         db_mysql.session.commit()
@@ -1048,7 +1053,9 @@ def verify_otp():
     if not user or not user.otp_hash or not user.otp_expires_at:
         return jsonify({"error": "Invalid or expired OTP"}), 400
 
-    if user.otp_expires_at < datetime.utcnow():
+    expiry = user.otp_expires_at.replace(tzinfo=timezone.utc)
+
+    if expiry < datetime.now(timezone.utc):
         return jsonify({"error": "OTP has expired"}), 400
 
     if _hash_otp(otp) != user.otp_hash:
@@ -1057,7 +1064,7 @@ def verify_otp():
     # Success
     user.otp_hash = None
     user.otp_expires_at = None
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = datetime.now(timezone.utc)
     user.last_login_ip = request.remote_addr
     
     try:
@@ -1441,7 +1448,6 @@ def add_to_cart():
 
 
 @app.route("/api/cart/<int:item_id>", methods=["PUT"])
-@login_required
 def update_cart_item(item_id):
     data     = request.get_json() or {}
     quantity = data.get("quantity")
@@ -1456,7 +1462,6 @@ def update_cart_item(item_id):
 
 
 @app.route("/api/cart/<int:item_id>", methods=["DELETE"])
-@login_required
 def remove_cart_item(item_id):
     item = CartItem.query.filter_by(id=item_id, user_id=int(session["user_id"])).first()
     if item:
@@ -1469,7 +1474,6 @@ def remove_cart_item(item_id):
 # ============================================================
 
 @app.route("/api/wishlist", methods=["GET"])
-@login_required
 def get_wishlist():
     items   = WishlistItem.query.filter_by(user_id=int(session["user_id"])).all()
     results = []
@@ -1490,7 +1494,6 @@ def get_wishlist():
 
 
 @app.route("/api/wishlist", methods=["POST"])
-@login_required
 def add_to_wishlist():
     product_id = str((request.get_json() or {}).get("product_id", ""))
     if not product_id:
@@ -1516,7 +1519,6 @@ def add_to_wishlist():
 
 
 @app.route("/api/wishlist/<product_id>", methods=["DELETE"])
-@login_required
 def remove_from_wishlist(product_id):
     item = WishlistItem.query.filter_by(
         user_id=int(session["user_id"]),
@@ -2217,7 +2219,7 @@ def cancel_order(order_number):
         return jsonify({"error": f"Order is already {order.status}"}), 400
 
     cutoff = order.created_at + timedelta(minutes=30)
-    if datetime.utcnow() > cutoff:
+    if datetime.now(timezone.utc) > cutoff:
         return jsonify({"error": "30-minute cancellation window has closed"}), 400
 
     try:
@@ -2389,7 +2391,7 @@ def shipping_estimate():
 
     # ETA: 5-7 business days from now
     from datetime import timedelta
-    today = datetime.utcnow()
+    today = datetime.now(timezone.utc)
     eta_min = today + timedelta(days=5)
     eta_max = today + timedelta(days=7)
 
@@ -2604,7 +2606,7 @@ def get_analysis_data():
 
         # Revenue summary
         from sqlalchemy import extract
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         monthly_revenue_raw = (
             db_mysql.session.query(
                 extract("year", OrderSQL.created_at).label("year"),
@@ -2836,7 +2838,7 @@ def update_homepage_config():
         config.bestseller_ids   = data.get("bestseller_product_ids", [])
         config.featured_ids     = data.get("featured_product_ids", [])
         config.new_arrival_ids  = data.get("new_arrival_product_ids", [])
-        config.updated_at       = datetime.utcnow()
+        config.updated_at       = datetime.now(timezone.utc)
 
         db_mysql.session.commit()
         return jsonify({"success": True, "message": "Homepage updated"}), 200

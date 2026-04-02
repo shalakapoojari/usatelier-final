@@ -1965,7 +1965,7 @@ def create_order():
     # Terms
     if not bool(data.get("termsAccepted")):
         return jsonify({"error": "Terms and Conditions must be accepted"}), 400
-
+    
     # Idempotency — prevent duplicate orders on retry
     idempotency_key = data.get("idempotencyKey")
     if idempotency_key:
@@ -2000,7 +2000,7 @@ def create_order():
             "razorpay_signature":  rzp_signature,
         })
     except Exception as exc:
-        app.logger.warning("order_payment_verification_failed err=%s", exc)
+        app.logger.error("create_order_error err=%s\n%s", exc, traceback.format_exc())
         return jsonify({"error": "Payment verification failed. Please try again."}), 400
 
     payment_status = "Paid"
@@ -2039,6 +2039,7 @@ def create_order():
         if not user:
             user = User(
                 email=email.strip().lower(),
+                password=generate_password_hash("guest_user"),
                 first_name=first_name,
                 last_name=last_name,
                 phone=phone,
@@ -2724,7 +2725,23 @@ def update_customer_status(customer_id):
 
 @app.route("/api/categories", methods=["GET"])
 def get_categories():
-    return jsonify([c.to_dict() for c in CategorySQL.query.all()])
+    try:
+        categories = CategorySQL.query.all()
+
+        result = []
+        for c in categories:
+            result.append({
+                "id": c.id,
+                "name": c.name,
+                "subcategories": json.loads(c.subcategories) if c.subcategories else []
+            })
+
+        return jsonify(result)
+
+    except Exception as e:
+        import traceback
+        print("CATEGORY ERROR:", traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/categories", methods=["POST"])
@@ -2856,6 +2873,15 @@ def get_audit_log():
         .offset((page - 1) * limit).limit(limit).all()
     )
     return jsonify([l.to_dict() for l in logs])
+    
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    return jsonify({
+        "error": "Internal server error",
+        "details": str(e),
+        "trace": traceback.format_exc()
+    }), 500
 
 # ============================================================
 # ADMIN — DELHIVERY TEST ENDPOINT

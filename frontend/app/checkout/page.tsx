@@ -25,7 +25,7 @@ declare global {
 
 export default function CheckoutPage() {
   const { items, total, clearCart, isHydrated } = useCart()
-  const { user, isAuthenticated, isAuthLoading } = useAuth()
+  const { user, isAuthenticated, isAuthLoading, refreshUser } = useAuth()
   const router = useRouter()
 
   // Auth gate: removed to allow guest checkout
@@ -311,6 +311,7 @@ export default function CheckoutPage() {
                 paymentId: response.razorpay_payment_id,
               }))
               clearCart()
+              await refreshUser()
               router.push(`/account/orders/${finalData.orderId}`)
             } else {
               const errorData = await finalizeRes.json()

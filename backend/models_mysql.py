@@ -25,7 +25,7 @@ class User(db_mysql.Model):
 
     id                    = db_mysql.Column(db_mysql.Integer, primary_key=True)
     email                 = db_mysql.Column(db_mysql.String(255), unique=True, nullable=False)
-    password              = db_mysql.Column(db_mysql.String(255), nullable=False)
+    password              = db_mysql.Column(db_mysql.String(255), nullable=True)
     first_name            = db_mysql.Column(db_mysql.String(100))
     last_name             = db_mysql.Column(db_mysql.String(100))
     phone                 = db_mysql.Column(db_mysql.String(20))
@@ -33,6 +33,9 @@ class User(db_mysql.Model):
     is_admin              = db_mysql.Column(db_mysql.Boolean, default=False)
     is_blocked            = db_mysql.Column(db_mysql.Boolean, default=False)
     addresses_json        = db_mysql.Column(db_mysql.Text, default="[]")
+    # OTP fields
+    otp_hash              = db_mysql.Column(db_mysql.String(128), nullable=True)
+    otp_expires_at        = db_mysql.Column(db_mysql.DateTime, nullable=True)
     # Account lockout
     failed_login_attempts = db_mysql.Column(db_mysql.Integer, default=0)
     locked_until          = db_mysql.Column(db_mysql.DateTime, nullable=True)
@@ -111,7 +114,7 @@ class Product(db_mysql.Model):
     gender           = db_mysql.Column(db_mysql.String(50))
     description      = db_mysql.Column(db_mysql.Text)
     images_json      = db_mysql.Column(db_mysql.Text)
-    sizes_json       = db_mysql.Column(db_mysql.Text)
+    sizes_json       = db_mysql.Column(db_mysql.Text) # Stores JSON like {"S": 10, "M": 5} or ["S", "M"]
     stock            = db_mysql.Column(db_mysql.Integer, default=0)
     is_featured      = db_mysql.Column(db_mysql.Boolean, default=False)
     is_new           = db_mysql.Column(db_mysql.Boolean, default=False)
@@ -131,11 +134,40 @@ class Product(db_mysql.Model):
 
     @property
     def sizes(self):
-        return json.loads(self.sizes_json) if self.sizes_json else []
+        """Returns the dictionary or list of sizes."""
+        if not self.sizes_json:
+            return []
+        try:
+            return json.loads(self.sizes_json)
+        except:
+            return []
 
     @sizes.setter
     def sizes(self, value):
         self.sizes_json = json.dumps(value)
+
+    def get_stock_for_size(self, size: str) -> int:
+        """Returns the stock count for a specific size."""
+        data = self.sizes
+        if isinstance(data, dict):
+            return int(data.get(size, 0))
+        # Legacy support: if sizes is a list, we use the global stock
+        if isinstance(data, list) and size in data:
+            return self.stock
+        return 0
+
+    def update_stock_for_size(self, size: str, delta: int):
+        """Increments/decrements stock for a specific size."""
+        data = self.sizes
+        if isinstance(data, dict):
+            current = int(data.get(size, 0))
+            data[size] = max(0, current + delta)
+            self.sizes = data
+            # Also update the total stock for quick lookups
+            self.stock = sum(int(v) for v in data.values() if str(v).isdigit())
+        else:
+            # Legacy fallback
+            self.stock = max(0, self.stock + delta)
 
     def to_dict(self):
         return {

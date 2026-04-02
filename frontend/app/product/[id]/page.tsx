@@ -183,8 +183,41 @@ export default function ProductPage({
     }
   })()
 
-  const isInStock = product.stock !== undefined ? product.stock > 0 : product.inStock
-  const isLowStock = product.stock !== undefined && product.stock > 0 && product.stock < 5
+  const parseSizes = (sizesField: any) => {
+    if (!sizesField) return []
+    if (typeof sizesField === "object" && !Array.isArray(sizesField)) {
+      return Object.keys(sizesField)
+    }
+    if (Array.isArray(sizesField)) return sizesField
+    try {
+      const parsed = JSON.parse(sizesField)
+      if (typeof parsed === "object" && !Array.isArray(parsed)) {
+        return Object.keys(parsed)
+      }
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  const getStockForSize = (size: string) => {
+    if (!product || !size) return 0
+    const sizesData = typeof product.sizes === "string" ? JSON.parse(product.sizes || "{}") : (product.sizes || {})
+    if (typeof sizesData === "object" && !Array.isArray(sizesData)) {
+      return parseInt(sizesData[size] || "0")
+    }
+    // Fallback for legacy array format
+    return product.stock || 0
+  }
+
+  const sizes = parseSizes(product.sizes)
+  const totalStock = product.stock !== undefined ? product.stock : (product.inStock ? 99 : 0)
+  const isInStock = totalStock > 0
+  const isLowStock = totalStock > 0 && totalStock < 5
+  
+  const isSizeAvailable = (size: string) => {
+    return getStockForSize(size) > 0
+  }
 
 
   const relatedProducts = allProducts
@@ -200,12 +233,18 @@ export default function ProductPage({
       return
     }
 
+    const availableStock = getStockForSize(selectedSize)
+    if (availableStock <= 0) {
+      showToast("This size is currently sold out", "error", product.name)
+      return
+    }
+
     addItem({
       id: product.id,
       name: product.name,
       price: product.price,
       size: selectedSize,
-      stock: product.stock,
+      stock: availableStock,
       image: resolveMediaUrl(images[0]),
     })
 
@@ -291,6 +330,12 @@ export default function ProductPage({
       return
     }
 
+    const availableStock = getStockForSize(selectedSize)
+    if (availableStock <= 0) {
+      showToast("This size is currently sold out", "error", product.name)
+      return
+    }
+
     const existing = items.find((i: any) => i.id === product.id && i.size === selectedSize)
     if (!existing) {
       addItem({
@@ -298,7 +343,7 @@ export default function ProductPage({
         name: product.name,
         price: product.price,
         size: selectedSize,
-        stock: product.stock,
+        stock: availableStock,
         image: resolveMediaUrl(images[0]),
       })
     }
@@ -429,8 +474,12 @@ export default function ProductPage({
               </div>
               <div className="bg-white/5 rounded px-4 py-3">
                 <p className="text-gray-500 uppercase tracking-widest mb-1">Availability</p>
-                <p className={isInStock ? (isLowStock ? "text-amber-400" : "text-green-400") : "text-red-400"}>
-                  {isInStock ? (isLowStock ? `Only ${product.stock} left!` : "In Stock") : "Out of Stock"}
+                <p className={isInStock ? (selectedSize ? (isSizeAvailable(selectedSize) ? "text-green-400" : "text-red-400") : (isLowStock ? "text-amber-400" : "text-green-400")) : "text-red-400"}>
+                  {isInStock 
+                    ? (selectedSize 
+                        ? (isSizeAvailable(selectedSize) ? "In Stock" : "Size Sold Out") 
+                        : (isLowStock ? `Only ${totalStock} left!` : "In Stock")) 
+                    : "Sold Out"}
                 </p>
               </div>
               {product.fabric && (
@@ -460,19 +509,27 @@ export default function ProductPage({
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                {product.sizes && (Array.isArray(product.sizes) ? product.sizes : (() => { try { return JSON.parse(product.sizes) } catch { return [] } })()).map((size: string) => (
-                  <button
-                    key={size}
-                    disabled={!isInStock}
-                    onClick={() => setSelectedSize(size)}
-                    className={`px-4 py-2 text-xs tracking-widest border transition-all duration-200 ${selectedSize === size
-                      ? "border-white bg-white text-black"
-                      : "border-white/20 text-gray-400 hover:border-white/60 hover:text-white"
-                      } disabled:opacity-30 disabled:cursor-not-allowed`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {sizes.map((size: string) => {
+                  const available = isSizeAvailable(size)
+                  return (
+                    <button
+                      key={size}
+                      onClick={() => available && setSelectedSize(size)}
+                      className={`relative px-5 py-3 text-[10px] tracking-[0.2em] border transition-all duration-300 uppercase font-medium ${
+                        selectedSize === size
+                          ? "border-white bg-white text-black"
+                          : available
+                            ? "border-white/10 text-gray-400 hover:border-white/40 hover:text-white"
+                            : "border-white/5 text-gray-700 cursor-not-allowed overflow-hidden"
+                      }`}
+                    >
+                      {size}
+                      {!available && (
+                        <div className="absolute inset-x-0 top-1/2 h-[1px] bg-red-500/40 -rotate-45 scale-x-110 pointer-events-none" />
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 

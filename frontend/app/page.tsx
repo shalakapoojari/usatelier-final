@@ -41,6 +41,7 @@ export default function HomePage() {
   const [API_BASE, setApiBase] = useState("");
   const [config, setConfig] = useState<any>(null);
   const [featuredItems, setFeaturedItems] = useState<any[] | null>(null);
+  const [enlargedProduct, setEnlargedProduct] = useState<any | null>(null);
 
   useEffect(() => {
     setApiBase(getApiBase());
@@ -531,27 +532,26 @@ export default function HomePage() {
                 style={{ backgroundColor: bg }}
                 key={product.id || i}
               >
-                <Link
-                  href={
-                    isPlaceholder ? "/view-all" : `/product/${product.id}`
-                  }
-                  className="relative w-[320px] md:w-[400px] h-[480px] md:h-[600px] overflow-hidden group block"
-                >
+                <div className="relative w-[320px] md:w-[400px] h-[480px] md:h-[600px] overflow-hidden group">
                   <img
                     src={pImageUrl}
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 cursor-zoom-in"
                     alt={product.name}
+                    onClick={() => setEnlargedProduct({ id: product.id, name: product.name, price: product.price, image: pImageUrl })}
                   />
-                  <div className="absolute bottom-6 left-6 z-10">
+                  <Link
+                    href={isPlaceholder ? "/view-all" : `/product/${product.id}`}
+                    className="absolute bottom-6 left-6 z-10 block hover:opacity-70 transition-opacity"
+                  >
                     <h3 className="text-3xl serif italic text-white">
                       {product.name}
                     </h3>
                     <p className="text-xs sans uppercase mt-2 text-white/70">
                       ₹{Number(product.price).toLocaleString("en-IN")}
                     </p>
-                  </div>
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
-                </Link>
+                  </Link>
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent pointer-events-none transition-colors duration-500" />
+                </div>
               </div>
             );
           })}
@@ -574,6 +574,47 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* ─── ENLARGE MODAL ─── */}
+      {enlargedProduct && (
+        <div 
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-500"
+          onClick={() => setEnlargedProduct(null)}
+        >
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" />
+          <div 
+            className="relative max-w-5xl w-full aspect-3/4 md:aspect-auto md:h-[90vh] overflow-hidden bg-black shadow-2xl ring-1 ring-white/10 animate-in zoom-in-95 duration-500 ease-out"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={enlargedProduct.image} 
+              alt={enlargedProduct.name}
+              className="w-full h-full object-contain md:object-cover pointer-events-none"
+            />
+            {/* Overlay Info */}
+            <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 bg-linear-to-t from-black via-black/40 to-transparent">
+              <p className="text-[10px] uppercase tracking-[0.5em] text-gray-500 mb-2">Detailed View</p>
+              <h3 className="text-4xl md:text-6xl serif italic text-white mb-4">{enlargedProduct.name}</h3>
+              <div className="flex items-center justify-between">
+                <p className="text-sm md:text-base sans uppercase tracking-widest text-[#d4af37]">₹{Number(enlargedProduct.price).toLocaleString("en-IN")}</p>
+                <Link 
+                  href={`/product/${enlargedProduct.id}`}
+                  className="px-6 py-2 border border-white/20 text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+            {/* Close Button */}
+            <button 
+              onClick={() => setEnlargedProduct(null)}
+              className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center rounded-full border border-white/10 bg-black/50 hover:bg-white hover:text-black transition-all group"
+            >
+              <span className="text-xl font-light transform group-hover:rotate-90 transition-transform">&times;</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ─── FOOTER ─── */}
       <SiteFooter />

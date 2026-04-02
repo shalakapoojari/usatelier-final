@@ -76,3 +76,12 @@ def send_new_arrival_notification(mail, user_email, user_name, product_name, pro
         product_id=product_id,
         timestamp=timestamp
     )
+
+def send_otp_email(mail, user_email, otp):
+    return send_email(
+        mail,
+        "Your U.S ATELIER Login Code",
+        user_email,
+        "otp_email.html",
+        otp=otp
+    )

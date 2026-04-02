@@ -19,11 +19,10 @@ type User = {
 
 type AuthContextType = {
   user: User | null
-  login: (email: string, password: string) => Promise<{ success: boolean; user?: User; message?: string }>
-  signup: (email: string, password: string, firstName: string, lastName: string, phone: string, termsAccepted: boolean) => Promise<{ success: boolean; user?: User; message?: string }>
+  sendOtp: (email: string) => Promise<{ success: boolean; message: string }>
+  verifyOtp: (email: string, otp: string) => Promise<{ success: boolean; user?: User; message?: string }>
   updateProfile: (data: { firstName: string; lastName: string; phone: string; profilePic?: string }) => Promise<{ success: boolean; message: string }>
   logout: () => void
-  loginWithGoogle: () => void
   refreshUser: () => Promise<User | null>
   isAuthenticated: boolean
   isAdmin: boolean
@@ -99,20 +98,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const login = async (
-    email: string,
-    password: string
-  ): Promise<{ success: boolean; user?: User; message?: string }> => {
+  const sendOtp = async (email: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       })
-
       const data = await res.json()
+      return { success: res.ok, message: data.message || data.error || "Failed to send OTP" }
+    } catch {
+      return { success: false, message: "Network error" }
+    }
+  }
 
+  const verifyOtp = async (email: string, otp: string): Promise<{ success: boolean; user?: User; message?: string }> => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: email.trim().toLowerCase(), otp }),
+      })
+      const data = await res.json()
       if (res.ok && data.success) {
         const loggedIn: User = {
           id: data.id || "",
@@ -122,63 +131,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: data.phone || "",
           profilePic: data.profilePic || "",
           role: data.isAdmin ? "admin" : "user",
-          isNewSignup: data.isNewSignup || false,
           addresses: data.addresses || [],
         }
         setUser(loggedIn)
         localStorage.setItem(SESSION_USER_KEY, JSON.stringify(loggedIn))
         return { success: true, user: loggedIn }
       }
-
-      return { success: false, message: data.error || "Invalid credentials" }
+      return { success: false, message: data.error || "Verification failed" }
     } catch {
-      return { success: false, message: "Cannot reach server. Is the Flask app running?" }
-    }
-  }
-
-  const signup = async (
-    email: string,
-    password: string,
-    firstName: string,
-    lastName: string,
-    phone: string,
-    termsAccepted: boolean
-  ): Promise<{ success: boolean; user?: User; message?: string }> => {
-    if (!email || !password) {
-      return { success: false, message: "Email and password are required" }
-    }
-    if (password.length < 6) {
-      return { success: false, message: "Password must be at least 6 characters" }
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password, firstName, lastName, phone, termsAccepted }),
-      })
-
-      const data = await res.json()
-
-      if (res.ok && data.success) {
-        const newUser: User = {
-          id: data.id || "",
-          email: data.user || email,
-          firstName: firstName,
-          lastName: lastName,
-          phone: phone || data.phone || "",
-          role: "user",
-        }
-        setUser(newUser)
-        localStorage.setItem(SESSION_USER_KEY, JSON.stringify(newUser))
-        // Keep cart data — guest cart survives signup
-        return { success: true, user: newUser }
-      }
-
-      return { success: false, message: data.error || "Unable to create account" }
-    } catch {
-      return { success: false, message: "Cannot reach server. Is the Flask app running?" }
+      return { success: false, message: "Network error" }
     }
   }
 
@@ -221,19 +182,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("wishlist")
   }
 
-  const loginWithGoogle = () => {
-    window.location.href = `${API_BASE}/api/auth/google/login`
-  }
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        login,
-        signup,
+        sendOtp,
+        verifyOtp,
         updateProfile,
         logout,
-        loginWithGoogle,
         refreshUser,
         isAuthenticated: !!user,
         isAdmin: user?.role === "admin",

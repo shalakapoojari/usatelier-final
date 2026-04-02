@@ -11,36 +11,17 @@ import { SignIn2 } from "@/components/ui/clean-minimal-sign-in"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
+  const [otp, setOtp] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [step, setStep] = useState<"email" | "otp">("email")
 
-  const { login, loginWithGoogle } = useAuth()
+  const { sendOtp, verifyOtp } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
-    const params = new URLSearchParams(window.location.search)
-    const oauthError = params.get("error")
-    if (!oauthError) return
-
-    const errorMap: Record<string, string> = {
-      google_auth_failed: "Google sign-in failed. Please try again.",
-      google_state_mismatch: "Google session expired or blocked.",
-      google_redirect_uri_mismatch: "Google OAuth redirect mismatch.",
-      google_invalid_client: "Google client configuration error.",
-      google_invalid_grant: "Google token grant failed.",
-      google_token_exchange_failed: "Token exchange failed.",
-      google_userinfo_failed: "Failed to fetch user profile.",
-      google_access_denied: "Sign-in cancelled.",
-      google_email_missing: "No email provided by Google.",
-      google_oauth_not_configured: "Google login not configured.",
-      db_error: "Account creation failed.",
-    }
-
-    setError(errorMap[oauthError] || "Authentication failed.")
   }, [])
 
   const nextUrl =
@@ -49,18 +30,33 @@ export default function LoginPage() {
       : null
   const isCheckoutRedirect = nextUrl === "/checkout"
 
+  const handleSendOtp = async () => {
+    if (!email) return setError("Email is required")
+    setError("")
+    setLoading(true)
+    const res = await sendOtp(email)
+    if (res.success) {
+      setStep("otp")
+    } else {
+      setError(res.message)
+    }
+    setLoading(false)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (step === "email") return handleSendOtp()
+    
     setError("")
     setLoading(true)
 
-    const result = await login(email, password)
+    const result = await verifyOtp(email, otp)
 
     if (result.success && result.user) {
       const redirectTo = nextUrl || (result.user.role === "admin" ? "/admin" : "/")
       router.push(redirectTo)
     } else {
-      setError(result.message || "Invalid email or password")
+      setError(result.message || "Invalid code")
     }
 
     setLoading(false)
@@ -188,25 +184,24 @@ export default function LoginPage() {
           <SignIn2
             email={email}
             setEmail={setEmail}
-            password={password}
-            setPassword={setPassword}
+            otp={otp}
+            setOtp={setOtp}
+            step={step}
             error={error}
             loading={loading}
             onSubmit={handleSubmit}
-            onGoogleSignIn={loginWithGoogle}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
+            onSendOtp={handleSendOtp}
           />
 
           <div className="mt-8 text-center opacity-0 animate-in fade-in slide-in-from-bottom-2 duration-1000 fill-mode-forwards" style={{ animationDelay: '0.5s' }}>
             <span className="text-[8px] text-zinc-700 uppercase tracking-[0.35em] font-light sans">
-              NO ACCOUNT?{" "}
+              BY CONTINUING, YOU AGREE TO OUR{" "}
             </span>
             <Link 
-              href={`/signup${nextUrl ? `?next=${encodeURIComponent(nextUrl)}` : ""}`}
+              href="/terms&conditions"
               className="text-[8px] text-zinc-500 hover:text-white uppercase tracking-[0.4em] font-bold sans transition-all border-b border-white/0 hover:border-white/10 pb-0.5"
             >
-              CREATE ONE
+              TERMS & CONDITIONS
             </Link>
           </div>
         </div>

@@ -238,26 +238,18 @@ if not is_production:
 # ============================================================
 # Extensions
 # ============================================================
-db_mysql.init_app(app)
-mail = Mail(app)
-
-oauth = OAuth(app)
-google = oauth.register(
-    name="google",
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-    access_token_url="https://accounts.google.com/o/oauth2/token",
-    authorize_url="https://accounts.google.com/o/oauth2/auth",
-    api_base_url="https://www.googleapis.com/oauth2/v1/",
-    userinfo_endpoint="https://openidconnect.googleapis.com/v1/userinfo",
-    client_kwargs={"scope": "openid email profile"},
-    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-)
-
 limiter = (
     Limiter(key_func=get_remote_address, app=app, default_limits=[])
     if Limiter else _NoopLimiter()
 )
+
+# OTP Helpers
+def _gen_otp() -> str:
+    import random
+    return "".join([str(random.randint(0, 9)) for _ in range(6)])
+
+def _hash_otp(otp: str) -> str:
+    return hashlib.sha256(otp.encode()).hexdigest()
 
 RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
@@ -1006,77 +998,88 @@ def reset_password():
 
 # ---- Google OAuth -----------------------------------------------------------
 
-@app.route("/api/auth/google/login")
-def google_login():
-    if not os.getenv("GOOGLE_CLIENT_ID"):
-        return redirect(f"{get_frontend_base_url()}/login?error=google_oauth_not_configured")
-    redirect_uri = f"{get_backend_base_url()}/api/auth/google/callback"
-    session.modified = True
-    return google.authorize_redirect(redirect_uri)
-
-
-@app.route("/api/auth/google/callback")
-def google_callback():
-    frontend_base = get_frontend_base_url()
-    try:
-        google.authorize_access_token()
-        user_info = google.get("userinfo").json()
-    except Exception as exc:
-        err_text = str(exc).lower()
-        code = "google_auth_failed"
-        if "mismatching_state" in err_text or "state" in err_text:
-            code = "google_state_mismatch"
-        elif "redirect_uri_mismatch" in err_text:
-            code = "google_redirect_uri_mismatch"
-        elif "invalid_client" in err_text:
-            code = "google_invalid_client"
-        elif "access_denied" in err_text:
-            code = "google_access_denied"
-        app.logger.error("google_oauth_error code=%s err=%s", code, type(exc).__name__)
-        return redirect(f"{frontend_base}/login?error={code}")
-
-    email     = user_info.get("email", "").lower()
+@app.route("/api/auth/send-otp", methods=["POST"])
+@limiter.limit("3 per minute")
+def send_otp():
+    data  = request.get_json() or {}
+    email = data.get("email", "").strip().lower()
     if not email:
-        return redirect(f"{frontend_base}/login?error=google_email_missing")
+        return jsonify({"error": "Email is required"}), 400
 
-    first_name = user_info.get("given_name", "")
-    last_name  = user_info.get("family_name", "")
-    picture    = user_info.get("picture", "")
-
+    otp = _gen_otp()
+    otp_hash = _hash_otp(otp)
+    
     user = User.query.filter_by(email=email).first()
     if not user:
-        try:
-            user = User(
-                email=email,
-                password=os.urandom(24).hex(),
-                first_name=first_name,
-                last_name=last_name,
-                profile_pic=picture,
-                is_admin=False,
-            )
-            db_mysql.session.add(user)
-            db_mysql.session.commit()
-            try:
-                send_signup_confirmation(mail, email, first_name)
-            except Exception:
-                pass
-        except Exception as exc:
-            db_mysql.session.rollback()
-            app.logger.error("google_user_create_error err=%s", exc)
-            return redirect(f"{frontend_base}/login?error=db_error")
-    else:
-        if picture and user.profile_pic != picture:
-            try:
-                user.profile_pic = picture
-                db_mysql.session.commit()
-            except Exception:
-                db_mysql.session.rollback()
+        # Auto-create user for first-time OTP request
+        user = User(
+            email=email,
+            is_admin=False,
+            created_at=datetime.utcnow()
+        )
+        db_mysql.session.add(user)
+    
+    user.otp_hash = otp_hash
+    user.otp_expires_at = datetime.utcnow() + timedelta(minutes=10)
+    
+    try:
+        db_mysql.session.commit()
+        if send_otp_email(mail, email, otp):
+            return jsonify({"success": True, "message": "OTP sent to your email"}), 200
+        else:
+            return jsonify({"error": "Failed to send email"}), 500
+    except Exception as exc:
+        db_mysql.session.rollback()
+        app.logger.error("send_otp_error err=%s", exc)
+        return jsonify({"error": "Internal server error"}), 500
 
-    session.clear()
-    session.permanent  = True
-    session["user_id"] = str(user.id)
-    session["is_admin"] = bool(user.is_admin)
-    return redirect(f"{frontend_base}/auth/callback")
+
+@app.route("/api/auth/verify-otp", methods=["POST"])
+@limiter.limit("10 per minute")
+def verify_otp():
+    data  = request.get_json() or {}
+    email = data.get("email", "").strip().lower()
+    otp   = data.get("otp", "").strip()
+
+    if not email or not otp:
+        return jsonify({"error": "Email and OTP are required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.otp_hash or not user.otp_expires_at:
+        return jsonify({"error": "Invalid or expired OTP"}), 400
+
+    if user.otp_expires_at < datetime.utcnow():
+        return jsonify({"error": "OTP has expired"}), 400
+
+    if _hash_otp(otp) != user.otp_hash:
+        return jsonify({"error": "Invalid OTP"}), 400
+
+    # Success
+    user.otp_hash = None
+    user.otp_expires_at = None
+    user.last_login_at = datetime.utcnow()
+    user.last_login_ip = request.remote_addr
+    
+    try:
+        db_mysql.session.commit()
+        
+        session.clear()
+        session.permanent = True
+        session["user_id"] = str(user.id)
+        session["is_admin"] = bool(user.is_admin)
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "user": user.email,
+            "firstName": user.first_name or email.split("@")[0],
+            "isAdmin": user.is_admin,
+            "id": str(user.id)
+        }), 200
+    except Exception as exc:
+        db_mysql.session.rollback()
+        app.logger.error("verify_otp_error err=%s", exc)
+        return jsonify({"error": "Internal server error"}), 500
 
 # ---- Addresses --------------------------------------------------------------
 
@@ -1220,6 +1223,10 @@ def add_product():
         if field not in data:
             return jsonify({"error": f"Field '{field}' is required"}), 400
     try:
+        sizes_data = data.get("sizes", [])
+        # If sizes is a list of strings, it's legacy. If it's a dict, it's new.
+        # Frontend will now send {"S": 10, "M": 5}
+        
         new_product = ProductSQL(
             name             = data["name"],
             price            = float(data["price"]),
@@ -1228,8 +1235,9 @@ def add_product():
             gender           = data.get("gender", "Unisex"),
             description      = data["description"],
             images           = data["images"],
-            sizes            = data["sizes"],
-            stock            = int(data.get("stock", 0)),
+            sizes            = sizes_data,
+            # If sizes is a dict, we calculate total stock
+            stock            = sum(int(v) for v in sizes_data.values() if str(v).isdigit()) if isinstance(sizes_data, dict) else int(data.get("stock", 0)),
             is_featured      = bool(data.get("featured", False)),
             is_new           = bool(data.get("newArrival", False)),
             is_bestseller    = bool(data.get("bestseller", False)),
@@ -1287,8 +1295,12 @@ def update_product(product_id):
     if "gender"        in data: product.gender        = data["gender"]
     if "description"   in data: product.description   = data["description"]
     if "images"        in data: product.images        = data["images"]
-    if "sizes"         in data: product.sizes         = data["sizes"]
-    if "stock"         in data: product.stock         = int(data["stock"])
+    if "sizes"         in data:
+        product.sizes = data["sizes"]
+        if isinstance(data["sizes"], dict):
+            product.stock = sum(int(v) for v in data["sizes"].values() if str(v).isdigit())
+    if "stock"         in data and not isinstance(data.get("sizes"), dict): 
+        product.stock = int(data["stock"])
     if "featured"      in data: product.is_featured   = bool(data["featured"])
     if "newArrival"    in data: product.is_new        = bool(data["newArrival"])
     if "bestseller"    in data: product.is_bestseller = bool(data["bestseller"])
@@ -1640,7 +1652,6 @@ def delete_coupon(coupon_id):
 # ============================================================
 
 @app.route("/api/payments/create-order", methods=["POST"])
-@login_required
 def create_razorpay_order():
     if not razorpay_client:
         return jsonify({"error": "Payment gateway not configured"}), 500
@@ -1656,8 +1667,9 @@ def create_razorpay_order():
             "payment_capture": "1",
         })
         try:
+            user_id = session.get("user_id")
             payment = Payment(
-                user_id=int(session["user_id"]),
+                user_id=int(user_id) if user_id else None,
                 razorpay_order_id=rzp_order.get("id"),
                 amount=float(amount),
                 currency="INR",
@@ -1945,7 +1957,6 @@ def _validate_order_payload(data: dict) -> list:
 
 
 @app.route("/api/orders", methods=["POST"])
-@login_required
 def create_order():
     data = request.get_json() or {}
 
@@ -2009,9 +2020,42 @@ def create_order():
         # Fail open — don't block order if Delhivery API is down
         pass
 
-    user = User.query.get(int(session["user_id"]))
+    user_id = session.get("user_id")
+    user = User.query.get(int(user_id)) if user_id else None
+    
     if not user:
-        return jsonify({"error": "User not found"}), 404
+        # Auto-create user from shipping info if not logged in
+        email = data.get("email") or addr.get("email")
+        first_name = addr.get("firstName") or addr.get("name", "").split(" ")[0]
+        last_name = addr.get("lastName") or " ".join(addr.get("name", "").split(" ")[1:])
+        phone = data.get("phone") or addr.get("phone")
+        
+        if not email:
+            return jsonify({"error": "Email is required for guest checkout"}), 400
+            
+        user = User.query.filter_by(email=email.strip().lower()).first()
+        if not user:
+            user = User(
+                email=email.strip().lower(),
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                is_admin=False
+            )
+            db_mysql.session.add(user)
+            db_mysql.session.flush() # Get ID before commit
+            
+            # Send welcome email for auto-account creation
+            try:
+                send_signup_confirmation(mail, user.email, user.first_name)
+            except:
+                pass
+        
+        # Log the user in
+        session.clear()
+        session.permanent = True
+        session["user_id"] = str(user.id)
+        session["is_admin"] = bool(user.is_admin)
 
     incoming_items = data.get("items", [])
     validated_items = []
@@ -2030,8 +2074,17 @@ def create_order():
         product = ProductSQL.query.with_for_update().get(pid)
         if not product:
             return jsonify({"error": f"Product not found: {pid}"}), 404
-        if product.stock < quantity:
-            return jsonify({"error": f"Insufficient stock for {product.name}"}), 400
+        
+        size = item.get("size")
+        if size:
+            available_stock = product.get_stock_for_size(size)
+            if available_stock < quantity:
+                return jsonify({"error": f"Insufficient stock for {product.name} in size {size}"}), 400
+            product.update_stock_for_size(size, -quantity)
+        else:
+            if product.stock < quantity:
+                return jsonify({"error": f"Insufficient stock for {product.name}"}), 400
+            product.stock -= quantity
 
         line_total = float(product.price) * quantity
         computed_subtotal += line_total

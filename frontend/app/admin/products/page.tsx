@@ -78,7 +78,7 @@ export default function ProductsPage() {
     subcategory: "",
     description: "",
     images: ["", "", ""],
-    sizes: [] as string[],
+    sizes: {} as Record<string, string>,
     stock: "10",
     featured: false,
     newArrival: false,
@@ -135,12 +135,35 @@ export default function ProductsPage() {
   }
 
   const toggleSize = (size: string) => {
-    setFormData(prev => ({
-      ...prev,
-      sizes: prev.sizes.includes(size)
-        ? prev.sizes.filter(s => s !== size)
-        : [...prev.sizes, size]
-    }))
+    setFormData(prev => {
+      const newSizes = { ...prev.sizes }
+      if (newSizes[size] !== undefined) {
+        delete newSizes[size]
+      } else {
+        newSizes[size] = "10" // Default stock for new size
+      }
+      
+      // Calculate total stock
+      const total = Object.values(newSizes).reduce((acc, val) => acc + (parseInt(val) || 0), 0)
+      
+      return {
+        ...prev,
+        sizes: newSizes,
+        stock: total.toString()
+      }
+    })
+  }
+
+  const handleSizeStockChange = (size: string, stock: string) => {
+    setFormData(prev => {
+      const newSizes = { ...prev.sizes, [size]: stock }
+      const total = Object.values(newSizes).reduce((acc, val) => acc + (parseInt(val) || 0), 0)
+      return {
+        ...prev,
+        sizes: newSizes,
+        stock: total.toString()
+      }
+    })
   }
 
   const handleFileUpload = async (index: number, file: File) => {
@@ -203,12 +226,27 @@ export default function ProductsPage() {
 
     // Handle sizes
     const sizes = (() => {
-      if (Array.isArray(product.sizes)) return product.sizes
+      if (typeof product.sizes === "object" && !Array.isArray(product.sizes)) {
+        // Already object format
+        const record: Record<string, string> = {}
+        Object.entries(product.sizes).forEach(([k, v]) => record[k] = String(v))
+        return record
+      }
       try {
-        const parsed = JSON.parse(product.sizes)
-        return Array.isArray(parsed) ? parsed : []
+        const parsed = JSON.parse(product.sizes || "[]")
+        if (typeof parsed === "object" && !Array.isArray(parsed)) {
+          const record: Record<string, string> = {}
+          Object.entries(parsed).forEach(([k, v]) => record[k] = String(v))
+          return record
+        }
+        // Legacy array format
+        const record: Record<string, string> = {}
+        if (Array.isArray(parsed)) {
+            parsed.forEach((s: string) => record[s] = String(Math.floor((product.stock || 0) / parsed.length)))
+        }
+        return record
       } catch {
-        return []
+        return {}
       }
     })()
 
@@ -274,7 +312,7 @@ export default function ProductsPage() {
           subcategory: "",
           description: "",
           images: ["", "", ""],
-          sizes: [],
+          sizes: {},
           stock: "10",
           featured: false,
           newArrival: false,
@@ -352,7 +390,7 @@ export default function ProductsPage() {
               subcategory: "",
               description: "",
               images: ["", "", ""],
-              sizes: [],
+              sizes: {},
               stock: "10",
               featured: false,
               newArrival: false,
@@ -410,14 +448,13 @@ export default function ProductsPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-[10px] uppercase tracking-widest text-gray-400">Stock</Label>
+                          <Label className="text-[10px] uppercase tracking-widest text-gray-400">Total Stock</Label>
                           <Input
                             name="stock"
                             type="number"
                             value={formData.stock}
-                            onChange={handleInputChange}
-                            required
-                            className="bg-transparent border-white/10 focus:border-white/30 rounded-none h-12"
+                            readOnly
+                            className="bg-white/5 border-white/10 focus:border-white/30 rounded-none h-12 opacity-80"
                           />
                         </div>
                         <div className="space-y-2">
@@ -449,12 +486,15 @@ export default function ProductsPage() {
                           value={formData.category}
                           onValueChange={(v) => {
                             const allowedForNewCategory = getSizesForCategory(v)
+                            const newSizes: Record<string, string> = {}
+                            Object.entries(formData.sizes).forEach(([s, val]) => {
+                              if (allowedForNewCategory.includes(s)) newSizes[s] = val
+                            })
                             setFormData((p) => ({
                               ...p,
                               category: v,
                               subcategory: "",
-                              // Keep only sizes valid for the newly selected category.
-                              sizes: p.sizes.filter((s) => allowedForNewCategory.includes(s)),
+                              sizes: newSizes,
                             }))
                           }}
                         >
@@ -672,20 +712,42 @@ export default function ProductsPage() {
                       Available Sizes for {formData.category || "Selected Category"}
                     </p>
                     {formData.category ? (
-                      <div className="flex flex-wrap gap-2">
-                        {getSizesForCategory(formData.category).map(size => (
-                          <button
-                            key={size}
-                            type="button"
-                            onClick={() => toggleSize(size)}
-                            className={`px-4 py-2 text-[10px] uppercase tracking-widest border transition-all ${formData.sizes.includes(size)
-                              ? "bg-[#e8e8e3] text-black border-[#e8e8e3]"
-                              : "border-white/20 text-gray-500 hover:text-white hover:border-white/40"
-                              }`}
-                          >
-                            {size}
-                          </button>
-                        ))}
+                      <div className="space-y-6">
+                        <div className="flex flex-wrap gap-2">
+                          {getSizesForCategory(formData.category).map(size => (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => toggleSize(size)}
+                              className={`px-4 py-2 text-[10px] uppercase tracking-widest border transition-all ${formData.sizes[size] !== undefined
+                                ? "bg-[#e8e8e3] text-black border-[#e8e8e3]"
+                                : "border-white/20 text-gray-500 hover:text-white hover:border-white/40"
+                                }`}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+
+                        {Object.keys(formData.sizes).length > 0 && (
+                          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                            {Object.keys(formData.sizes).map(size => (
+                              <div key={size} className="flex items-center justify-between p-3 border border-white/5 bg-white/2">
+                                <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">{size}</span>
+                                <div className="flex items-center gap-3">
+                                  <label className="text-[8px] uppercase tracking-widest text-gray-600">Stock:</label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={formData.sizes[size]}
+                                    onChange={(e) => handleSizeStockChange(size, e.target.value)}
+                                    className="w-16 h-8 bg-transparent border-white/10 text-[10px] rounded-none text-center"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <p className="text-[10px] text-gray-600 italic tracking-widest">

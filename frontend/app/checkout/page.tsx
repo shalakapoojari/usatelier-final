@@ -28,12 +28,15 @@ export default function CheckoutPage() {
   const { user, isAuthenticated, isAuthLoading } = useAuth()
   const router = useRouter()
 
-  // Auth gate: redirect to login if not authenticated
+  // Auth gate: removed to allow guest checkout
+  // Account will be automatically created on successful order
+  /*
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
       router.push("/login?next=/checkout")
     }
   }, [isAuthenticated, isAuthLoading, router])
+  */
 
   useEffect(() => {
     if (isHydrated && items.length === 0) {

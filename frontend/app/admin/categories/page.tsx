@@ -8,6 +8,14 @@ import { Plus, Trash2, Loader2, FolderPlus, X } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
 import { getApiBase } from "@/lib/api-base"
 
+async function getCSRFToken(API_BASE: string) {
+  const res = await fetch(`${API_BASE}/api/csrf-token`, {
+    credentials: "include",
+  })
+  const data = await res.json()
+  return data.csrf_token
+}
+
 type Category = {
   id: string
   name: string
@@ -47,13 +55,20 @@ export default function CategoriesPage() {
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return
+
     try {
+      const csrfToken = await getCSRFToken(API_BASE)
+
       const res = await fetch(`${API_BASE}/api/categories`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({ name: newCategoryName.trim() }),
       })
+
       if (res.ok) {
         showToast("Category added", "info")
         setNewCategoryName("")
@@ -72,12 +87,18 @@ export default function CategoriesPage() {
     if (!subName || !subName.trim()) return
 
     try {
+      const csrfToken = await getCSRFToken(API_BASE)
+
       const res = await fetch(`${API_BASE}/api/categories`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({ name: catName, subcategory: subName.trim() }),
       })
+
       if (res.ok) {
         showToast("Subcategory added", "info")
         setNewSubcategoryName(prev => ({ ...prev, [catName]: "" }))
@@ -95,15 +116,22 @@ export default function CategoriesPage() {
     if (!confirm(`Delete category "${name}"? This cannot be undone.`)) return
 
     try {
+      const csrfToken = await getCSRFToken(API_BASE)
+
       const res = await fetch(`${API_BASE}/api/categories/${id}`, {
         method: "DELETE",
         credentials: "include",
+        headers: {
+          "X-CSRF-Token": csrfToken,
+        },
       })
+
       if (res.ok) {
         showToast("Category deleted", "info")
         fetchCategories()
       } else {
-        showToast("Failed to delete", "info")
+        const data = await res.json()
+        showToast(data.error || "Failed to delete", "info")
       }
     } catch {
       showToast("Network error", "info")
@@ -114,12 +142,18 @@ export default function CategoriesPage() {
     if (!confirm(`Delete subcategory "${subName}"?`)) return
 
     try {
+      const csrfToken = await getCSRFToken(API_BASE)
+
       const res = await fetch(`${API_BASE}/api/categories/${catId}/subcategories`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({ subcategory: subName }),
       })
+
       if (res.ok) {
         showToast("Subcategory deleted", "info")
         fetchCategories()

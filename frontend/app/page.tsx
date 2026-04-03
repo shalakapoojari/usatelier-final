@@ -9,6 +9,7 @@ import { getApiBase } from "@/lib/api-base";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { getCSRFToken } from "./api"
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -577,17 +578,17 @@ export default function HomePage() {
 
       {/* ─── ENLARGE MODAL ─── */}
       {enlargedProduct && (
-        <div 
+        <div
           className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-500"
           onClick={() => setEnlargedProduct(null)}
         >
           <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" />
-          <div 
+          <div
             className="relative max-w-5xl w-full aspect-3/4 md:aspect-auto md:h-[90vh] overflow-hidden bg-black shadow-2xl ring-1 ring-white/10 animate-in zoom-in-95 duration-500 ease-out"
             onClick={(e) => e.stopPropagation()}
           >
-            <img 
-              src={enlargedProduct.image} 
+            <img
+              src={enlargedProduct.image}
               alt={enlargedProduct.name}
               className="w-full h-full object-contain md:object-cover pointer-events-none"
             />
@@ -597,7 +598,7 @@ export default function HomePage() {
               <h3 className="text-4xl md:text-6xl serif italic text-white mb-4">{enlargedProduct.name}</h3>
               <div className="flex items-center justify-between">
                 <p className="text-sm md:text-base sans uppercase tracking-widest text-[#d4af37]">₹{Number(enlargedProduct.price).toLocaleString("en-IN")}</p>
-                <Link 
+                <Link
                   href={`/product/${enlargedProduct.id}`}
                   className="px-6 py-2 border border-white/20 text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all"
                 >
@@ -606,7 +607,7 @@ export default function HomePage() {
               </div>
             </div>
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => setEnlargedProduct(null)}
               className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center rounded-full border border-white/10 bg-black/50 hover:bg-white hover:text-black transition-all group"
             >

@@ -31,7 +31,7 @@ import { getApiBase } from "@/lib/api-base"
 
 const getSizesForCategory = (categoryName: string) => {
   const cat = categoryName.toLowerCase();
-  
+
   if (cat.includes("shirt") || cat.includes("top") || cat.includes("basics") || cat.includes("knitwear") || cat.includes("clothing")) {
     return ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
   }
@@ -47,7 +47,7 @@ const getSizesForCategory = (categoryName: string) => {
   if (cat.includes("shoe") || cat.includes("footwear")) {
     return ["IND 6", "IND 7", "IND 8", "IND 9", "IND 10", "IND 11", "IND 12"];
   }
-  
+
   return ["XS", "S", "M", "L", "XL", "2XL", "One Size"]; // Default fallback
 }
 
@@ -142,10 +142,10 @@ export default function ProductsPage() {
       } else {
         newSizes[size] = "10" // Default stock for new size
       }
-      
+
       // Calculate total stock
       const total = Object.values(newSizes).reduce((acc, val) => acc + (parseInt(val) || 0), 0)
-      
+
       return {
         ...prev,
         sizes: newSizes,
@@ -191,9 +191,21 @@ export default function ProductsPage() {
     if (!confirm("Are you sure you want to delete this product?")) return
 
     try {
+      // 🔥 STEP 1: get CSRF token
+      const csrfRes = await fetch(`${API_BASE}/api/csrf-token`, {
+        credentials: "include"
+      })
+      const csrfData = await csrfRes.json()
+      const csrfToken = csrfData.csrf_token
+
+      // 🔥 STEP 2: send DELETE with token
       const res = await fetch(`${API_BASE}/api/products/${id}`, {
         method: "DELETE",
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken   // 🔥 THIS WAS MISSING
+        }
       })
 
       if (res.ok) {
@@ -242,7 +254,7 @@ export default function ProductsPage() {
         // Legacy array format
         const record: Record<string, string> = {}
         if (Array.isArray(parsed)) {
-            parsed.forEach((s: string) => record[s] = String(Math.floor((product.stock || 0) / parsed.length)))
+          parsed.forEach((s: string) => record[s] = String(Math.floor((product.stock || 0) / parsed.length)))
         }
         return record
       } catch {

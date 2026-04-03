@@ -16,19 +16,26 @@ export function getApiBase(): string {
   const envBase = process.env.NEXT_PUBLIC_API_BASE
   if (envBase) return normalizeApiBase(envBase)
 
+  // Client-side
   if (typeof window !== "undefined") {
     const host = window.location.hostname
-    const isLocalHost = host === "localhost" || host === "127.0.0.1" || host.startsWith("192.168.") || host.startsWith("10.")
+
+    const isLocalHost =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.startsWith("192.168.") ||
+      host.startsWith("10.")
 
     if (isLocalHost) {
-      return window.location.origin
+      return "http://localhost:5000"   // ✅ FIXED
     }
 
-    // Production fallback for this deployment when env vars are missing.
+    // Production fallback
     return "https://api.usatelier.in"
   }
 
-  return "http://localhost:5000"
+  // Server-side fallback (Next.js SSR)
+  return "http://localhost:5000"   // ✅ FIXED
 }
 
 export async function initCSRF(API_BASE: string) {

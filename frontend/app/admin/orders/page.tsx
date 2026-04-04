@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 
 export default function OrdersPage() {
@@ -23,9 +23,7 @@ export default function OrdersPage() {
       const apiBase = getApiBase()
       try {
         console.log(`[Orders] Fetching from: ${apiBase}/api/admin/orders`)
-        const res = await fetch(`${apiBase}/api/admin/orders`, {
-          credentials: "include"
-        })
+        const res = await apiFetch(apiBase, "/api/admin/orders")
         console.log(`[Orders] Response status: ${res.status}`)
         
         if (!res.ok) {

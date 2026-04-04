@@ -12,7 +12,7 @@ import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
 import { useToast } from "@/lib/toast-context"
 import { useAuth } from "@/lib/auth-context"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 import { resolveMediaUrl } from "@/lib/media-url"
 
 import { ChevronDown, ChevronUp, ShoppingBag, Heart, Star, Check, Sparkles, Award, ArrowLeft, Loader2, Share2, MessageCircle, Twitter, Facebook, Link2 } from "lucide-react"
@@ -54,9 +54,9 @@ export default function ProductPage({
     const fetchData = async () => {
       try {
         const [productRes, allProductsRes, reviewsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/products/${id}`, { credentials: "include" }),
-          fetch(`${API_BASE}/api/products`, { credentials: "include" }),
-          fetch(`${API_BASE}/api/products/${id}/reviews`, { credentials: "include" }),
+          apiFetch(API_BASE, `/api/products/${id}`),
+          apiFetch(API_BASE, "/api/products"),
+          apiFetch(API_BASE, `/api/products/${id}/reviews`),
         ])
 
         if (productRes.ok) {
@@ -139,10 +139,9 @@ export default function ProductPage({
 
     setSubmittingReview(true)
     try {
-      const res = await fetch(`${API_BASE}/api/products/${id}/reviews`, {
+      const res = await apiFetch(API_BASE, `/api/products/${id}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ rating: newReviewRating, comment: newReviewComment }),
       })
       const data = await res.json()

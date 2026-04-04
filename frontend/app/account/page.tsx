@@ -9,7 +9,7 @@ import { useWishlist } from "@/lib/wishlist-context"
 import { useState, useEffect } from "react"
 import { Package, Heart, ShoppingBag, User } from "lucide-react"
 import Link from "next/link"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 const API_BASE = getApiBase()
 
@@ -43,9 +43,7 @@ export default function AccountPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/orders`, {
-          credentials: "include"
-        })
+        const res = await apiFetch(API_BASE, "/api/orders")
         if (res.ok) {
           const data = await res.json()
           setUserOrders(data.slice(0, 2)) // Show recent 2

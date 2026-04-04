@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { User as UserIcon, Camera, Loader2 } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 import { useAuth } from "@/lib/auth-context"
 
@@ -53,9 +53,8 @@ export default function ProfilePage() {
     formData.append("file", file)
 
     try {
-      const response = await fetch(`${API_BASE}/api/upload/profile`, {
+      const response = await apiFetch(API_BASE, "/api/upload/profile", {
         method: "POST",
-        credentials: "include",
         body: formData,
       })
 

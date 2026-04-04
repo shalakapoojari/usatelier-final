@@ -6,7 +6,7 @@ import { AccountSidebar } from "@/components/account-sidebar"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ChevronRight } from "lucide-react"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 
@@ -28,9 +28,7 @@ export default function OrdersPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/orders`, {
-          credentials: "include"
-        })
+        const res = await apiFetch(API_BASE, "/api/orders")
         if (res.ok) {
           const data = await res.json()
           setUserOrders(data)

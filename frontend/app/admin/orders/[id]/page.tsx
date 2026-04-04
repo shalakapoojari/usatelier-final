@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react"
 import Link from "next/link"
 import { RefreshCcw, CheckCircle2, Package, Truck, User, CreditCard, ArrowLeft, Undo2, ExternalLink, MapPin, Clock, AlertTriangle, Info } from "lucide-react"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 import { useToast } from "@/lib/toast-context"
 
 interface OrderItem {
@@ -60,9 +60,7 @@ export default function OrderDetailPage({
   const fetchOrderDetail = async (showFeedback = false) => {
     if (showFeedback) setRefreshing(true)
     try {
-      const response = await fetch(`${API_BASE}/api/admin/orders/${id}`, {
-        credentials: "include"
-      });
+      const response = await apiFetch(API_BASE, `/api/admin/orders/${id}`);
       if (response.ok) {
         const data = await response.json();
         setOrder(data);
@@ -98,10 +96,9 @@ export default function OrderDetailPage({
 
     setRefunding(true);
     try {
-      const response = await fetch(`${API_BASE}/api/admin/orders/${order.order_number || id}/cancel`, {
+      const response = await apiFetch(API_BASE, `/api/admin/orders/${order.order_number || id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: "include"
       });
 
       const data = await response.json();

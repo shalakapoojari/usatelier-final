@@ -23,7 +23,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Search, Plus } from "lucide-react"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 import { resolveMediaUrl } from "@/lib/media-url"
 
 type HeroSlide = {
@@ -449,9 +449,9 @@ export default function HomepageDesignPage() {
     const fetchData = async () => {
         try {
             const [configRes, productsRes, catsRes] = await Promise.allSettled([
-                fetch(`${API_BASE}/api/homepage`, { credentials: "include" }),
-                fetch(`${API_BASE}/api/products`, { credentials: "include" }),
-                fetch(`${API_BASE}/api/categories`, { credentials: "include" })
+                apiFetch(API_BASE, "/api/homepage"),
+                apiFetch(API_BASE, "/api/products"),
+                apiFetch(API_BASE, "/api/categories")
             ])
 
             let hasAnyFailure = false
@@ -538,9 +538,8 @@ export default function HomepageDesignPage() {
         data.append("file", file)
 
         try {
-            const res = await fetch(`${API_BASE}/api/upload`, {
+            const res = await apiFetch(API_BASE, "/api/upload", {
                 method: "POST",
-                credentials: "include",
                 body: data,
             })
 
@@ -573,10 +572,9 @@ export default function HomepageDesignPage() {
         }
         setSaving(true)
         try {
-            const res = await fetch(`${API_BASE}/api/homepage`, {
+            const res = await apiFetch(API_BASE, "/api/homepage", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
                 body: JSON.stringify(config)
             })
 

@@ -26,8 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/lib/toast-context"
-import { getApiBase } from "@/lib/api-base"
-import { initCSRF } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 
 const getSizesForCategory = (categoryName: string) => {
@@ -99,17 +98,9 @@ export default function ProductsPage() {
     }
   }, [API_BASE])
 
-  async function getCSRFToken(API_BASE: string) {
-    const res = await fetch(`${API_BASE}/api/csrf-token`, {
-      credentials: "include",
-    })
-    const data = await res.json()
-    return data.csrf_token
-  }
-
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/products`)
+      const res = await apiFetch(API_BASE, "/api/products")
       if (res.ok) {
         const data = await res.json()
         setProducts(data)
@@ -121,10 +112,9 @@ export default function ProductsPage() {
     }
   }
 
-
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/categories`)
+      const res = await apiFetch(API_BASE, "/api/categories")
       if (res.ok) {
         const data = await res.json()
         setCategories(data)
@@ -183,14 +173,8 @@ export default function ProductsPage() {
     data.append("file", file)
 
     try {
-      const csrfToken = await getCSRFToken(API_BASE)
-
-      const res = await fetch(`${API_BASE}/api/upload`, {
+      const res = await apiFetch(API_BASE, "/api/upload", {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-        },
         body: data,
       })
 
@@ -211,21 +195,8 @@ export default function ProductsPage() {
     if (!confirm("Are you sure you want to delete this product?")) return
 
     try {
-      // 🔥 ALWAYS fetch fresh CSRF token
-      const csrfRes = await fetch(`${API_BASE}/api/csrf-token`, {
-        credentials: "include",
-      })
-
-      const csrfData = await csrfRes.json()
-      const csrfToken = csrfData.csrf_token
-
-      // 🔥 DELETE with fresh token
-      const res = await fetch(`${API_BASE}/api/products/${id}`, {
+      const res = await apiFetch(API_BASE, `/api/products/${id}`, {
         method: "DELETE",
-        credentials: "include",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-        },
       })
 
       if (res.ok) {
@@ -317,20 +288,16 @@ export default function ProductsPage() {
     }
 
     try {
-      const csrfToken = await getCSRFToken(API_BASE)
-
       const url = editingProduct
-        ? `${API_BASE}/api/products/${editingProduct.id}`
-        : `${API_BASE}/api/products`
+        ? `/api/products/${editingProduct.id}`
+        : `/api/products`
 
       const method = editingProduct ? "PUT" : "POST"
 
-      const res = await fetch(url, {
+      const res = await apiFetch(API_BASE, url, {
         method,
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
         },
         body: JSON.stringify({
           ...formData,
@@ -691,9 +658,8 @@ export default function ProductsPage() {
                                     const data = new FormData()
                                     data.append("file", file)
                                     try {
-                                      const res = await fetch(`${API_BASE}/api/upload`, {
+                                      const res = await apiFetch(API_BASE, "/api/upload", {
                                         method: "POST",
-                                        credentials: "include",
                                         body: data,
                                       })
                                       const result = await res.json()

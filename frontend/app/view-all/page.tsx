@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { SlidersHorizontal, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 const API_BASE = getApiBase()
 
@@ -81,8 +81,8 @@ function ShopContent() {
     const fetchData = async () => {
       try {
         const [prodRes, catRes] = await Promise.all([
-          fetch(`${API_BASE}/api/products`, { credentials: "include" }),
-          fetch(`${API_BASE}/api/categories`)
+          apiFetch(API_BASE, "/api/products"),
+          apiFetch(API_BASE, "/api/categories")
         ])
 
         if (prodRes.ok) {

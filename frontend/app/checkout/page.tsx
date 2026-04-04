@@ -11,7 +11,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -132,22 +132,19 @@ export default function CheckoutPage() {
     try {
       // Check serviceability + get estimate
       const [checkRes, estimateRes, lookupRes] = await Promise.all([
-        fetch(`${API_BASE}/api/delivery/check-pincode`, {
+        apiFetch(API_BASE, "/api/delivery/check-pincode", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ pincode }),
         }),
-        fetch(`${API_BASE}/api/delivery/estimate`, {
+        apiFetch(API_BASE, "/api/delivery/estimate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ pincode, subtotal: total }),
         }),
-        fetch(`${API_BASE}/api/delivery/pincode-lookup`, {
+        apiFetch(API_BASE, "/api/delivery/pincode-lookup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ pincode }),
         }),
       ])
@@ -243,10 +240,9 @@ export default function CheckoutPage() {
 
     try {
       // Step 1: Create Razorpay order
-      const orderRes = await fetch(`${API_BASE}/api/payments/create-order`, {
+      const orderRes = await apiFetch(API_BASE, "/api/payments/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ amount: grandTotal }),
       })
 
@@ -268,10 +264,9 @@ export default function CheckoutPage() {
         handler: async (response: any) => {
           // Step 3: Payment successful — create order with payment verification
           try {
-            const finalizeRes = await fetch(`${API_BASE}/api/orders`, {
+            const finalizeRes = await apiFetch(API_BASE, "/api/orders", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              credentials: "include",
               body: JSON.stringify({
                 email: formData.email,        // ✅ ADD THIS
                 phone: formData.phone,

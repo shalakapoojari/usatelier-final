@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Users, MoreVertical, Edit2, Ban, Eye, UserCheck } from "lucide-react"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 import { useToast } from "@/lib/toast-context"
 
 const API_BASE = getApiBase()
@@ -20,9 +20,7 @@ export default function CustomersPage() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/customers`, {
-        credentials: "include"
-      })
+      const res = await apiFetch(API_BASE, "/api/admin/customers")
       if (res.ok) {
         const data = await res.json()
         setCustomers(data)
@@ -35,13 +33,12 @@ export default function CustomersPage() {
   }
   const toggleBlockStatus = async (customerId: string, currentStatus: boolean) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/customers/${customerId}/status`, {
+      const res = await apiFetch(API_BASE, `/api/admin/customers/${customerId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ is_blocked: !currentStatus }),
-        credentials: "include"
       })
 
       if (res.ok) {

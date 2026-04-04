@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useCart } from "@/lib/cart-context";
-import { getApiBase } from "@/lib/api-base";
+import { getApiBase, apiFetch } from "@/lib/api-base";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -50,14 +50,14 @@ export default function HomePage() {
     const fetchConfig = async () => {
       if (!API_BASE) return;
       try {
-        const res = await fetch(`${API_BASE}/api/homepage`);
+        const res = await apiFetch(API_BASE, "/api/homepage");
         if (res.ok) {
           const data = await res.json();
           setConfig(data);
           const fetchCategory = async (ids: string[]) => {
             if (!ids || ids.length === 0) return [];
             const promises = ids.map((id) =>
-              fetch(`${API_BASE}/api/products/${id}`).then((r) =>
+              apiFetch(API_BASE, `/api/products/${id}`).then((r) =>
                 r.ok ? r.json() : null,
               ),
             );

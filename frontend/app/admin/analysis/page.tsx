@@ -14,15 +14,13 @@ import {
     Pie,
 } from "recharts"
 import {
-    TrendingUp,
-    Heart,
-    ShoppingCart,
-    AlertTriangle,
     Package,
     ArrowRight,
     RefreshCw,
+    TrendingUp,
+    AlertTriangle,
 } from "lucide-react"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 interface CategoryStat {
     name: string
@@ -64,9 +62,7 @@ export default function BusinessAnalysisPage() {
         if (!API_BASE) return
         setLoading(true)
         try {
-            const res = await fetch(`${API_BASE}/api/admin/analysis`, {
-                credentials: "include"
-            })
+            const res = await apiFetch(API_BASE, "/api/admin/analysis")
             if (!res.ok) throw new Error("Failed to fetch analysis data")
 
             const result = await res.json()

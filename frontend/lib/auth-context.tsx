@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch, clearCSRFToken } from "@/lib/api-base"
 
 const API_BASE = getApiBase()
 
@@ -46,9 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const restoreUserFromSession = async (): Promise<User | null> => {
     try {
-      const res = await fetch(`${API_BASE}/api/auth/user`, {
-        credentials: "include",
-      })
+      const res = await apiFetch(API_BASE, "/api/auth/user")
       if (res.ok) {
         const data = await res.json()
         if (data.user) {
@@ -100,10 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendOtp = async (email: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
+      const res = await apiFetch(API_BASE, "/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       })
       const data = await res.json()
@@ -115,10 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyOtp = async (email: string, otp: string): Promise<{ success: boolean; user?: User; message?: string }> => {
     try {
-      const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+      const res = await apiFetch(API_BASE, "/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email: email.trim().toLowerCase(), otp }),
       })
       const data = await res.json()
@@ -145,10 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (data: { firstName: string; lastName: string; phone: string; profilePic?: string }): Promise<{ success: boolean; message: string }> => {
     try {
-      const res = await fetch(`${API_BASE}/api/auth/user`, {
+      const res = await apiFetch(API_BASE, "/api/auth/user", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(data),
       })
 
@@ -169,15 +164,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch(`${API_BASE}/api/auth/logout`, {
+      await apiFetch(API_BASE, "/api/auth/logout", {
         method: "POST",
-        credentials: "include",
       })
     } catch {
       // Ignore network errors on logout
     }
     setUser(null)
     localStorage.removeItem(SESSION_USER_KEY)
+    clearCSRFToken() // SECURITY: Clear CSRF token on logout
     // Keep cart and wishlist in localStorage — both are guest-friendly
     // localStorage.removeItem("wishlist")
   }

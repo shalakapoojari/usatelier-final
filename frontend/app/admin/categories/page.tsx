@@ -6,15 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, Loader2, FolderPlus, X } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
-import { getApiBase } from "@/lib/api-base"
-
-async function getCSRFToken(API_BASE: string) {
-  const res = await fetch(`${API_BASE}/api/csrf-token`, {
-    credentials: "include",
-  })
-  const data = await res.json()
-  return data.csrf_token
-}
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 type Category = {
   id: string
@@ -41,7 +33,7 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/categories`)
+      const res = await apiFetch(API_BASE, "/api/categories")
       if (res.ok) {
         const data = await res.json()
         setCategories(data)
@@ -57,14 +49,10 @@ export default function CategoriesPage() {
     if (!newCategoryName.trim()) return
 
     try {
-      const csrfToken = await getCSRFToken(API_BASE)
-
-      const res = await fetch(`${API_BASE}/api/categories`, {
+      const res = await apiFetch(API_BASE, "/api/categories", {
         method: "POST",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
         },
         body: JSON.stringify({ name: newCategoryName.trim() }),
       })
@@ -87,14 +75,10 @@ export default function CategoriesPage() {
     if (!subName || !subName.trim()) return
 
     try {
-      const csrfToken = await getCSRFToken(API_BASE)
-
-      const res = await fetch(`${API_BASE}/api/categories`, {
+      const res = await apiFetch(API_BASE, "/api/categories", {
         method: "POST",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
         },
         body: JSON.stringify({ name: catName, subcategory: subName.trim() }),
       })
@@ -116,14 +100,8 @@ export default function CategoriesPage() {
     if (!confirm(`Delete category "${name}"? This cannot be undone.`)) return
 
     try {
-      const csrfToken = await getCSRFToken(API_BASE)
-
-      const res = await fetch(`${API_BASE}/api/categories/${id}`, {
+      const res = await apiFetch(API_BASE, `/api/categories/${id}`, {
         method: "DELETE",
-        credentials: "include",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-        },
       })
 
       if (res.ok) {
@@ -142,14 +120,10 @@ export default function CategoriesPage() {
     if (!confirm(`Delete subcategory "${subName}"?`)) return
 
     try {
-      const csrfToken = await getCSRFToken(API_BASE)
-
-      const res = await fetch(`${API_BASE}/api/categories/${catId}/subcategories`, {
+      const res = await apiFetch(API_BASE, `/api/categories/${catId}/subcategories`, {
         method: "DELETE",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
         },
         body: JSON.stringify({ subcategory: subName }),
       })

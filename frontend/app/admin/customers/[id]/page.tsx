@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react"
 import Link from "next/link"
 import { ArrowLeft, User, Package, MapPin, Ban, Mail, Phone, Calendar } from "lucide-react"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 const API_BASE = getApiBase()
 
@@ -22,9 +22,7 @@ export default function CustomerProfilePage({
 
     const fetchCustomerProfile = async () => {
         try {
-            const res = await fetch(`${API_BASE}/api/admin/customers/${id}`, {
-                credentials: "include"
-            })
+            const res = await apiFetch(API_BASE, `/api/admin/customers/${id}`)
             if (res.ok) {
                 const data = await res.json()
                 setCustomer(data)

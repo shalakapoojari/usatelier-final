@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([])
@@ -12,8 +12,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const apiBase = getApiBase()
     Promise.all([
-      fetch(`${apiBase}/api/admin/orders`, { credentials: "include" }).then(r => r.ok ? r.json() : []),
-      fetch(`${apiBase}/api/products`, { credentials: "include" }).then(r => r.ok ? r.json() : []),
+      apiFetch(apiBase, "/api/admin/orders").then(r => r.ok ? r.json() : []),
+      apiFetch(apiBase, "/api/products").then(r => r.ok ? r.json() : []),
     ])
       .then(([ordersData, productsData]) => {
         setOrders(Array.isArray(ordersData) ? ordersData : [])

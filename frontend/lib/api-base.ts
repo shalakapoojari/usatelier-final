@@ -1,5 +1,5 @@
 let csrfToken: string | null = null
-
+let csrfPromise: Promise<string | null> | null = null
 
 function normalizeApiBase(raw: string): string {
   const value = raw.trim().replace(/\/+$/, "")
@@ -38,12 +38,50 @@ export function getApiBase(): string {
   return "http://localhost:5000"   // ✅ FIXED
 }
 
+/**
+ * Ensures a CSRF token is available. If one is already being fetched,
+ * it returns the existing promise to avoid redundant network calls.
+ */
+export async function ensureCSRFToken(API_BASE: string): Promise<string | null> {
+  if (csrfToken) return csrfToken
+  if (csrfPromise) return csrfPromise
+
+  csrfPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/csrf-token`, { credentials: "include" })
+      if (!res.ok) throw new Error(`CSRF fetch failed: ${res.status}`)
+      const data = await res.json()
+      csrfToken = data.csrf_token
+      return csrfToken
+    } catch (err) {
+      console.error("CSRF Initialization Error:", err)
+      return null
+    } finally {
+      csrfPromise = null
+    }
+  })()
+
+  return csrfPromise
+}
+
+export function clearCSRFToken() {
+  csrfToken = null
+}
+
 export async function apiFetch(
   API_BASE: string,
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  return fetch(`${API_BASE}${url}`, {
+  const method = options.method?.toUpperCase() || "GET"
+  const isMutating = ["POST", "PUT", "DELETE", "PATCH"].includes(method)
+
+  // Skip CSRF for the token endpoint itself
+  if (isMutating && !url.includes("/api/csrf-token")) {
+    await ensureCSRFToken(API_BASE)
+  }
+
+  const doFetch = () => fetch(`${API_BASE}${url}`, {
     ...options,
     credentials: "include",
     headers: {
@@ -51,19 +89,25 @@ export async function apiFetch(
       ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
     } as HeadersInit,
   })
+
+  let response = await doFetch()
+
+  // Retry once if 403 Forbidden (likely expired CSRF token)
+  if (response.status === 403 && isMutating) {
+    console.warn("CSRF 403 error. Retrying once with fresh token...")
+    csrfToken = null // force refresh
+    await ensureCSRFToken(API_BASE)
+    response = await doFetch()
+  }
+
+  return response
 }
 
+/**
+ * Legacy support for manual initialization if needed.
+ */
 export async function initCSRF(API_BASE: string) {
-  try {
-    const res = await fetch(`${API_BASE}/api/csrf-token`, {
-      credentials: "include",
-    })
-
-    const data = await res.json()
-    csrfToken = data.csrf_token
-  } catch (err) {
-    console.error("CSRF init failed:", err)
-  }
+  await ensureCSRFToken(API_BASE)
 }
 
 

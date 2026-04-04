@@ -8,7 +8,7 @@ import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { AccountSidebar } from "@/components/account-sidebar"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 import { useAuth } from "@/lib/auth-context"
 import { resolveMediaUrl } from "@/lib/media-url"
 import { ArrowLeft, Package, Truck, CheckCircle, Clock, Copy, Check, Mail, ExternalLink } from "lucide-react"
@@ -38,9 +38,7 @@ export default function OrderDetailPage({
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/orders`, {
-          credentials: "include"
-        })
+        const res = await apiFetch(API_BASE, "/api/orders")
         if (res.ok) {
           const data = await res.json()
           const found = data.find((o: any) => String(o.id) === id || o.order_number === id)
@@ -55,7 +53,7 @@ export default function OrderDetailPage({
                   try {
                     const pid = item.product_id_str || item.product_id || item.id
                     if (pid) {
-                      const pRes = await fetch(`${API_BASE}/api/products/${pid}`, { credentials: "include" })
+                      const pRes = await apiFetch(API_BASE, `/api/products/${pid}`)
                       if (pRes.ok) {
                         productMap[pid] = await pRes.json()
                       }

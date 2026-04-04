@@ -14,7 +14,7 @@ import {
   ChevronRight
 } from "lucide-react"
 import Link from "next/link"
-import { getApiBase } from "@/lib/api-base"
+import { getApiBase, apiFetch } from "@/lib/api-base"
 
 interface Payment {
   id: number
@@ -45,9 +45,7 @@ export default function AdminPaymentsPage() {
     setRefreshing(true)
     try {
       console.log(`[Payments] Fetching from: ${API_BASE}/api/admin/payments`)
-      const res = await fetch(`${API_BASE}/api/admin/payments`, {
-        credentials: "include"
-      })
+      const res = await apiFetch(API_BASE, "/api/admin/payments")
       console.log(`[Payments] Response status: ${res.status}`)
       
       if (!res.ok) {

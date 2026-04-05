@@ -279,18 +279,23 @@ app.config["PERMANENT_SESSION_LIFETIME"]   = 86400 * 7  # 7 days
 if is_production:
     app.config["SESSION_COOKIE_DOMAIN"] = None
 
-# MySQL
+# MySQL — Tuned for PythonAnywhere free tier (1 connection max)
+# pool_size=1 avoids "too many connections" errors on shared hosting
+# pool_recycle=200 refreshes idle connections below MySQL's ~300s wait_timeout
+# pool_pre_ping=True detects "MySQL has gone away" before executing queries
 app.config["SQLALCHEMY_DATABASE_URI"]        = os.getenv("SQLALCHEMY_DATABASE_URI")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_size":    10,
-    "pool_recycle": 280,
-    "pool_pre_ping": True,
-    "max_overflow": 20,
+    "pool_size":      1,
+    "pool_timeout":   30,
+    "pool_recycle":   200,   # below PythonAnywhere's ~300s idle timeout
+    "pool_pre_ping":  True,  # avoids "MySQL server has gone away"
+    "max_overflow":   2,     # allow 2 extra connections briefly
     "connect_args": {
-        "connect_timeout": 10,
-        "read_timeout":    30,
-        "write_timeout":   30,
+        "connect_timeout":    10,
+        "read_timeout":       30,
+        "write_timeout":      30,
+        "autocommit":         False,
     },
 }
 
@@ -745,10 +750,30 @@ def serve_uploads(filename):
 
 @app.route("/uploads/<path:filename>")
 def serve_uploads_short(filename):
-    return send_from_directory(
-        app.config["UPLOAD_FOLDER"],
-        filename
-    )
+    """
+    Serve user-uploaded files at /uploads/<path>.
+    SECURITY: secure_filename prevents path traversal.
+    Subdirectory (products/, profiles/) is preserved by splitting on the first /.
+    """
+    from flask import safe_join
+    import os as _os
+    try:
+        # Allow one level of sub-directory (e.g. products/abc.jpg)
+        parts = filename.split("/", 1)
+        if len(parts) == 2:
+            subdir, fname = parts
+            safe_dir  = _os.path.join(app.config["UPLOAD_FOLDER"], secure_filename(subdir))
+            safe_fname = secure_filename(fname)
+        else:
+            safe_dir  = app.config["UPLOAD_FOLDER"]
+            safe_fname = secure_filename(parts[0])
+        if not safe_fname:
+            return jsonify({"error": "Invalid filename"}), 400
+        return send_from_directory(safe_dir, safe_fname)
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+    except Exception:
+        return jsonify({"error": "Could not serve file"}), 500
 
 @app.errorhandler(413)
 def handle_file_too_large(_err):
@@ -3087,8 +3112,13 @@ _DEFAULT_HOMEPAGE = {
 
 @app.route("/api/homepage", methods=["GET"])
 def get_homepage_config():
-    config = HomepageConfig.query.filter_by(config_type="main").first()
-    return jsonify(config.to_dict() if config else _DEFAULT_HOMEPAGE)
+    try:
+        config = HomepageConfig.query.filter_by(config_type="main").first()
+        return jsonify(config.to_dict() if config else _DEFAULT_HOMEPAGE)
+    except Exception as exc:
+        # DB connection failure or schema mismatch — return safe defaults
+        app.logger.error("homepage_config_error err=%s", exc)
+        return jsonify(_DEFAULT_HOMEPAGE)
 
 
 @app.route("/api/homepage", methods=["POST"])

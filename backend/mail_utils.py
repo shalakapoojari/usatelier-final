@@ -12,8 +12,10 @@ def send_signup_confirmation(mail, email, first_name):
         )
         msg.html = render_template("emails/welcome.html", first_name=first_name)
         mail.send(msg)
+        return True
     except Exception as e:
         logger.error(f"Failed to send signup confirmation to {email}: {e}")
+        return False
 
 def send_password_change_confirmation(mail, email, first_name):
     try:
@@ -89,5 +91,7 @@ def send_otp_email(mail, email, otp, first_name=None):
             first_name=first_name or "Valued Customer"
         )
         mail.send(msg)
+        return True
     except Exception as e:
         logger.error(f"Failed to send OTP email to {email}: {e}")
+        return False

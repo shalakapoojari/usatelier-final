@@ -147,25 +147,31 @@ export default function HomePage() {
       },
     });
 
-    gsap.to(".parallax-img-slow", {
-      y: -50,
-      scrollTrigger: {
-        trigger: ".parallax-img-slow",
-        start: "top bottom",
-        end: "bottom top",
-        scrub: true,
-      },
-    });
+    const parallaxSlow = document.querySelector(".parallax-img-slow");
+    if (parallaxSlow) {
+      gsap.to(".parallax-img-slow", {
+        y: -50,
+        scrollTrigger: {
+          trigger: ".parallax-img-slow",
+          start: "top bottom",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+    }
 
-    gsap.to(".parallax-img-fast", {
-      y: -100,
-      scrollTrigger: {
-        trigger: ".parallax-img-fast",
-        start: "top bottom",
-        end: "bottom top",
-        scrub: true,
-      },
-    });
+    const parallaxFast = document.querySelector(".parallax-img-fast");
+    if (parallaxFast) {
+      gsap.to(".parallax-img-fast", {
+        y: -100,
+        scrollTrigger: {
+          trigger: ".parallax-img-fast",
+          start: "top bottom",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+    }
 
     const magneticWraps =
       document.querySelectorAll<HTMLElement>(".magnetic-wrap");
@@ -536,7 +542,23 @@ export default function HomePage() {
                     src={pImageUrl}
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 cursor-zoom-in"
                     alt={product.name}
-                    onClick={() => setEnlargedProduct({ id: product.id, name: product.name, price: product.price, image: pImageUrl })}
+                    onClick={() => {
+                      try {
+                        const key = "recent_products";
+                        const existing = JSON.parse(localStorage.getItem(key) || "[]");
+                        const filtered = existing.filter((p: any) => p.id !== product.id);
+                        const imagesList = typeof product.images === "string" ? JSON.parse(product.images) : product.images;
+                        const updated = [{
+                          id: product.id,
+                          name: product.name,
+                          price: product.price,
+                          image: resolveMediaUrl(imagesList[0]),
+                          category: product.category,
+                        }, ...filtered].slice(0, 6);
+                        localStorage.setItem(key, JSON.stringify(updated));
+                      } catch { /* ignore */ }
+                      setEnlargedProduct({ id: product.id, name: product.name, price: product.price, image: pImageUrl });
+                    }}
                   />
                   <Link
                     href={isPlaceholder ? "/view-all" : `/product/${product.id}`}

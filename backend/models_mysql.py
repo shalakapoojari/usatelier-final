@@ -291,7 +291,7 @@ class OrderItem(db_mysql.Model):
 
     id              = db_mysql.Column(db_mysql.Integer, primary_key=True)
     order_id        = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey("orders.id"), nullable=False)
-    product_id_str  = db_mysql.Column(db_mysql.String(50))
+    product_id      = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey("products.id"))
     product_name    = db_mysql.Column(db_mysql.String(255))
     quantity        = db_mysql.Column(db_mysql.Integer, nullable=False)
     price           = db_mysql.Column(db_mysql.Float, nullable=False)
@@ -300,6 +300,7 @@ class OrderItem(db_mysql.Model):
     def to_dict(self):
         return {
             "id":           self.id,
+            "product_id":   self.product_id,
             "product_name": self.product_name,
             "quantity":     self.quantity,
             "price":        self.price,
@@ -316,14 +317,14 @@ class CartItem(db_mysql.Model):
 
     id              = db_mysql.Column(db_mysql.Integer, primary_key=True)
     user_id         = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey("users.id"))
-    product_id_str  = db_mysql.Column(db_mysql.String(50))
+    product_id      = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey("products.id"))
     quantity        = db_mysql.Column(db_mysql.Integer, default=1)
     size            = db_mysql.Column(db_mysql.String(20))
 
     def to_dict(self):
         return {
             "id":         self.id,
-            "product_id": self.product_id_str,
+            "product_id": self.product_id,
             "quantity":   self.quantity,
             "size":       self.size,
         }
@@ -334,13 +335,13 @@ class WishlistItem(db_mysql.Model):
 
     id              = db_mysql.Column(db_mysql.Integer, primary_key=True)
     user_id         = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey("users.id"))
-    product_id_str  = db_mysql.Column(db_mysql.String(50))
+    product_id      = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey("products.id"))
     created_at      = db_mysql.Column(db_mysql.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {
             "id":         self.id,
-            "product_id": self.product_id_str,
+            "product_id": self.product_id,
             "createdAt":  self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -355,7 +356,7 @@ class Review(db_mysql.Model):
     id              = db_mysql.Column(db_mysql.Integer, primary_key=True)
     user_id         = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey("users.id"))
     user_email      = db_mysql.Column(db_mysql.String(255))
-    product_id_str  = db_mysql.Column(db_mysql.String(50))
+    product_id      = db_mysql.Column(db_mysql.Integer, db_mysql.ForeignKey("products.id"))
     rating          = db_mysql.Column(db_mysql.Integer, nullable=False)
     comment         = db_mysql.Column(db_mysql.Text)
     created_at      = db_mysql.Column(db_mysql.DateTime, default=datetime.utcnow)
@@ -364,6 +365,7 @@ class Review(db_mysql.Model):
         return {
             "id":      self.id,
             "user":    self.user_email,
+            "product_id": self.product_id,
             "rating":  self.rating,
             "comment": self.comment,
             "date":    self.created_at.isoformat() if self.created_at else "",

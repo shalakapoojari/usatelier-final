@@ -46,6 +46,7 @@ import razorpay
 from flask_mail import Mail
 from authlib.integrations.flask_client import OAuth
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 from mail_utils import (
     send_signup_confirmation,
@@ -303,9 +304,18 @@ app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
 
 db_mysql.init_app(app)
 mail = Mail(app)
+csrf = CSRFProtect(app)
 
 if not is_production:
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+# SECURITY: Exempt public auth endpoints from CSRF
+# They bootstrap the session; CSRF is only needed for subsequent requests.
+csrf.exempt("/api/auth/login")
+csrf.exempt("/api/auth/signup")
+csrf.exempt("/api/auth/verify-otp")
+csrf.exempt("/api/auth/send-otp")
+csrf.exempt("/api/csrf-token")
 
 # ============================================================
 # Rate Limiter
@@ -352,49 +362,20 @@ _CSRF_EXEMPT_PATHS = {
 _CSRF_SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 
-def _generate_csrf_token() -> str:
-    """Generate a per-session CSRF token tied to SECRET_KEY."""
-    sid = session.get("_csrf_seed")
-    if not sid:
-        sid = secrets.token_hex(32)
-        session["_csrf_seed"] = sid
-    return hmac.new(
-        app.config["SECRET_KEY"].encode(),
-        sid.encode(),
-        hashlib.sha256,
-    ).hexdigest()
-
-
-def _validate_csrf() -> bool:
-    """
-    Validate CSRF token from header or form field.
-    Constant-time comparison via hmac.compare_digest.
-    """
-    expected = _generate_csrf_token()
-    submitted = (
-        request.headers.get(_CSRF_HEADER_NAME)
-        or request.form.get(_CSRF_FORM_NAME)
-        or (request.get_json(silent=True) or {}).get(_CSRF_FORM_NAME)
-        or ""
-    )
-    return hmac.compare_digest(expected, submitted)
-
-
 @app.route("/api/csrf-token", methods=["GET"])
 def get_csrf_token():
     """
-    Frontend must call this once on load (or after login) to obtain the
-    CSRF token, then include it as X-CSRF-Token on every mutating request.
+    Returns a CSRF token for the frontend.
+    Flask-WTF automatically validates this in mutating requests.
     """
-    token = _generate_csrf_token()
+    token = generate_csrf()
     resp  = make_response(jsonify({"csrf_token": token}))
-    # Also set as a JS-readable cookie (NOT HttpOnly) so the SPA can read it
     resp.set_cookie(
         _CSRF_COOKIE_NAME,
         token,
         samesite="None" if is_production else "Lax",
         secure=is_production,
-        httponly=False,   # intentionally readable by JS
+        httponly=False,
         max_age=86400 * 7,
     )
     return resp, 200
@@ -780,54 +761,26 @@ def handle_file_too_large(_err):
 def enforce_security():
     """
     Combined security guard:
-    1. CSRF token validation for mutating requests
-    2. Origin/Referer CORS guard
-    3. Content-Type enforcement on JSON endpoints
+    1. Origin/Referer CORS guard
+    2. Webhook exemption from CSRF
     """
     if request.method == "OPTIONS":
         return "", 200
 
     if request.method in _CSRF_SAFE_METHODS:
         return None
+
     if not request.path.startswith("/api/"):
         return None
 
-    # ── Webhook paths have their own HMAC auth; skip CSRF ──────────────
+    # Exclude webhooks from CSRF (they use HMAC signatures)
     if request.path in _CSRF_EXEMPT_PATHS:
+        csrf.exempt(request.path)
         return None
 
     origin  = request.headers.get("Origin", "")
-    referer = request.headers.get("Referer", "")
-
-    # ── Origin check ────────────────────────────────────────────────────
-    if origin:
-        origin = origin.rstrip("/")  # normalize
-    if not _is_origin_allowed(origin):
+    if origin and not _is_origin_allowed(origin.rstrip("/")):
         return jsonify({"error": "Disallowed origin"}), 403
-
-    if not origin and referer:
-        parsed         = urlparse(referer)
-        referer_origin = f"{parsed.scheme}://{parsed.netloc}"
-        backend_parsed = urlparse(get_backend_base_url())
-        backend_origin = f"{backend_parsed.scheme}://{backend_parsed.netloc}"
-        if referer_origin != backend_origin and not _is_origin_allowed(referer_origin):
-            app.logger.warning("csrf_disallowed_referer referer=%s path=%s", referer, request.path)
-            return jsonify({"error": "Disallowed referer"}), 403
-
-    # ── CSRF token check (skip for public auth endpoints that bootstrap the session) ─
-    # /api/auth/login and /api/auth/signup are intentionally excluded because the client
-    # has no session yet; all other mutating API calls require a valid CSRF token.
-    _csrf_skip = {
-        "/api/auth/login",
-        "/api/auth/signup",
-        "/api/auth/verify-otp",
-        "/api/auth/send-otp",
-        "/api/csrf-token",
-    }
-    if request.path not in _csrf_skip:
-        if not _validate_csrf():
-            app.logger.warning("csrf_token_invalid path=%s ip=%s", request.path, request.remote_addr)
-            return jsonify({"error": "CSRF token invalid or missing"}), 403
 
     return None
 
@@ -876,7 +829,7 @@ def collections(): return render_template("shop.html")
 @app.route("/product/<product_id>")
 def product_page(product_id):
     # SECURITY: Validate product_id is numeric before rendering
-    if not re.match(r"^\d+$", str(product_id)):
+    if not re.match(r"^\d+$", product_id):
         return redirect("/view-all")
     return render_template("product.html", product_id=product_id)
 
@@ -1671,7 +1624,7 @@ def delete_product(product_id):
 
 @app.route("/api/products/<int:product_id>/reviews", methods=["GET"])
 def get_product_reviews(product_id):
-    reviews = Review.query.filter_by(product_id_str=str(product_id)).order_by(Review.created_at.desc()).all()
+    reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_at.desc()).all()
     return jsonify([r.to_dict() for r in reviews]), 200
 
 @app.route("/api/products/<int:product_id>/reviews", methods=["POST"])
@@ -1698,7 +1651,7 @@ def add_product_review(product_id):
         return jsonify({"error": "User not found"}), 404
 
     # SECURITY: One review per user per product
-    existing = Review.query.filter_by(user_id=user.id, product_id_str=str(product_id)).first()
+    existing = Review.query.filter_by(user_id=user.id, product_id=product_id).first()
     if existing:
         return jsonify({"error": "You have already reviewed this product"}), 400
 
@@ -1706,7 +1659,7 @@ def add_product_review(product_id):
         new_review = Review(
             user_id        = user.id,
             user_email     = user.email,
-            product_id_str = str(product_id),
+            product_id = product_id,
             rating         = rating,
             comment        = comment,
         )
@@ -1731,7 +1684,7 @@ def get_cart():
         results = []
         for item in items:
             try:
-                product = ProductSQL.query.get(int(item.product_id_str))
+                product = ProductSQL.query.get(item.product_id)
                 if product:
                     results.append({
                         "id":       str(product.id),
@@ -1776,14 +1729,14 @@ def add_to_cart():
             return jsonify({"error": "Authentication required"}), 401
 
         existing = CartItem.query.filter_by(
-            user_id=uid, product_id_str=product_id, size=size,
+            user_id=uid, product_id=product_id, size=size,
         ).first()
         try:
             if existing:
                 existing.quantity = min(existing.quantity + quantity, 99)
             else:
                 db_mysql.session.add(CartItem(
-                    user_id=uid, product_id_str=product_id,
+                    user_id=uid, product_id=product_id,
                     quantity=quantity, size=size,
                 ))
             db_mysql.session.commit()
@@ -1860,7 +1813,7 @@ def get_wishlist():
     results = []
     for item in items:
         try:
-            product = ProductSQL.query.get(int(item.product_id_str))
+            product = ProductSQL.query.get(item.product_id)
             if product:
                 results.append({
                     "id":       str(product.id),
@@ -1897,12 +1850,12 @@ def add_to_wishlist():
     except (ValueError, TypeError):
         return jsonify({"error": "Authentication required"}), 401
 
-    existing = WishlistItem.query.filter_by(user_id=uid, product_id_str=product_id).first()
+    existing = WishlistItem.query.filter_by(user_id=uid, product_id=product_id).first()
     if existing:
         return jsonify({"message": "Already in wishlist"}), 200
 
     try:
-        db_mysql.session.add(WishlistItem(user_id=uid, product_id_str=product_id))
+        db_mysql.session.add(WishlistItem(user_id=uid, product_id=product_id))
         db_mysql.session.commit()
         return jsonify({"success": True}), 201
     except Exception as exc:
@@ -1914,7 +1867,7 @@ def add_to_wishlist():
 @login_required
 def remove_from_wishlist(product_id):
     # SECURITY: Validate product_id is numeric
-    if not re.match(r"^\d+$", str(product_id)):
+    if not re.match(r"^\d+$", product_id):
         return jsonify({"error": "Invalid product ID"}), 400
 
     try:
@@ -1922,7 +1875,7 @@ def remove_from_wishlist(product_id):
     except (ValueError, TypeError):
         return jsonify({"error": "Authentication required"}), 401
 
-    item = WishlistItem.query.filter_by(user_id=uid, product_id_str=str(product_id)).first()
+    item = WishlistItem.query.filter_by(user_id=uid, product_id=product_id).first()
     if item:
         db_mysql.session.delete(item)
         db_mysql.session.commit()
@@ -2257,7 +2210,7 @@ def cancel_admin_order(order_id):
                 delhivery_cancelled = True
 
         for item in order.items:
-            prod = ProductSQL.query.get(int(item.product_id_str))
+            prod = ProductSQL.query.get(item.product_id)
             if prod:
                 prod.stock += item.quantity
 
@@ -2491,7 +2444,7 @@ def create_order():
         for item in validated_items:
             db_mysql.session.add(OrderItem(
                 order_id       = new_order.id,
-                product_id_str = str(item["id"]),
+                product_id = item["id"],
                 product_name   = item["name"],
                 quantity       = item["quantity"],
                 price          = item["unit_price"],
@@ -2567,7 +2520,7 @@ def cancel_order(order_number):
     try:
         order.status = "Cancelled"
         for item in order.items:
-            prod = ProductSQL.query.get(int(item.product_id_str))
+            prod = ProductSQL.query.get(item.product_id)
             if prod:
                 prod.stock += item.quantity
         _audit("order_cancelled", "order", order.id, {"order_number": order_number})
@@ -2832,12 +2785,12 @@ def get_analysis_data():
         # SECURITY: Use ORM functions — no raw text() with user input
         most_sold_raw = (
             db_mysql.session.query(
-                OrderItem.product_id_str,
+                OrderItem.product_id,
                 OrderItem.product_name,
                 func.sum(OrderItem.quantity).label("total_sold"),
                 func.sum(OrderItem.price * OrderItem.quantity).label("total_revenue"),
             )
-            .group_by(OrderItem.product_id_str, OrderItem.product_name)
+            .group_by(OrderItem.product_id, OrderItem.product_name)
             .order_by(func.sum(OrderItem.quantity).desc())
             .limit(10).all()
         )
@@ -2845,9 +2798,9 @@ def get_analysis_data():
 
         fav_raw = (
             db_mysql.session.query(
-                WishlistItem.product_id_str,
+                WishlistItem.product_id,
                 func.count(WishlistItem.id).label("count"),
-            ).group_by(WishlistItem.product_id_str).order_by(func.count(WishlistItem.id).desc()).limit(10).all()
+            ).group_by(WishlistItem.product_id).order_by(func.count(WishlistItem.id).desc()).limit(10).all()
         )
         most_favorited = []
         for r in fav_raw:
@@ -2860,10 +2813,10 @@ def get_analysis_data():
 
         cart_raw = (
             db_mysql.session.query(
-                CartItem.product_id_str,
+                CartItem.product_id,
                 func.sum(CartItem.quantity).label("total_qty"),
                 func.count(CartItem.user_id.distinct()).label("user_count"),
-            ).group_by(CartItem.product_id_str).order_by(func.sum(CartItem.quantity).desc()).limit(10).all()
+            ).group_by(CartItem.product_id).order_by(func.sum(CartItem.quantity).desc()).limit(10).all()
         )
         most_added_to_cart = []
         for r in cart_raw:
@@ -3257,6 +3210,7 @@ def run_dispatch():
         return jsonify({"error": "Not available"}), 404
     _poll_dispatch_jobs()
     return "dispatch executed"
+
 
 # ============================================================
 # Generic error handlers — never leak stack traces to clients

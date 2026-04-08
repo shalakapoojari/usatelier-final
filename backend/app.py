@@ -26,7 +26,7 @@ SECURITY HARDENING CHANGELOG:
 from sqlalchemy import text
 import secrets
 import hmac
-
+from werkzeug.utils import safe_join
 from flask import Flask, render_template, jsonify, request, session, redirect, send_from_directory, make_response
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -314,14 +314,8 @@ csrf = CSRFProtect(app)
 if not is_production:
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
-# SECURITY: Exempt public auth endpoints from CSRF
-# They bootstrap the session; CSRF is only needed for subsequent requests.
-csrf.exempt("/api/auth/login")
-csrf.exempt("/api/auth/logout")
-csrf.exempt("/api/auth/signup")
-csrf.exempt("/api/auth/verify-otp")
-csrf.exempt("/api/auth/send-otp")
-csrf.exempt("/api/csrf-token")
+# SECURITY: Public auth endpoints are exempted from CSRF as they bootstrap the session.
+# Using decorators directly on routes for robustness.
 
 # ============================================================
 # Rate Limiter
@@ -369,6 +363,7 @@ _CSRF_SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 
 @app.route("/api/csrf-token", methods=["GET"])
+@csrf.exempt
 def get_csrf_token():
     """
     Returns a CSRF token for the frontend.
@@ -755,7 +750,6 @@ def serve_uploads_short(filename):
     SECURITY: secure_filename prevents path traversal.
     Subdirectory (products/, profiles/) is preserved by splitting on the first /.
     """
-    from flask import safe_join
     import os as _os
     try:
         # Allow one level of sub-directory (e.g. products/abc.jpg)
@@ -907,6 +901,7 @@ def health():
 # ============================================================
 
 @app.route("/api/auth/signup", methods=["POST"])
+@csrf.exempt
 @limiter.limit("5 per minute")
 def signup():
     data = request.get_json() or {}
@@ -978,6 +973,7 @@ def signup():
 
 
 @app.route("/api/auth/login", methods=["POST"])
+@csrf.exempt
 @limiter.limit("10 per minute")
 def login():
     data       = request.get_json() or {}
@@ -1058,6 +1054,7 @@ def login():
 
 
 @app.route("/api/auth/logout", methods=["POST"])
+@csrf.exempt
 def logout():
     # SECURITY: Completely destroy session on logout
     session.clear()
@@ -1247,6 +1244,7 @@ def reset_password():
 # ---- OTP auth ---------------------------------------------------------------
 
 @app.route("/api/auth/send-otp", methods=["POST"])
+@csrf.exempt
 @limiter.limit("3 per minute")
 def send_otp():
     data  = request.get_json() or {}
@@ -1283,6 +1281,7 @@ def send_otp():
 
 
 @app.route("/api/auth/verify-otp", methods=["POST"])
+@csrf.exempt
 @limiter.limit("10 per minute")
 def verify_otp():
     data  = request.get_json() or {}
@@ -1388,6 +1387,7 @@ def add_address():
 # ============================================================
 
 @app.route("/api/upload", methods=["POST"])
+@csrf.exempt
 @admin_required
 def upload_file():
     if "file" not in request.files:
@@ -1501,6 +1501,7 @@ def get_product(product_id):
 
 
 @app.route("/api/products", methods=["POST"])
+@csrf.exempt
 @admin_required
 def add_product():
     data = request.get_json() or {}
@@ -1541,12 +1542,12 @@ def add_product():
             images           = images,
             sizes            = sizes_data,
             stock            = sum(int(v) for v in sizes_data.values() if str(v).isdigit()) if isinstance(sizes_data, dict) else int(data.get("stock", 0)),
-            is_featured      = bool(data.get("featured", False)),
-            is_new           = bool(data.get("newArrival", False)),
-            is_bestseller    = bool(data.get("bestseller", False)),
+            is_featured      = bool(data.get("featured", data.get("is_featured", False))),
+            is_new           = bool(data.get("newArrival", data.get("is_new", False))),
+            is_bestseller    = bool(data.get("bestseller", data.get("is_bestseller", False))),
             fabric           = fabric,
             care             = care,
-            size_guide_image = _sanitise_str(data.get("sizeGuideImage", ""), 500),
+            size_guide_image = _sanitise_str(data.get("sizeGuideImage", data.get("size_guide_image", "")), 500),
         )
         db_mysql.session.add(new_product)
         db_mysql.session.flush()   # get new_product.id before audit
@@ -1574,6 +1575,7 @@ def add_product():
 
 
 @app.route("/api/products/<int:product_id>", methods=["PUT"])
+@csrf.exempt
 @admin_required
 def update_product(product_id):
     product = ProductSQL.query.get(product_id)
@@ -1608,12 +1610,16 @@ def update_product(product_id):
             product.stock = max(0, int(data["stock"]))
         except (TypeError, ValueError):
             return jsonify({"error": "Invalid stock value"}), 400
-    if "featured"      in data: product.is_featured   = bool(data["featured"])
-    if "newArrival"    in data: product.is_new        = bool(data["newArrival"])
-    if "bestseller"    in data: product.is_bestseller = bool(data["bestseller"])
+    if "featured"      in data or "is_featured" in data:
+        product.is_featured = bool(data.get("featured", data.get("is_featured", False)))
+    if "newArrival"    in data or "is_new" in data:
+        product.is_new = bool(data.get("newArrival", data.get("is_new", False)))
+    if "bestseller"    in data or "is_bestseller" in data:
+        product.is_bestseller = bool(data.get("bestseller", data.get("is_bestseller", False)))
     if "fabric"        in data: product.fabric        = _sanitise_str(data["fabric"], 500)
     if "care"          in data: product.care          = _sanitise_str(data["care"], 500)
-    if "sizeGuideImage" in data: product.size_guide_image = _sanitise_str(data["sizeGuideImage"], 500)
+    if "sizeGuideImage" in data or "size_guide_image" in data:
+        product.size_guide_image = _sanitise_str(data.get("sizeGuideImage", data.get("size_guide_image", "")), 500)
 
     try:
         db_mysql.session.commit()
@@ -1625,6 +1631,7 @@ def update_product(product_id):
 
 
 @app.route("/api/products/<int:product_id>", methods=["DELETE"])
+@csrf.exempt
 @admin_required
 def delete_product(product_id):
     product = ProductSQL.query.get(product_id)
@@ -2795,14 +2802,13 @@ def delhivery_webhook():
 # ============================================================
 # ADMIN — ANALYSIS
 # ============================================================
-
 @app.route("/api/admin/analysis", methods=["GET"])
 @admin_required
 def get_analysis_data():
     try:
         from sqlalchemy import func, extract
 
-        # SECURITY: Use ORM functions — no raw text() with user input
+        # ---------------- MOST SOLD ----------------
         most_sold_raw = (
             db_mysql.session.query(
                 OrderItem.product_id,
@@ -2812,114 +2818,216 @@ def get_analysis_data():
             )
             .group_by(OrderItem.product_id, OrderItem.product_name)
             .order_by(func.sum(OrderItem.quantity).desc())
-            .limit(10).all()
+            .limit(10)
+            .all()
         )
-        most_sold = [{"id": r[0], "name": r[1], "total_sold": int(r[2]), "total_revenue": float(r[3])} for r in most_sold_raw]
 
+        most_sold = []
+        for r in most_sold_raw:
+            try:
+                if r[0] is None:
+                    # fallback when product_id missing
+                    most_sold.append({
+                        "id": None,
+                        "name": r[1] or "Unknown Product",
+                        "total_sold": int(r[2] or 0),
+                        "total_revenue": float(r[3] or 0),
+                    })
+                else:
+                    most_sold.append({
+                        "id": int(r[0]),
+                        "name": r[1] or "Unknown Product",
+                        "total_sold": int(r[2] or 0),
+                        "total_revenue": float(r[3] or 0),
+                    })
+            except:
+                continue
+
+        # ---------------- MOST FAVORITED ----------------
         fav_raw = (
             db_mysql.session.query(
                 WishlistItem.product_id,
                 func.count(WishlistItem.id).label("count"),
-            ).group_by(WishlistItem.product_id).order_by(func.count(WishlistItem.id).desc()).limit(10).all()
+            )
+            .group_by(WishlistItem.product_id)
+            .order_by(func.count(WishlistItem.id).desc())
+            .limit(10)
+            .all()
         )
+
         most_favorited = []
         for r in fav_raw:
             try:
+                if r[0] is None:
+                    continue
                 prod = ProductSQL.query.get(int(r[0]))
                 if prod:
-                    most_favorited.append({"id": str(prod.id), "name": prod.name, "count": r[1]})
-            except (TypeError, ValueError):
+                    most_favorited.append({
+                        "id": str(prod.id),
+                        "name": prod.name,
+                        "count": int(r[1] or 0),
+                    })
+            except:
                 continue
 
+        # ---------------- MOST ADDED TO CART ----------------
         cart_raw = (
             db_mysql.session.query(
                 CartItem.product_id,
                 func.sum(CartItem.quantity).label("total_qty"),
                 func.count(CartItem.user_id.distinct()).label("user_count"),
-            ).group_by(CartItem.product_id).order_by(func.sum(CartItem.quantity).desc()).limit(10).all()
+            )
+            .group_by(CartItem.product_id)
+            .order_by(func.sum(CartItem.quantity).desc())
+            .limit(10)
+            .all()
         )
+
         most_added_to_cart = []
         for r in cart_raw:
             try:
+                if r[0] is None:
+                    continue
                 prod = ProductSQL.query.get(int(r[0]))
                 if prod:
                     most_added_to_cart.append({
-                        "id": str(prod.id), "name": prod.name,
-                        "total_quantity": int(r[1]), "user_count": r[2],
+                        "id": str(prod.id),
+                        "name": prod.name,
+                        "total_quantity": int(r[1] or 0),
+                        "user_count": int(r[2] or 0),
                     })
-            except (TypeError, ValueError):
+            except:
                 continue
 
+        # ---------------- STOCK ----------------
         products_stock = ProductSQL.query.order_by(ProductSQL.stock.asc()).all()
-        all_stock, low_stock = [], []
+
+        all_stock = []
+        low_stock = []
+
         for p in products_stock:
-            entry = {"id": str(p.id), "name": p.name, "stock": p.stock, "category": p.category or "Uncategorized"}
+            entry = {
+                "id": str(p.id),
+                "name": p.name,
+                "stock": int(p.stock or 0),
+                "category": p.category or "Uncategorized",
+            }
             all_stock.append(entry)
-            if p.stock <= 5:
+
+            if (p.stock or 0) <= 5:
                 low_stock.append(entry)
 
+        # ---------------- CATEGORY PIE ----------------
         cat_raw = (
             db_mysql.session.query(
                 ProductSQL.category,
                 func.count(ProductSQL.id).label("count"),
                 func.sum(ProductSQL.stock).label("total_stock"),
-            ).group_by(ProductSQL.category).all()
+            )
+            .group_by(ProductSQL.category)
+            .all()
         )
-        pie_data = [{"_id": r[0] or "Uncategorized", "count": r[1], "total_stock": int(r[2] or 0)} for r in cat_raw]
 
-        all_products = ProductSQL.query.order_by(ProductSQL.category, ProductSQL.subcategory, ProductSQL.name).all()
-        cat_map: dict = {}
+        pie_data = [
+            {
+                "_id": r[0] or "Uncategorized",
+                "count": int(r[1] or 0),
+                "total_stock": int(r[2] or 0),
+            }
+            for r in cat_raw
+        ]
+
+        # ---------------- CATEGORY STATS ----------------
+        all_products = ProductSQL.query.order_by(
+            ProductSQL.category,
+            ProductSQL.subcategory,
+            ProductSQL.name
+        ).all()
+
+        cat_map = {}
         for p in all_products:
             cat_name = p.category or "Uncategorized"
             sub_name = p.subcategory or "General"
-            cat_map.setdefault(cat_name, {}).setdefault(sub_name, []).append(
-                {"id": p.id, "name": p.name, "stock": p.stock or 0}
-            )
+
+            cat_map.setdefault(cat_name, {}).setdefault(sub_name, []).append({
+                "id": p.id,
+                "name": p.name,
+                "stock": int(p.stock or 0),
+            })
 
         category_stats = []
         for cat_name, subs in cat_map.items():
             sub_list = []
-            total_count = total_stock_sum = 0
-            for sub_name, prods in subs.items():
-                sub_list.append({"name": sub_name, "count": len(prods),
-                                  "total_stock": sum(pr["stock"] for pr in prods), "products": prods})
-                total_count   += len(prods)
-                total_stock_sum += sum(pr["stock"] for pr in prods)
-            category_stats.append({"name": cat_name, "count": total_count,
-                                    "total_stock": total_stock_sum, "subcategories": sub_list})
+            total_count = 0
+            total_stock_sum = 0
 
-        now = datetime.now(timezone.utc)
+            for sub_name, prods in subs.items():
+                sub_stock = sum(pr["stock"] for pr in prods)
+
+                sub_list.append({
+                    "name": sub_name,
+                    "count": len(prods),
+                    "total_stock": sub_stock,
+                    "products": prods,
+                })
+
+                total_count += len(prods)
+                total_stock_sum += sub_stock
+
+            category_stats.append({
+                "name": cat_name,
+                "count": total_count,
+                "total_stock": total_stock_sum,
+                "subcategories": sub_list,
+            })
+
+        # ---------------- MONTHLY REVENUE ----------------
         monthly_revenue_raw = (
             db_mysql.session.query(
-                extract("year", OrderSQL.created_at).label("year"),
-                extract("month", OrderSQL.created_at).label("month"),
-                func.sum(OrderSQL.total).label("revenue"),
-                func.count(OrderSQL.id).label("orders"),
+                extract("year", OrderSQL.created_at),
+                extract("month", OrderSQL.created_at),
+                func.sum(OrderSQL.total),
+                func.count(OrderSQL.id),
             )
             .filter(OrderSQL.payment_status == "Paid")
-            .group_by("year", "month")
-            .order_by("year", "month")
-            .limit(12).all()
+            .group_by(
+                extract("year", OrderSQL.created_at),
+                extract("month", OrderSQL.created_at)
+            )
+            .order_by(
+                extract("year", OrderSQL.created_at),
+                extract("month", OrderSQL.created_at)
+            )
+            .limit(12)
+            .all()
         )
+
         monthly_revenue = [
-            {"year": int(r[0]), "month": int(r[1]), "revenue": float(r[2]), "orders": int(r[3])}
+            {
+                "year": int(r[0]),
+                "month": int(r[1]),
+                "revenue": float(r[2] or 0),
+                "orders": int(r[3] or 0),
+            }
             for r in monthly_revenue_raw
         ]
 
         return jsonify({
-            "most_sold":          most_sold,
-            "most_favorited":     most_favorited,
+            "most_sold": most_sold,
+            "most_favorited": most_favorited,
             "most_added_to_cart": most_added_to_cart,
-            "low_stock":          low_stock,
-            "all_stock":          all_stock,
-            "category_stats":     category_stats,
-            "pie_data":           pie_data,
-            "monthly_revenue":    monthly_revenue,
+            "low_stock": low_stock,
+            "all_stock": all_stock,
+            "category_stats": category_stats,
+            "pie_data": pie_data,
+            "monthly_revenue": monthly_revenue,
         }), 200
 
     except Exception as exc:
-        app.logger.error("analysis_error err=%s", exc)
+        db_mysql.session.rollback()
+        app.logger.exception("analysis_error")
         return jsonify({"error": "Analysis data unavailable"}), 500
+
 
 # ============================================================
 # ADMIN — CUSTOMERS
@@ -3027,6 +3135,7 @@ def get_categories():
 
 
 @app.route("/api/categories", methods=["POST"])
+@csrf.exempt
 @admin_required
 def add_category():
     data        = request.get_json() or {}
@@ -3059,6 +3168,7 @@ def add_category():
 
 
 @app.route("/api/categories/<int:cat_id>", methods=["DELETE"])
+@csrf.exempt
 @admin_required
 def delete_category(cat_id):
     cat = CategorySQL.query.get(cat_id)
@@ -3101,12 +3211,12 @@ _DEFAULT_HOMEPAGE = {
     "hero_slides": [{
         "image":      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564",
         "content":    "ETHEREAL SHADOWS: FALL WINTER 2025",
-        "product_id": "",
+        "product_id": "4",
     }],
     "manifesto_text":          "We believe in the quiet power of silence.",
-    "bestseller_product_ids":  [],
-    "featured_product_ids":    [],
-    "new_arrival_product_ids": [],
+    "bestseller_product_ids":  ["4", "5", "7"],
+    "featured_product_ids":    ["4", "5", "7"],
+    "new_arrival_product_ids": ["4", "5", "7"],
 }
 
 
@@ -3122,6 +3232,7 @@ def get_homepage_config():
 
 
 @app.route("/api/homepage", methods=["POST"])
+@csrf.exempt
 @admin_required
 def update_homepage_config():
     data = request.get_json() or {}

@@ -141,17 +141,6 @@ export function SiteHeader() {
     fetchCategories()
   }, [pathname])
 
-  useEffect(() => {
-    // Mechanical, snappy, deliberate entrance animation (no bouncy/smooth easing)
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        navRef.current,
-        { y: -100, opacity: 1 },
-        { y: 0, opacity: 1, duration: 0.3, ease: "power2.out", delay: 0.1 }
-      )
-    })
-    return () => ctx.revert()
-  }, [])
 
   const navLinkClass = "relative whitespace-nowrap text-[11px] font-light tracking-[0.15em] uppercase block text-gray-400 hover:text-white transition-colors py-1 px-2"
 

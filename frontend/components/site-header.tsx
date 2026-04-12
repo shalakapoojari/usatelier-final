@@ -142,7 +142,7 @@ export function SiteHeader() {
   }, [pathname])
 
 
-  const navLinkClass = "relative whitespace-nowrap text-[11px] font-light tracking-[0.15rem] uppercase block text-gray-400 hover:text-white transition-colors py-1 px-2"
+  const navLinkClass = "relative whitespace-nowrap text-[10px] font-light tracking-[0.15rem] uppercase block text-gray-400 hover:text-white transition-colors py-1 px-2"
 
   return (
     <>
@@ -188,7 +188,7 @@ export function SiteHeader() {
                     <ul className="flex flex-col gap-4">
                       {dynamicCategories.map(cat => (
                         <li key={cat.id || cat.name}>
-                          <Link href={`/view-all?category=${encodeURIComponent(cat.name)}`} onClick={() => setCategoriesDropdownOpen(false)} className="text-[11px] font-light uppercase text-gray-400 hover:text-white transition-colors block tracking-widest leading-none">
+                          <Link href={`/view-all?category=${encodeURIComponent(cat.name)}`} onClick={() => setCategoriesDropdownOpen(false)} className="text-[10px] font-light uppercase text-gray-400 hover:text-white transition-colors block tracking-widest leading-none">
                             {cat.name}
                           </Link>
                         </li>
@@ -199,17 +199,17 @@ export function SiteHeader() {
                     <h3 className="text-[10px] font-light tracking-[0.2rem] uppercase border-b border-white/10 pb-3 mb-6 text-white/50">BY GENDER</h3>
                     <ul className="flex flex-col gap-4">
                       <li>
-                        <Link href="/view-all?gender=Men" onClick={() => setCategoriesDropdownOpen(false)} className="text-[11px] font-light uppercase text-gray-400 hover:text-white transition-colors block tracking-widest leading-none">
+                        <Link href="/view-all?gender=Men" onClick={() => setCategoriesDropdownOpen(false)} className="text-[10px] font-light uppercase text-gray-400 hover:text-white transition-colors block tracking-widest leading-none">
                           MEN
                         </Link>
                       </li>
                       <li>
-                        <Link href="/view-all?gender=Women" onClick={() => setCategoriesDropdownOpen(false)} className="text-[11px] font-light uppercase text-gray-400 hover:text-white transition-colors block tracking-widest leading-none">
+                        <Link href="/view-all?gender=Women" onClick={() => setCategoriesDropdownOpen(false)} className="text-[10px] font-light uppercase text-gray-400 hover:text-white transition-colors block tracking-widest leading-none">
                           WOMEN
                         </Link>
                       </li>
                       <li>
-                        <Link href="/view-all?gender=Unisex" onClick={() => setCategoriesDropdownOpen(false)} className="text-[11px] font-light uppercase text-gray-400 hover:text-white transition-colors block tracking-widest leading-none">
+                        <Link href="/view-all?gender=Unisex" onClick={() => setCategoriesDropdownOpen(false)} className="text-[10px] font-light uppercase text-gray-400 hover:text-white transition-colors block tracking-widest leading-none">
                           UNISEX
                         </Link>
                       </li>
@@ -271,7 +271,7 @@ export function SiteHeader() {
                         <Link
                           href="/admin"
                           onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-4 px-5 py-3 text-[11px] font-light uppercase tracking-[0.15em] text-gray-400 hover:text-white transition-colors border-b border-white/5"
+                          className="flex items-center gap-4 px-5 py-3 text-[10px] font-light uppercase tracking-[0.15em] text-gray-400 hover:text-white transition-colors border-b border-white/5"
                         >
                           <LayoutDashboard size={14} strokeWidth={1.5} />
                           ADMIN PANEL
@@ -280,7 +280,7 @@ export function SiteHeader() {
                       <Link
                         href="/account"
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-4 px-5 py-3 text-[11px] font-light uppercase tracking-[0.15em] text-gray-400 hover:text-white transition-colors border-b border-white/5"
+                        className="flex items-center gap-4 px-5 py-3 text-[10px] font-light uppercase tracking-[0.15em] text-gray-400 hover:text-white transition-colors border-b border-white/5"
                       >
                         <User size={14} strokeWidth={1.5} />
                         MY ACCOUNT
@@ -297,7 +297,7 @@ export function SiteHeader() {
                     <div className="border-t border-white/5 py-2">
                       <button
                         onClick={handleLogout}
-                        className="flex w-full items-center gap-4 px-5 py-3 text-[11px] font-light uppercase tracking-[0.15em] transition-colors text-red-400 hover:text-red-300"
+                        className="flex w-full items-center gap-4 px-5 py-3 text-[10px] font-light uppercase tracking-[0.15em] transition-colors text-red-400 hover:text-red-300"
                       >
                         <LogOut size={14} strokeWidth={1.5} />
                         SIGN OUT

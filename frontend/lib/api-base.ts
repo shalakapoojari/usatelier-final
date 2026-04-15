@@ -100,6 +100,18 @@ export async function apiFetch(
     response = await doFetch()
   }
 
+  // SECURITY: Global 401 handler — redirect to login when session has expired
+  if (response.status === 401 && typeof window !== "undefined") {
+    const currentPath = window.location.pathname
+    // Don't redirect from auth pages (prevents infinite redirect loop)
+    if (!currentPath.startsWith("/login") && !currentPath.startsWith("/auth")) {
+      // Small delay so any pending toasts can show
+      window.setTimeout(() => {
+        window.location.href = "/login?session=expired"
+      }, 300)
+    }
+  }
+
   return response
 }
 

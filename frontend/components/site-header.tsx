@@ -325,21 +325,22 @@ export function SiteHeader() {
 
         {/* MOBILE DRAWER */}
         {mobileMenuOpen && (
-          <div ref={mobileMenuOverlayRef} className="md:hidden fixed inset-0 bg-black/40 z-[1000]" onClick={() => closeMobileMenu()}>
+          <div ref={mobileMenuOverlayRef} className="md:hidden fixed inset-0 bg-black/50 z-[1000]" onClick={() => closeMobileMenu()}>
             <div
               ref={mobileMenuRef}
               onClick={(e) => e.stopPropagation()}
-              className="fixed left-0 top-0 h-dvh w-[80vw] bg-white border-r border-black px-10 pt-10 pb-12 overflow-y-auto"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              className="fixed left-0 top-0 h-dvh w-[85vw] bg-white flex flex-col overflow-hidden"
+              style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}
             >
+
               <div className="flex flex-col min-h-full text-black">
-                <div className="mobile-menu-item flex items-center justify-between mb-12">
-                  <button onClick={() => closeMobileMenu()} aria-label="Close menu" className="hover:bg-black hover:text-white transition-none p-1">
-                    <X size={24} strokeWidth={1.5} />
+                <div className="mobile-menu-item px-8 pt-8 pb-6 shrink-0">
+                  <button onClick={() => closeMobileMenu()} aria-label="Close menu">
+                    <X size={24} strokeWidth={1.5} className="text-black" />
                   </button>
                 </div>
 
-                <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-4">
                   <Link href="/" onClick={closeMobileMenuForNavigation} className="mobile-menu-item text-[32px] font-bold tracking-tight uppercase text-black hover:opacity-70 transition-opacity w-max leading-none">
                     HOME
                   </Link>

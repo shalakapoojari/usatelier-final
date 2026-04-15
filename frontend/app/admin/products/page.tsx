@@ -1,7 +1,8 @@
 "use client"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Plus, X, Loader2, Upload, Link as LinkIcon, Search } from "lucide-react"
+import { Plus, X, Loader2, Upload, Link as LinkIcon, Search, Scissors } from "lucide-react"
+import ImageCropperDialog from "@/components/image-cropper-dialog"
 
 import {
   Dialog,
@@ -17,7 +18,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -71,6 +71,12 @@ export default function ProductsPage() {
 
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
+
+  // Image Cropper state
+  const [cropperOpen, setCropperOpen] = useState(false)
+  const [pendingCropFile, setPendingCropFile] = useState<File | null>(null)
+  const [pendingCropIndex, setPendingCropIndex] = useState<number>(-1)
+  const [isSizeGuideSlot, setIsSizeGuideSlot] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -168,7 +174,7 @@ export default function ProductsPage() {
     })
   }
 
-  const handleFileUpload = async (index: number, file: File) => {
+  const handleFileUpload = async (index: number, file: File, isSizeGuide = false) => {
     const data = new FormData()
     data.append("file", file)
 
@@ -181,14 +187,34 @@ export default function ProductsPage() {
       const result = await res.json()
 
       if (res.ok && result.success) {
-        handleImageChange(index, result.url)
-        showToast("Image uploaded", "info")
+        if (isSizeGuide) {
+          setFormData(p => ({ ...p, sizeGuideImage: result.url }))
+          showToast("Size guide uploaded", "info")
+        } else {
+          handleImageChange(index, result.url)
+          showToast("Image uploaded", "info")
+        }
       } else {
         showToast(result.error || "Upload failed", "info")
       }
     } catch {
       showToast("Upload error", "info")
     }
+  }
+
+  // Opens cropper before uploading
+  const openCropperForFile = (file: File, index: number, sizeGuide = false) => {
+    setPendingCropFile(file)
+    setPendingCropIndex(index)
+    setIsSizeGuideSlot(sizeGuide)
+    setCropperOpen(true)
+  }
+
+  const handleCropConfirm = async (blob: Blob, _previewUrl: string) => {
+    setCropperOpen(false)
+    const file = new File([blob], `cropped_${Date.now()}.jpg`, { type: "image/jpeg" })
+    await handleFileUpload(pendingCropIndex, file, isSizeGuideSlot)
+    setPendingCropFile(null)
   }
 
   const handleDeleteProduct = async (id: string) => {
@@ -378,6 +404,7 @@ export default function ProductsPage() {
   })
 
   return (
+    <>
     <div className="bg-[#030303] text-[#e8e8e3] min-h-screen px-4 sm:px-6 md:px-8 py-10 md:py-16">
       <div className="max-w-350 mx-auto mb-14 md:mb-20 flex flex-col md:flex-row md:justify-between md:items-end gap-6">
         <div>
@@ -567,7 +594,7 @@ export default function ProductsPage() {
                             )}
                           </div>
                           <div className="flex gap-4">
-                            <div className="relative w-16 h-20 bg-white/5 border border-white/10 shrink-0 overflow-hidden">
+                            <div className="relative w-16 h-20 bg-white/5 border border-white/10 shrink-0 overflow-hidden group/prev">
                               {img ? (
                                 <Image src={getImageUrl(img)} alt="Preview" fill className="object-cover" />
                               ) : (
@@ -587,21 +614,24 @@ export default function ProductsPage() {
                                     className="bg-transparent border-white/10 h-10 pl-9 text-xs rounded-none"
                                   />
                                 </div>
+                                {/* Upload + crop button */}
                                 <div className="relative">
                                   <Input
                                     type="file"
                                     accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp,.tiff,.jfif"
                                     onChange={(e) => {
                                       const file = e.target.files?.[0]
-                                      if (file) handleFileUpload(idx, file)
+                                      if (file) openCropperForFile(file, idx)
+                                      e.target.value = ""
                                     }}
                                     className="absolute inset-0 opacity-0 cursor-pointer w-10"
                                   />
-                                  <Button type="button" variant="outline" size="icon" className="h-10 w-10 bg-white/5 border-white/10 hover:bg-white/10 rounded-none">
-                                    <Upload size={14} />
+                                  <Button type="button" variant="outline" size="icon" className="h-10 w-10 bg-white/5 border-white/10 hover:bg-white/10 rounded-none" title="Upload & Crop">
+                                    <Scissors size={13} />
                                   </Button>
                                 </div>
                               </div>
+                              <p className="text-[8px] uppercase tracking-widest text-gray-600">Upload opens crop editor</p>
                             </div>
                           </div>
                         </div>
@@ -649,35 +679,20 @@ export default function ProductsPage() {
                               />
                             </div>
                             <div className="relative">
-                              <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0]
-                                  if (file) {
-                                    const data = new FormData()
-                                    data.append("file", file)
-                                    try {
-                                      const res = await apiFetch(API_BASE, "/api/upload", {
-                                        method: "POST",
-                                        body: data,
-                                      })
-                                      const result = await res.json()
-                                      if (res.ok && result.success) {
-                                        setFormData(p => ({ ...p, sizeGuideImage: result.url }))
-                                        showToast("Size guide uploaded", "info")
-                                      }
-                                    } catch {
-                                      showToast("Upload error", "info")
-                                    }
-                                  }
-                                }}
-                                className="absolute inset-0 opacity-0 cursor-pointer w-10"
-                              />
-                              <Button type="button" variant="outline" size="icon" className="h-10 w-10 bg-white/5 border-white/10 hover:bg-white/10 rounded-none">
-                                <Upload size={14} />
-                              </Button>
-                            </div>
+                               <Input
+                                 type="file"
+                                 accept="image/*"
+                                 onChange={(e) => {
+                                   const file = e.target.files?.[0]
+                                   if (file) openCropperForFile(file, 0, true)
+                                   e.currentTarget.value = ""
+                                 }}
+                                 className="absolute inset-0 opacity-0 cursor-pointer w-10"
+                               />
+                               <Button type="button" variant="outline" size="icon" className="h-10 w-10 bg-white/5 border-white/10 hover:bg-white/10 rounded-none" title="Upload &amp; Crop">
+                                 <Scissors size={13} />
+                               </Button>
+                             </div>
                           </div>
                           <p className="text-[8px] text-gray-500 uppercase tracking-widest">Recommended for shoes or fitted apparel.</p>
                         </div>
@@ -874,5 +889,14 @@ export default function ProductsPage() {
         </table>
       </div>
     </div>
+
+    <ImageCropperDialog
+      open={cropperOpen}
+      imageFile={pendingCropFile}
+      aspectRatio={isSizeGuideSlot ? "free" : "3:4"}
+      onConfirm={handleCropConfirm}
+      onCancel={() => { setCropperOpen(false); setPendingCropFile(null) }}
+    />
+  </>
   )
 }

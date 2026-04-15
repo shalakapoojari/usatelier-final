@@ -808,7 +808,8 @@ def security_headers(response):
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "img-src 'self' data: https:; "
+        "img-src 'self' data: blob: https:; "
+        "media-src 'self' blob: https:; "
         "connect-src 'self' https://api.usatelier.in https://api.razorpay.com; "
         "frame-src https://api.razorpay.com; "
         "font-src 'self' https://fonts.gstatic.com; "
@@ -1441,6 +1442,66 @@ def upload_profile_pic():
         }), 200
     except Exception as exc:
         app.logger.error("profile_upload_error err=%s", exc)
+        return jsonify({"error": "Upload failed"}), 500
+
+ALLOWED_VIDEO_EXTENSIONS = {"mp4", "webm", "mov"}
+ALLOWED_VIDEO_MIMES      = {"video/mp4", "video/webm", "video/quicktime"}
+
+def allowed_video(filename: str, file_stream=None) -> bool:
+    """SECURITY: Only allow whitelisted video extensions; optionally check MIME."""
+    ext_ok = (
+        "." in filename
+        and filename.rsplit(".", 1)[1].lower() in ALLOWED_VIDEO_EXTENSIONS
+    )
+    if not ext_ok:
+        return False
+    if file_stream and HAS_MAGIC:
+        header = file_stream.read(2048)
+        file_stream.seek(0)
+        mime = _magic.from_buffer(header, mime=True)
+        return mime in ALLOWED_VIDEO_MIMES
+    return True
+
+
+@app.route("/api/upload/video", methods=["POST"])
+@csrf.exempt
+@admin_required
+def upload_video():
+    """Upload a hero video (MP4 / WebM / MOV) — admin only."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files["file"]
+    if not file or file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+
+    if not allowed_video(file.filename, file.stream):
+        return jsonify({"error": "File type not allowed. Use MP4, WebM or MOV."}), 400
+
+    # 100 MB limit for videos
+    MAX_VIDEO_BYTES = 100 * 1024 * 1024
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > MAX_VIDEO_BYTES:
+        return jsonify({"error": "Video too large. Maximum size is 100 MB."}), 413
+
+    try:
+        videos_dir = os.path.join(UPLOAD_FOLDER, "videos")
+        os.makedirs(videos_dir, exist_ok=True)
+        rand_prefix = secrets.token_hex(8)
+        filename    = f"{rand_prefix}_{secure_filename(file.filename)}"
+        final_path  = os.path.realpath(os.path.join(videos_dir, filename))
+        if not final_path.startswith(os.path.realpath(videos_dir)):
+            return jsonify({"error": "Invalid file path"}), 400
+        file.save(final_path)
+        rel_url = f"/uploads/videos/{filename}"
+        return jsonify({
+            "success": True,
+            "url":  f"{get_backend_base_url()}{rel_url}",
+            "path": rel_url,
+        }), 200
+    except Exception as exc:
+        app.logger.error("video_upload_error err=%s", exc)
         return jsonify({"error": "Upload failed"}), 500
 
 # ============================================================

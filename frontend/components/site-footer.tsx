@@ -42,12 +42,6 @@ export function SiteFooter() {
           <div className="flex gap-6 order-2 md:order-1">
             <span>© 2026 U.S ATELIER MAISON</span>
           </div>
-
-          <div className="flex items-center gap-6 md:gap-8 order-1 md:order-2">
-            <span className="hidden md:inline-block">Free shipping above ₹2999</span>
-            <span className="text-black text-[8px]">✦</span>
-            <span>GST & Taxes Inclusive</span>
-          </div>
         </div>
       </div>
     </footer>

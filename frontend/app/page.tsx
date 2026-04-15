@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useCart } from "@/lib/cart-context";
@@ -88,12 +89,12 @@ function ProductCard({ product, isPlaceholder, onEnlarge }: {
         />
         {/* hover overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-        {/* Quick link */}
+        {/* Quick link — goes directly to product page */}
         <Link
           href={isPlaceholder ? "/view-all" : `/product/${product.id}`}
-          className="absolute bottom-0 left-0 right-0 p-5 translate-y-full group-hover:translate-y-0 transition-transform duration-500"
+          className="absolute inset-0 z-10 flex items-end pb-6 pl-5 opacity-0 group-hover:opacity-100 transition-all duration-500"
         >
-          <span className="text-[9px] uppercase tracking-[0.4em] text-white/80 border-b border-white/30 pb-0.5">View Details →</span>
+          <span className="text-[9px] uppercase tracking-[0.4em] text-white/90 border-b border-white/40 pb-0.5">View Details →</span>
         </Link>
       </div>
       <div className="p-4">
@@ -114,6 +115,7 @@ export default function HomePage() {
   const [bestsellers, setBestsellers] = useState<any[] | null>(null);
   const [featured,    setFeatured]    = useState<any[] | null>(null);
   const [enlargedProduct, setEnlargedProduct] = useState<any | null>(null);
+  const router = useRouter();
 
   useEffect(() => { setApiBase(getApiBase()); }, []);
 
@@ -284,12 +286,12 @@ export default function HomePage() {
 
       {/* Preloader */}
       <div className="preloader">
-        <div className="text-center flex flex-col items-center gap-4">
-          <span className="star-loader text-white">✦</span>
+        <div className="text-center flex flex-col items-center gap-6">
+          <p className="font-serif text-2xl tracking-[0.5em] text-white/80 uppercase select-none">U.S Atelier</p>
           <div className="w-48 h-px bg-gray-800 relative overflow-hidden">
             <div className="absolute top-0 left-0 h-full bg-white" style={{ width: `${loadingPercent}%`, transition: "width 50ms linear" }} />
           </div>
-          <p className="text-[10px] sans uppercase tracking-[0.4em] text-gray-500">{loadingPercent}%</p>
+          <p className="text-[10px] sans uppercase tracking-[0.4em] text-gray-600">{loadingPercent}%</p>
         </div>
       </div>
 

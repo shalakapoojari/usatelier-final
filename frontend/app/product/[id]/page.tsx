@@ -108,7 +108,6 @@ export default function ProductPage({
         category: product.category,
       }, ...filtered].slice(0, 6)
       localStorage.setItem(key, JSON.stringify(updated))
-      localStorage.setItem(key, JSON.stringify(updated))
     } catch { /* ignore */ }
   }, [product?.id])
 
@@ -182,21 +181,32 @@ export default function ProductPage({
     }
   })()
 
+  const SIZE_ORDER = ["XXS","XS","S","M","L","XL","XXL","XXXL","2XL","3XL","4XL","Free Size","One Size"]
+
   const parseSizes = (sizesField: any) => {
     if (!sizesField) return []
+    let raw: string[]
     if (typeof sizesField === "object" && !Array.isArray(sizesField)) {
-      return Object.keys(sizesField)
+      raw = Object.keys(sizesField)
+    } else if (Array.isArray(sizesField)) {
+      raw = sizesField
+    } else {
+      try {
+        const parsed = JSON.parse(sizesField)
+        raw = typeof parsed === "object" && !Array.isArray(parsed)
+          ? Object.keys(parsed)
+          : Array.isArray(parsed) ? parsed : []
+      } catch { raw = [] }
     }
-    if (Array.isArray(sizesField)) return sizesField
-    try {
-      const parsed = JSON.parse(sizesField)
-      if (typeof parsed === "object" && !Array.isArray(parsed)) {
-        return Object.keys(parsed)
-      }
-      return Array.isArray(parsed) ? parsed : []
-    } catch {
-      return []
-    }
+    // Sort: known sizes by order, unknown appended alphabetically
+    return raw.sort((a, b) => {
+      const ai = SIZE_ORDER.indexOf(a.toUpperCase())
+      const bi = SIZE_ORDER.indexOf(b.toUpperCase())
+      if (ai !== -1 && bi !== -1) return ai - bi
+      if (ai !== -1) return -1
+      if (bi !== -1) return 1
+      return a.localeCompare(b)
+    })
   }
 
   const getStockForSize = (size: string) => {
@@ -445,17 +455,25 @@ export default function ProductPage({
               {product.name}
             </h1>
 
-            {/* Star rating (decorative) */}
-            <div className="flex items-center gap-1 mb-4">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star
-                  key={s}
-                  size={12}
-                  className={s <= 4 ? "fill-amber-400 text-amber-400" : "text-gray-600"}
-                />
-              ))}
-              <span className="text-xs text-gray-500 ml-2">4.0 (24 reviews)</span>
-            </div>
+
+            {/* Dynamic rating from real reviews */}
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map((s) => {
+                  const avg = reviews.reduce((a: number, b: any) => a + b.rating, 0) / reviews.length
+                  return (
+                    <Star
+                      key={s}
+                      size={12}
+                      className={s <= Math.round(avg) ? "fill-amber-400 text-amber-400" : "text-gray-600"}
+                    />
+                  )
+                })}
+                <span className="text-xs text-gray-500 ml-2">
+                  {(reviews.reduce((a: number, b: any) => a + b.rating, 0) / reviews.length).toFixed(1)} ({reviews.length} {reviews.length === 1 ? "review" : "reviews"})
+                </span>
+              </div>
+            )}
 
             {/* Price */}
             <p className="text-3xl font-light mb-6">₹{product.price.toLocaleString('en-IN')}</p>

@@ -119,13 +119,7 @@ export function SiteHeader() {
           </nav>
 
           {/* CENTER: Logo - Hidden on Desktop, Visible on Mobile */}
-          <div className="absolute left-1/2 -translate-x-1/2 md:hidden">
-            <Link href="/">
-              <span className="text-xl font-serif italic tracking-[0.25em] uppercase text-white">
-                U.S Atelier
-              </span>
-            </Link>
-          </div>
+
 
           {/* RIGHT: Actions */}
           <div className="flex items-center justify-end gap-6 md:gap-8">

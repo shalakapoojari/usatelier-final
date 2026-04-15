@@ -5,8 +5,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
-import { Eye, EyeOff } from "lucide-react"
-
 import { SignIn2 } from "@/components/ui/clean-minimal-sign-in"
 
 export default function LoginPage() {
@@ -28,7 +26,6 @@ export default function LoginPage() {
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("next")
       : null
-  const isCheckoutRedirect = nextUrl === "/checkout"
 
   const handleSendOtp = async () => {
     if (!email) return setError("Email is required")
@@ -46,10 +43,9 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (step === "email") return handleSendOtp()
-    
+
     setError("")
     setLoading(true)
-
     const result = await verifyOtp(email, otp)
 
     if (result.success && result.user) {
@@ -58,151 +54,150 @@ export default function LoginPage() {
     } else {
       setError(result.message || "Invalid code")
     }
-
     setLoading(false)
   }
 
-  if (!mounted) return <div className="min-h-screen bg-[#060608]" />
+  if (!mounted) return <div className="min-h-screen bg-black" />
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=Cinzel:wght@400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,300;1,500&family=Inter:wght@200;400&display=swap');
 
         .login-root {
           min-height: 100svh;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 1.5rem;
-          background: #030303;
-          font-family: 'Space Grotesk', sans-serif;
+          padding: 2rem;
+          background: #000000;
+          font-family: 'Inter', sans-serif;
           position: relative;
-          overflow: hidden;
+          color: white;
         }
-
-        .serif { font-family: 'Cinzel', serif; }
-        .sans { font-family: 'Space Grotesk', sans-serif; }
 
         .grain-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
+          inset: 0;
           pointer-events: none;
           z-index: 5;
-          opacity: 0.04;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
-        }
-
-        .login-root::before {
-          content: '';
-          position: fixed;
-          inset: 0;
-          background:
-            radial-gradient(ellipse 70% 55% at 15% 85%, rgba(56,168,157,0.06) 0%, transparent 65%),
-            radial-gradient(ellipse 60% 50% at 85% 15%, rgba(184,164,106,0.05) 0%, transparent 65%);
-          pointer-events: none;
-          z-index: 1;
+          opacity: 0.15;
+          background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+          filter: contrast(150%) brightness(100%);
         }
 
         .login-container {
           position: relative;
           z-index: 10;
           width: 100%;
+          max-width: 400px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          animation: fadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+          animation: slideUp 1s cubic-bezier(0.19, 1, 0.22, 1);
         }
 
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
         }
 
-        .login-top-nav {
+        .nav-header {
            position: absolute;
            top: 3rem;
-           left: 3rem;
+           left: 0;
+           width: 100%;
+           display: flex;
+           justify-content: space-between;
+           padding: 0 3rem;
            z-index: 20;
         }
 
         @media (max-width: 768px) {
-          .login-top-nav { top: 2rem; left: 2rem; }
+          .nav-header { top: 2rem; padding: 0 1.5rem; }
         }
 
         .back-link {
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-          font-size: 8px;
-          text-transform: uppercase;
-          letter-spacing: 0.35em;
-          color: rgba(255,255,255,0.25);
-          text-decoration: none;
-          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-          font-weight: 500;
-        }
-
-        .back-link:hover {
-          color: white;
-          transform: translateX(-4px);
-        }
-
-        .brand-logo {
           font-size: 10px;
           text-transform: uppercase;
-          letter-spacing: 0.7em;
-          color: rgba(255,255,255,0.2);
-          margin-bottom: 2.5rem;
+          letter-spacing: 0.3em;
+          color: rgba(255,255,255,0.4);
           text-decoration: none;
-          transition: all 0.5s ease;
-          font-weight: 400;
+          transition: color 0.3s ease;
         }
-        
-        .brand-logo:hover {
+
+        .back-link:hover { color: white; }
+
+        .brand-heading {
+          font-family: 'Cormorant Garamond', serif;
+          font-style: italic;
+          font-size: 3.5rem;
+          letter-spacing: -0.02em;
           color: white;
-          letter-spacing: 0.75em;
+          margin-bottom: 3rem;
+          text-align: center;
+          line-height: 1;
+        }
+
+        .legal-footer {
+          margin-top: 4rem;
+          text-align: center;
+          max-width: 280px;
+        }
+
+        .legal-text {
+          font-size: 9px;
+          text-transform: uppercase;
+          letter-spacing: 0.2em;
+          color: rgba(255,255,255,0.2);
+          line-height: 2;
+        }
+
+        .legal-link {
+          color: rgba(255,255,255,0.5);
+          text-decoration: none;
+          border-bottom: 1px solid rgba(255,255,255,0.1);
+          transition: all 0.3s ease;
+        }
+
+        .legal-link:hover {
+          color: white;
+          border-bottom-color: white;
         }
       `}</style>
 
       <div className="login-root antialiased">
         <div className="grain-overlay" />
-        
-        <div className="login-top-nav">
-          <Link href="/" className="back-link sans">
-            <span className="text-xs">←</span>
-            <span>STORE</span>
-          </Link>
+
+        <div className="nav-header">
+          <Link href="/" className="back-link">← Return</Link>
+          <span className="back-link" style={{ opacity: 0.2 }}>Maison</span>
         </div>
 
         <div className="login-container">
-          <Link href="/" className="brand-logo sans">U.S ATELIER</Link>
-          
-          <SignIn2
-            email={email}
-            setEmail={setEmail}
-            otp={otp}
-            setOtp={setOtp}
-            step={step}
-            error={error}
-            loading={loading}
-            onSubmit={handleSubmit}
-            onSendOtp={handleSendOtp}
-          />
+          <h1 className="brand-heading">U.S Atelier</h1>
 
-          <div className="mt-8 text-center opacity-0 animate-in fade-in slide-in-from-bottom-2 duration-1000 fill-mode-forwards" style={{ animationDelay: '0.5s' }}>
-            <span className="text-[8px] text-zinc-700 uppercase tracking-[0.35em] font-light sans">
-              BY CONTINUING, YOU AGREE TO OUR{" "}
-            </span>
-            <Link 
-              href="/terms&conditions"
-              className="text-[8px] text-zinc-500 hover:text-white uppercase tracking-[0.4em] font-bold sans transition-all border-b border-white/0 hover:border-white/10 pb-0.5"
-            >
-              TERMS & CONDITIONS
-            </Link>
+          <div className="w-full">
+            <SignIn2
+              email={email}
+              setEmail={setEmail}
+              otp={otp}
+              setOtp={setOtp}
+              step={step}
+              error={error}
+              loading={loading}
+              onSubmit={handleSubmit}
+              onSendOtp={handleSendOtp}
+            />
+          </div>
+
+          <div className="legal-footer">
+            <p className="legal-text">
+              By accessing the atelier, you agree to our{" "}
+              <Link href="/terms&conditions" className="legal-link">Terms of Service</Link>
+              {" "}and{" "}
+              <Link href="/terms&conditions#privacy" className="legal-link">Privacy Policy</Link>.
+            </p>
           </div>
         </div>
       </div>

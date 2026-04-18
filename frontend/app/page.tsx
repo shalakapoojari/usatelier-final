@@ -10,6 +10,8 @@ import { resolveMediaUrl } from "@/lib/media-url";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
+
+
 gsap.registerPlugin(ScrollTrigger);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -282,6 +284,29 @@ export default function HomePage() {
 
         @keyframes fadein { from{opacity:0;transform:translateY(24px) scale(0.98)} to{opacity:1;transform:none} }
         .animate-fadein { animation:fadein 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+       /* Infinite Auto-Scroll Animations */
+        @keyframes marquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes marquee-reverse {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0%); }
+        }
+        .animate-marquee {
+          display: flex;
+          width: max-content;
+          animation: marquee 40s linear infinite;
+        }
+        .animate-marquee-reverse {
+          display: flex;
+          width: max-content;
+          animation: marquee-reverse 40s linear infinite;
+        }
+        .animate-marquee:hover, .animate-marquee-reverse:hover {
+          animation-play-state: paused;
+        }
       `}</style>
 
       <div className="grain-overlay" />
@@ -338,30 +363,34 @@ export default function HomePage() {
       </header>
 
       {/* ── BESTSELLERS ──────────────────────────────────────────────────── */}
-      <section id="best-sellers" className="py-24 md:py-32 px-6 md:px-16 bg-[#030303]">
-        <div className="max-w-screen-xl mx-auto">
-          {/* Header */}
-          <div className="flex items-end justify-between mb-14 reveal-heading">
+      {/* ── BESTSELLERS ──────────────────────────────────────────────────── */}
+      <section id="best-sellers" className="py-24 md:py-32 bg-[#050505] overflow-hidden w-full">
+        {/* Header (Contains Padding) */}
+        <div className="max-w-screen-2xl mx-auto px-6 md:px-12 mb-10 md:mb-14">
+          <div className="flex items-end justify-between reveal-heading">
             <div>
-              <p className="text-[9px] sans uppercase tracking-[0.5em] text-gray-600 mb-3">Curated Selection</p>
-              <h2 className="font-serif text-4xl md:text-6xl font-light text-white">Best Sellers</h2>
+              <p className="text-[10px] sans uppercase tracking-[0.3em] text-white/40 mb-3">Curated Selection</p>
+              <h2 className="font-serif text-4xl md:text-5xl text-white tracking-wide uppercase">Best Sellers</h2>
             </div>
-            <Link href="/view-all" className="hidden md:flex items-center text-[9px] sans uppercase tracking-[0.4em] text-gray-500 hover:text-white transition-colors border-b border-white/20 pb-0.5">
-              Explore Best Sellers →
+            <Link href="/view-all" className="hidden md:flex items-center text-[10px] sans uppercase tracking-[0.2em] text-white/60 hover:text-white transition-colors border-b border-white/20 hover:border-white/60 pb-0.5">
+              Explore →
             </Link>
           </div>
+        </div>
 
-          {/* Grid */}
+        {/* Edge-to-Edge Auto-Scroll Carousel (Scrolls Left) */}
+        <div className="w-full flex">
           {bestsellers === null ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5">
+            <div className="flex gap-6 opacity-20 px-6">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="aspect-[3/4] bg-white/3 animate-pulse" />
+                <div key={i} className="min-w-[75vw] md:min-w-[400px] aspect-[3/4] bg-white/5 animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="products-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-px bg-white/5">
-              {bestsellers.map((p, i) => (
-                <div key={p.id || i} className="bg-[#030303]">
+            /* We triple the array to guarantee seamless looping on ultra-wide screens */
+            <div className="animate-marquee flex gap-4 md:gap-6 pr-4 md:pr-6">
+              {[...bestsellers, ...bestsellers, ...bestsellers].map((p, i) => (
+                <div key={`bs-${p.id}-${i}`} className="w-[75vw] md:w-[400px] flex-none bg-[#050505]">
                   <ProductCard
                     product={p}
                     isPlaceholder={!config?.bestseller_product_ids?.length}
@@ -371,12 +400,6 @@ export default function HomePage() {
               ))}
             </div>
           )}
-
-          <div className="mt-10 flex justify-center">
-            <Link href="/view-all" className="text-[9px] sans uppercase tracking-[0.4em] text-gray-500 hover:text-white transition-colors border-b border-white/20 pb-0.5">
-              Explore Best Sellers →
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -400,64 +423,42 @@ export default function HomePage() {
       <div className="section-rule mx-auto max-w-screen-xl px-6 md:px-16" />
 
       {/* ── FEATURED PIECES ──────────────────────────────────────────────── */}
-      <section id="featured" className="py-24 md:py-32 px-6 md:px-16 bg-[#030303]">
-        <div className="max-w-screen-xl mx-auto">
-          {/* Header */}
-          <div className="flex items-end justify-between mb-8 reveal-heading">
+      {/* ── FEATURED PIECES ──────────────────────────────────────────────── */}
+      <section id="featured" className="py-24 md:py-32 bg-[#050505] overflow-hidden w-full">
+        {/* Header (Contains Padding) */}
+        <div className="max-w-screen-2xl mx-auto px-6 md:px-12 mb-10 md:mb-14">
+          <div className="flex items-end justify-between reveal-heading">
             <div>
-              <p className="text-[9px] sans uppercase tracking-[0.5em] text-gray-600 mb-3">Editorial Spotlight</p>
-              <h2 className="font-serif text-4xl md:text-6xl font-light text-white">Featured Pieces</h2>
+              <p className="text-[10px] sans uppercase tracking-[0.3em] text-white/40 mb-3">Editorial Spotlight</p>
+              <h2 className="font-serif text-4xl md:text-5xl text-white tracking-wide uppercase">Featured Pieces</h2>
             </div>
-            <Link href="/view-all" className="hidden md:block text-[9px] sans uppercase tracking-[0.4em] text-gray-500 hover:text-white transition-colors border-b border-white/20 pb-0.5">
+            <Link href="/view-all" className="hidden md:block text-[10px] sans uppercase tracking-[0.2em] text-white/60 hover:text-white transition-colors border-b border-white/20 hover:border-white/60 pb-0.5">
               Explore Collection →
             </Link>
           </div>
+        </div>
 
-          {/* Carousel */}
-          <div className="relative group/carousel">
-            {featured === null ? (
-              <div className="flex overflow-hidden gap-6">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="min-w-[70vw] md:min-w-[380px] aspect-[3/4] bg-white/3 animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <>
-                <div
-                  ref={featuredRef}
-                  className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-6 no-scrollbar touch-pan-x"
-                  onScroll={(e) => {
-                    const el = e.currentTarget;
-                    if (el) setFeaturedScrollPos(el.scrollLeft / (el.scrollWidth - el.clientWidth));
-                  }}
-                >
-                  {featured.map((p, i) => (
-                    <div key={p.id || i} className="w-[75vw] md:w-[400px] flex-none snap-start bg-[#030303]">
-                      <ProductCard
-                        product={p}
-                        isPlaceholder={!config?.featured_product_ids?.length}
-                        onEnlarge={setEnlargedProduct}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Scroll Progress Indicator */}
-                <div className="w-full max-w-[200px] h-[1px] bg-white/10 mx-auto mt-4 relative overflow-hidden">
-                  <div
-                    className="absolute top-0 left-0 h-full bg-white transition-transform duration-100 ease-out"
-                    style={{ width: '30%', transform: `translateX(${featuredScrollPos * 233}%)` }}
+        {/* Edge-to-Edge Auto-Scroll Carousel (Scrolls Right) */}
+        <div className="w-full flex">
+          {featured === null ? (
+            <div className="flex gap-6 opacity-20 px-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="min-w-[75vw] md:min-w-[400px] aspect-[3/4] bg-white/5 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="animate-marquee-reverse flex gap-4 md:gap-6 pr-4 md:pr-6">
+              {[...featured, ...featured, ...featured].map((p, i) => (
+                <div key={`ft-${p.id}-${i}`} className="w-[75vw] md:w-[400px] flex-none bg-[#050505]">
+                  <ProductCard
+                    product={p}
+                    isPlaceholder={!config?.featured_product_ids?.length}
+                    onEnlarge={setEnlargedProduct}
                   />
                 </div>
-              </>
-            )}
-          </div>
-
-          <div className="mt-12 flex justify-center">
-            <Link href="/view-all" className="text-[9px] sans uppercase tracking-[0.4em] text-gray-500 hover:text-white transition-colors border-b border-white/20 pb-0.5">
-              Explore Collection →
-            </Link>
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

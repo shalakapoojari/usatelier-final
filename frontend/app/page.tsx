@@ -72,67 +72,43 @@ function HeroMedia({ slide, fallbackImage }: { slide: HeroSlide | null; fallback
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 // ─── Product Card ─────────────────────────────────────────────────────────────
-function ProductCard({ product, isPlaceholder, onEnlarge }: {
-  product: any; isPlaceholder: boolean; onEnlarge: (p: any) => void
+function ProductCard({ product, isPlaceholder }: {
+  product: any; isPlaceholder: boolean;
 }) {
-  // Parse the image array safely
   const imgs = (() => {
     if (isPlaceholder) return product.images;
     if (Array.isArray(product.images)) return product.images;
     try { return JSON.parse(product.images); } catch { return [product.images]; }
   })();
-
-  // Assign Image 1 and Image 2 (fallback to Image 1 if a second doesn't exist)
-  const imgUrl1 = isPlaceholder ? imgs[0] : resolveMediaUrl(imgs?.[0] || "/placeholder.jpg");
-  const imgUrl2 = isPlaceholder ? (imgs[1] || imgs[0]) : resolveMediaUrl(imgs?.[1] || imgs?.[0] || "/placeholder.jpg");
+  const imgUrl = isPlaceholder ? imgs[0] : resolveMediaUrl(imgs?.[0] || "/placeholder.jpg");
+  const targetUrl = isPlaceholder ? "/view-all" : `/product/${product.id}`;
 
   return (
-    <div className="product-card group relative w-full h-full cursor-pointer flex flex-col bg-transparent">
-      {/* IMAGE CONTAINER */}
-      <div className="relative w-full aspect-[3/4] overflow-hidden bg-[#050505]">
-
-        {/* Base Image */}
+    <Link href={targetUrl} className="product-card group relative overflow-hidden bg-[#050505] w-full h-full block cursor-pointer">
+      <div className="relative w-full h-full aspect-[3/4] overflow-hidden">
         <img
-          src={imgUrl1} key={imgUrl1} alt={product.name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
+          src={imgUrl} key={imgUrl} alt={product.name}
+          className="w-full h-full object-cover transition-transform duration-[900ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
         />
 
-        {/* Hover Image (Curtain Reveal from Top) */}
-        {/* Using clip-path inset to create a flawless top-to-bottom unrolling effect */}
-        <img
-          src={imgUrl2} key={`hover-${imgUrl2}`} alt={`${product.name} alternate`}
-          className="absolute inset-0 w-full h-full object-cover transition-all duration-[800ms] ease-[cubic-bezier(0.76,0,0.24,1)] [clip-path:inset(0_0_100%_0)] group-hover:[clip-path:inset(0)] z-10"
-        />
+        {/* Dark Gradient Overlay (Fades in on hover) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-        {/* Quick Actions (Enlarge / View) */}
-        <div className="absolute inset-0 z-20 flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-          <div className="flex gap-4 pointer-events-auto">
-            <button
-              onClick={(e) => { e.preventDefault(); onEnlarge({ id: product.id, name: product.name, price: product.price, image: imgUrl1 }); }}
-              className="text-[9px] sans uppercase tracking-widest text-white hover:text-white/50 transition-colors border-b border-white/30 hover:border-white pb-0.5"
-            >
-              Enlarge
-            </button>
-            <Link
-              href={isPlaceholder ? "/view-all" : `/product/${product.id}`}
-              className="text-[9px] sans uppercase tracking-widest text-white hover:text-white/50 transition-colors border-b border-white/30 hover:border-white pb-0.5"
-            >
-              View
-            </Link>
+        {/* Hover Content: Name, Price, and Actions */}
+        <div className="absolute inset-0 z-10 flex flex-col justify-end p-6 md:p-8 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 ease-out pointer-events-none">
+          <h3 className="font-serif text-2xl md:text-3xl text-white mb-2 tracking-wide uppercase group-hover:italic transition-all duration-500">{product.name}</h3>
+
+          <div className="flex items-center justify-between w-full mt-2">
+            <p className="text-[10px] sans uppercase tracking-[0.3em] text-white/60">
+              ₹{Number(product.price).toLocaleString("en-IN")}
+            </p>
+            <span className="text-[9px] sans uppercase tracking-widest text-white border-b border-white/30 pb-0.5">
+              View Details
+            </span>
           </div>
         </div>
       </div>
-
-      {/* PRODUCT INFO (Odd Ritual Style - Bottom Alignment) */}
-      <div className="flex justify-between items-start w-full mt-4 md:mt-5">
-        <h3 className="font-serif text-lg md:text-xl text-white tracking-wide uppercase transition-colors duration-500 group-hover:text-white/70 max-w-[70%]">
-          {product.name}
-        </h3>
-        <p className="text-[10px] md:text-[11px] sans uppercase tracking-[0.2em] text-white/60 pt-1">
-          ₹{Number(product.price).toLocaleString("en-IN")}
-        </p>
-      </div>
-    </div>
+    </Link>
   );
 }
 
@@ -283,38 +259,23 @@ export default function HomePage() {
   return (
     <div className="antialiased text-[#e8e8e3] bg-[#030303]">
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=Cinzel:wght@400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:italic&family=Inter:wght@300;400;500&display=swap');
         :root { --gold: #d4af37; }
-        .serif { font-family: 'Cinzel', serif; }
-        .sans  { font-family: 'Space Grotesk', sans-serif; }
+        .serif { font-family: 'Instrument Serif', serif; }
+        .sans  { font-family: 'Inter', sans-serif; }
 
         .grain-overlay {
           position: fixed; top:0; left:0; width:100%; height:100%;
-          pointer-events:none; z-index:9000; opacity:0.05;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+          pointer-events:none; z-index:9000; opacity:0.04;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
         }
+        
         .preloader {
-          position:absolute; inset:0; background:#000; z-index:9999;
+          position:absolute; inset:0; background:#050505; z-index:9999;
           display:flex; pointer-events:none; justify-content:center; align-items:center;
         }
-        .star-loader { font-size:3rem; animation: star-spin 6s linear infinite; }
-        @keyframes star-spin { to { transform:rotate(360deg); } }
 
-        .line-mask { overflow:hidden; }
-        .line-mask span { display:block; transform:translateY(100%); }
-        .highlight-text span { opacity:0.15; }
-        .magnetic-wrap { display:inline-block; position:relative; }
-
-        /* Section dividers */
-        .section-rule { height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent); }
-
-        /* Product card */
-        .product-card { border-bottom:1px solid rgba(255,255,255,0.05); }
-
-        @keyframes fadein { from{opacity:0;transform:translateY(24px) scale(0.98)} to{opacity:1;transform:none} }
-        .animate-fadein { animation:fadein 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-       /* Infinite Auto-Scroll Animations */
+        /* Infinite Auto-Scroll Animations */
         @keyframes marquee {
           0% { transform: translateX(0%); }
           100% { transform: translateX(-50%); }
@@ -336,6 +297,13 @@ export default function HomePage() {
         .animate-marquee:hover, .animate-marquee-reverse:hover {
           animation-play-state: paused;
         }
+
+        .line-mask { overflow:hidden; }
+        .line-mask span { display:block; transform:translateY(100%); }
+        .highlight-text span { opacity:0.15; }
+        
+        @keyframes fadein { from{opacity:0;transform:translateY(24px) scale(0.98)} to{opacity:1;transform:none} }
+        .animate-fadein { animation:fadein 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
       `}</style>
 
       <div className="grain-overlay" />
@@ -391,49 +359,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ── BESTSELLERS ──────────────────────────────────────────────────── */}
-      {/* ── BESTSELLERS ──────────────────────────────────────────────────── */}
-      <section id="best-sellers" className="py-24 md:py-32 bg-[#050505] overflow-hidden w-full">
-        {/* Header (Contains Padding) */}
-        <div className="max-w-screen-2xl mx-auto px-6 md:px-12 mb-10 md:mb-14">
-          <div className="flex items-end justify-between reveal-heading">
-            <div>
-              <p className="text-[10px] sans uppercase tracking-[0.3em] text-white/40 mb-3">Curated Selection</p>
-              <h2 className="font-serif text-4xl md:text-5xl text-white tracking-wide uppercase">Best Sellers</h2>
-            </div>
-            <Link href="/view-all" className="hidden md:flex items-center text-[10px] sans uppercase tracking-[0.2em] text-white/60 hover:text-white transition-colors border-b border-white/20 hover:border-white/60 pb-0.5">
-              Explore →
-            </Link>
-          </div>
-        </div>
-
-        {/* Edge-to-Edge Auto-Scroll Carousel (Scrolls Left) */}
-        <div className="w-full flex">
-          {bestsellers === null ? (
-            <div className="flex gap-6 opacity-20 px-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="min-w-[75vw] md:min-w-[400px] aspect-[3/4] bg-white/5 animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            /* We triple the array to guarantee seamless looping on ultra-wide screens */
-            <div className="animate-marquee flex gap-4 md:gap-6 pr-4 md:pr-6">
-              {[...bestsellers, ...bestsellers, ...bestsellers].map((p, i) => (
-                <div key={`bs-${p.id}-${i}`} className="w-[75vw] md:w-[400px] flex-none bg-[#050505]">
-                  <ProductCard
-                    product={p}
-                    isPlaceholder={!config?.bestseller_product_ids?.length}
-                    onEnlarge={setEnlargedProduct}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <div className="section-rule mx-auto max-w-screen-xl px-6 md:px-16" />
-
       {/* ── MANIFESTO ────────────────────────────────────────────────────── */}
       <section className="py-28 md:py-40 px-6 md:px-32 bg-[#030303]">
         <div className="max-w-4xl mx-auto text-center">
@@ -452,9 +377,7 @@ export default function HomePage() {
       <div className="section-rule mx-auto max-w-screen-xl px-6 md:px-16" />
 
       {/* ── FEATURED PIECES ──────────────────────────────────────────────── */}
-      {/* ── FEATURED PIECES ──────────────────────────────────────────────── */}
       <section id="featured" className="py-24 md:py-32 bg-[#050505] overflow-hidden w-full">
-        {/* Header (Contains Padding) */}
         <div className="max-w-screen-2xl mx-auto px-6 md:px-12 mb-10 md:mb-14">
           <div className="flex items-end justify-between reveal-heading">
             <div>
@@ -467,7 +390,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Edge-to-Edge Auto-Scroll Carousel (Scrolls Right) */}
         <div className="w-full flex">
           {featured === null ? (
             <div className="flex gap-6 opacity-20 px-6">
@@ -479,17 +401,16 @@ export default function HomePage() {
             <div className="animate-marquee-reverse flex gap-4 md:gap-6 pr-4 md:pr-6">
               {[...featured, ...featured, ...featured].map((p, i) => (
                 <div key={`ft-${p.id}-${i}`} className="w-[75vw] md:w-[400px] flex-none bg-[#050505]">
-                  <ProductCard
-                    product={p}
-                    isPlaceholder={!config?.featured_product_ids?.length}
-                    onEnlarge={setEnlargedProduct}
-                  />
+                  <ProductCard product={p} isPlaceholder={!config?.featured_product_ids?.length} />
                 </div>
               ))}
             </div>
           )}
         </div>
       </section>
+
+
+      <div className="section-rule mx-auto max-w-screen-xl px-6 md:px-16" />
 
       {/* ── ENLARGE MODAL ────────────────────────────────────────────────── */}
       {enlargedProduct && (

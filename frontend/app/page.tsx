@@ -28,19 +28,19 @@ interface HomepageData {
 }
 
 const PLACEHOLDER_PRODUCTS = [
-  { id: "p1", name: "Vantablack Coat",   price: 2400, images: ["https://images.unsplash.com/photo-1485230405346-71acb9518d9c?q=80&w=2694&auto=format&fit=crop"] },
-  { id: "p2", name: "Marble Silk Gown",  price: 1850, images: ["https://images.unsplash.com/photo-1529139574466-a302c2d56aee?q=80&w=2576&auto=format&fit=crop"] },
-  { id: "p3", name: "Obsidian Trench",   price: 3100, images: ["https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=2576&auto=format&fit=crop"] },
-  { id: "p4", name: "Smoke Linen Shirt", price: 980,  images: ["https://images.unsplash.com/photo-1434389677669-e08b4cac3105?q=80&w=2400&auto=format&fit=crop"] },
+  { id: "p1", name: "Vantablack Coat", price: 2400, images: ["https://images.unsplash.com/photo-1485230405346-71acb9518d9c?q=80&w=2694&auto=format&fit=crop"] },
+  { id: "p2", name: "Marble Silk Gown", price: 1850, images: ["https://images.unsplash.com/photo-1529139574466-a302c2d56aee?q=80&w=2576&auto=format&fit=crop"] },
+  { id: "p3", name: "Obsidian Trench", price: 3100, images: ["https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=2576&auto=format&fit=crop"] },
+  { id: "p4", name: "Smoke Linen Shirt", price: 980, images: ["https://images.unsplash.com/photo-1434389677669-e08b4cac3105?q=80&w=2400&auto=format&fit=crop"] },
 ];
 
 // ─── Hero Media ───────────────────────────────────────────────────────────────
 function HeroMedia({ slide, fallbackImage }: { slide: HeroSlide | null; fallbackImage: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoFailed, setVideoFailed] = useState(false);
-  const [videoLoaded, setVideoLoaded]  = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
   const hasVideo = !!(slide?.video_url) && !videoFailed;
-  const imgSrc   = slide?.image ? resolveMediaUrl(slide.image) : fallbackImage;
+  const imgSrc = slide?.image ? resolveMediaUrl(slide.image) : fallbackImage;
 
   useEffect(() => {
     if (hasVideo && videoRef.current) { videoRef.current.load(); setVideoLoaded(false); }
@@ -110,10 +110,10 @@ export default function HomePage() {
   const [loadingPercent, setLoadingPercent] = useState(0);
   const { items: cartItems = [] } = useCart() || {};
 
-  const [API_BASE,  setApiBase]  = useState("");
-  const [config,    setConfig]   = useState<HomepageData | null>(null);
+  const [API_BASE, setApiBase] = useState("");
+  const [config, setConfig] = useState<HomepageData | null>(null);
   const [bestsellers, setBestsellers] = useState<any[] | null>(null);
-  const [featured,    setFeatured]    = useState<any[] | null>(null);
+  const [featured, setFeatured] = useState<any[] | null>(null);
   const [enlargedProduct, setEnlargedProduct] = useState<any | null>(null);
   const [featuredScrollPos, setFeaturedScrollPos] = useState(0);
   const featuredRef = useRef<HTMLDivElement>(null);
@@ -126,7 +126,7 @@ export default function HomePage() {
     if (!API_BASE) return;
     const run = async () => {
       try {
-        const res  = await apiFetch(API_BASE, `/api/homepage?_t=${Date.now()}`);
+        const res = await apiFetch(API_BASE, `/api/homepage?_t=${Date.now()}`);
         const data: HomepageData = res.ok ? await res.json() : {};
         setConfig(data);
 
@@ -140,10 +140,10 @@ export default function HomePage() {
 
         const [bs, ft] = await Promise.all([
           fetchGroup(data.bestseller_product_ids || []),
-          fetchGroup(data.featured_product_ids   || []),
+          fetchGroup(data.featured_product_ids || []),
         ]);
         setBestsellers(bs.length ? bs : PLACEHOLDER_PRODUCTS);
-        setFeatured(ft.length    ? ft : PLACEHOLDER_PRODUCTS.slice().reverse());
+        setFeatured(ft.length ? ft : PLACEHOLDER_PRODUCTS.slice().reverse());
       } catch {
         setBestsellers(PLACEHOLDER_PRODUCTS);
         setFeatured(PLACEHOLDER_PRODUCTS.slice().reverse());
@@ -157,13 +157,13 @@ export default function HomePage() {
     if (bestsellers === null || featured === null) return;
 
     const progress = { val: 0 };
-    const loadTl   = gsap.timeline();
+    const loadTl = gsap.timeline();
     loadTl
       .to(progress, { val: 100, duration: 1.8, onUpdate: () => setLoadingPercent(Math.round(progress.val)) })
-      .to(".preloader",    { yPercent: -100, duration: 1.2, ease: "power3.inOut" }, ">")
+      .to(".preloader", { yPercent: -100, duration: 1.2, ease: "power3.inOut" }, ">")
       .from(".hero-main-text", { y: 150, duration: 1.5, stagger: 0.18, ease: "power4.out" }, "-=0.8")
-      .from(".hero-sub-text",  { y: 30, opacity: 0, duration: 1, ease: "power3.out"  }, "-=1.2")
-      .to(".hero-cta",     { opacity: 1, duration: 1 }, "-=0.8");
+      .from(".hero-sub-text", { y: 30, opacity: 0, duration: 1, ease: "power3.out" }, "-=1.2")
+      .to(".hero-cta", { opacity: 1, duration: 1 }, "-=0.8");
 
     // Hero bg parallax
     gsap.fromTo(".hero-bg", { y: 0, scale: 1.12 }, {
@@ -214,7 +214,7 @@ export default function HomePage() {
     magneticWraps.forEach(wrap => {
       const target = wrap.querySelector<HTMLElement>(".magnetic-target");
       if (!target) return;
-      const onMove  = (e: MouseEvent) => { const r = wrap.getBoundingClientRect(); gsap.to(target, { x: (e.clientX - r.left - r.width/2)*0.3, y: (e.clientY - r.top - r.height/2)*0.3, duration:0.5, ease:"power2.out" }); };
+      const onMove = (e: MouseEvent) => { const r = wrap.getBoundingClientRect(); gsap.to(target, { x: (e.clientX - r.left - r.width / 2) * 0.3, y: (e.clientY - r.top - r.height / 2) * 0.3, duration: 0.5, ease: "power2.out" }); };
       const onLeave = () => gsap.to(target, { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1,0.3)" });
       wrap.addEventListener("mousemove", onMove);
       wrap.addEventListener("mouseleave", onLeave);
@@ -234,18 +234,18 @@ export default function HomePage() {
   }, [bestsellers, featured]);
 
   // ─── Derived values ──────────────────────────────────────────────────────
-  const heroSlide       = config?.hero_slides?.[0] || null;
-  const fallbackHero    = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564&auto=format&fit=crop";
-  const manifesto       = config?.manifesto_text    || "We believe in the quiet power of silence. In a world of noise, U.S Atelier is the absence of it. We strip away the unnecessary to reveal the essential structure of the human form. This is not just clothing; this is architecture for the soul.";
-  const seasonText      = config?.season_label       || "Fall Winter 2025";
-  const isLoading       = bestsellers === null || featured === null;
+  const heroSlide = config?.hero_slides?.[0] || null;
+  const fallbackHero = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564&auto=format&fit=crop";
+  const manifesto = config?.manifesto_text || "We believe in the quiet power of silence. In a world of noise, U.S Atelier is the absence of it. We strip away the unnecessary to reveal the essential structure of the human form. This is not just clothing; this is architecture for the soul.";
+  const seasonText = config?.season_label || "Fall Winter 2025";
+  const isLoading = bestsellers === null || featured === null;
 
   let title1 = "ETHEREAL", title2 = "SHADOWS";
   if (heroSlide?.content) {
     const words = heroSlide.content.split(" ");
     if (words.length > 1) {
       title1 = words.slice(0, Math.ceil(words.length / 2)).join(" ");
-      title2  = words.slice(Math.ceil(words.length / 2)).join(" ");
+      title2 = words.slice(Math.ceil(words.length / 2)).join(" ");
     }
   }
 
@@ -423,12 +423,12 @@ export default function HomePage() {
               </div>
             ) : (
               <>
-                <div 
+                <div
                   ref={featuredRef}
                   className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-6 no-scrollbar touch-pan-x"
                   onScroll={(e) => {
                     const el = e.currentTarget;
-                    if(el) setFeaturedScrollPos(el.scrollLeft / (el.scrollWidth - el.clientWidth));
+                    if (el) setFeaturedScrollPos(el.scrollLeft / (el.scrollWidth - el.clientWidth));
                   }}
                 >
                   {featured.map((p, i) => (
@@ -441,12 +441,12 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Scroll Progress Indicator */}
                 <div className="w-full max-w-[200px] h-[1px] bg-white/10 mx-auto mt-4 relative overflow-hidden">
-                  <div 
-                    className="absolute top-0 left-0 h-full bg-white transition-transform duration-100 ease-out" 
-                    style={{ width: '30%', transform: `translateX(${featuredScrollPos * 233}%)` }} 
+                  <div
+                    className="absolute top-0 left-0 h-full bg-white transition-transform duration-100 ease-out"
+                    style={{ width: '30%', transform: `translateX(${featuredScrollPos * 233}%)` }}
                   />
                 </div>
               </>

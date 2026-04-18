@@ -1,16 +1,48 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import gsap from "gsap"
-import { ShoppingBag, User, Search, X, Menu, ChevronDown } from "lucide-react"
+import { ShoppingBag, User, Search, Hexagon, X } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useCart } from "@/lib/cart-context"
-import { getApiBase } from "@/lib/api-base"
-import { SearchOverlay } from "@/components/search-overlay"
+import { SearchOverlay } from "./search-overlay"
 
-const API_BASE = getApiBase()
+// Context mapping for the left side panel
+const panelData = {
+  shop: {
+    id: 'shop',
+    title: 'Our shop',
+    desc: 'A curated selection of our latest architectural garments.',
+    Icon: ShoppingBag
+  },
+  about: {
+    id: 'about',
+    title: 'The atelier',
+    desc: 'Exploring our history, meticulous craft, and dark aesthetic vision.',
+    Icon: Hexagon
+  },
+  account: {
+    id: 'account',
+    title: 'My account',
+    desc: 'Access your private profile, saved pieces, and order history.',
+    Icon: User
+  },
+  search: {
+    id: 'search',
+    title: 'Search',
+    desc: 'Find exactly what you seek across the entire U.S Atelier collection.',
+    Icon: Search
+  }
+};
+
+const navLinks = [
+  { label: 'Shop now', href: '/view-all', id: 'shop' },
+  { label: 'The atelier', href: '/about', id: 'about' },
+  { label: 'My account', href: '/account', id: 'account' },
+  { label: 'Search', action: 'search', id: 'search' }
+];
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -18,205 +50,284 @@ export function SiteHeader() {
   const { user } = useAuth()
   const { unseenCount: cartUnseen } = useCart()
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchOverlayOpen, setSearchOverlayOpen] = useState(false)
-  const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false)
-  const [dynamicCategories, setDynamicCategories] = useState<any[]>([])
+  const [hoveredLink, setHoveredLink] = useState<string>('shop')
   const [isMounted, setIsMounted] = useState(false)
+
+  // GSAP Refs
+  const menuContainerRef = useRef<HTMLDivElement>(null)
+  const sidePanelRef = useRef<HTMLDivElement>(null)
+  const timelineRef = useRef<gsap.core.Timeline | null>(null)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
+  // 1. MAIN REVEAL ANIMATION (Hardware Accelerated)
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/categories`, { cache: "no-store" })
-        if (res.ok) {
-          const data = await res.json()
-          setDynamicCategories(Array.isArray(data) ? data : [])
-        }
-      } catch (err) {
-        setDynamicCategories([])
-      }
+    if (!isMounted || !menuContainerRef.current) return;
+
+    const ctx = gsap.context(() => {
+      // Set initial hidden states
+      gsap.set(menuContainerRef.current, { yPercent: -100 });
+      gsap.set(".reveal-mask-inner", { yPercent: 120, rotate: 3 });
+      gsap.set(".reveal-fade", { opacity: 0, y: 15 });
+
+      // Build snappy, hardware-accelerated timeline
+      timelineRef.current = gsap.timeline({ paused: true })
+        .to(menuContainerRef.current, {
+          yPercent: 0,
+          duration: 0.8,
+          ease: "expo.inOut"
+        })
+        .to(".reveal-mask-inner", {
+          yPercent: 0,
+          rotate: 0,
+          duration: 0.9,
+          stagger: 0.06,
+          ease: "power4.out",
+          force3D: true
+        }, "-=0.4")
+        .to(".reveal-fade", {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          stagger: 0.05,
+          ease: "power2.out"
+        }, "-=0.6");
+
+    }, menuContainerRef);
+
+    return () => ctx.revert();
+  }, [isMounted]);
+
+  // 2. SIDE PANEL CROSSFADE ANIMATION
+  useEffect(() => {
+    if (!isMenuOpen || !sidePanelRef.current) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(".panel-anim",
+        { opacity: 0, y: 10, filter: "blur(2px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.4, ease: "power2.out", stagger: 0.05 }
+      );
+    }, sidePanelRef);
+
+    return () => ctx.revert();
+  }, [hoveredLink, isMenuOpen]);
+
+  // 3. EXPLICIT CONTROLS (Fixes the reopening glitch)
+  const openMenu = () => {
+    document.body.style.overflow = "hidden";
+    setIsMenuOpen(true);
+    timelineRef.current?.timeScale(1).play();
+  };
+
+  const closeMenu = () => {
+    document.body.style.overflow = "";
+    setIsMenuOpen(false); // Update UI immediately (e.g., Hamburger icon)
+    timelineRef.current?.timeScale(1.6).reverse();
+  };
+
+  // Close silently on generic organic route changes (e.g. browser back button)
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = "";
+      setIsMenuOpen(false);
+      timelineRef.current?.progress(0).pause(); // Instantly reset without animating
     }
-    fetchCategories()
-  }, [])
+  }, [pathname]);
 
-  // Sync scroll lock and close menu on route change
-  useEffect(() => {
-    if (isMounted) {
-      document.body.style.overflow = mobileMenuOpen ? "hidden" : ""
+  // 4. PROGRAMMATIC ROUTING (Wait for animation to finish before routing)
+  const handleNavigation = (e: React.MouseEvent, href?: string, action?: string) => {
+    e.preventDefault();
+
+    // 1. Immediately reset body scroll and UI state
+    document.body.style.overflow = "";
+    setIsMenuOpen(false);
+
+    // 2. Play the exit animation smoothly
+    if (timelineRef.current) {
+      timelineRef.current.timeScale(1.8).reverse().then(() => {
+        // 3. Execute the routing/action AFTER menu is fully closed
+        if (href) router.push(href);
+        if (action === 'search') setSearchOverlayOpen(true);
+      });
+    } else {
+      if (href) router.push(href);
+      if (action === 'search') setSearchOverlayOpen(true);
     }
-    return () => { document.body.style.overflow = "" }
-  }, [mobileMenuOpen, isMounted])
-
-  useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [pathname])
-
-  const navLinkClass = "relative text-[10px] md:text-[11px] font-sans tracking-[0.15em] uppercase text-white hover:text-white/60 transition-colors duration-300 py-2"
+  };
 
   if (!isMounted) return null
 
+  const activeData = panelData[hoveredLink as keyof typeof panelData] || panelData.shop;
+  const ActiveIcon = activeData.Icon;
+
   return (
     <>
-      <header className="absolute top-0 left-0 w-full z-[999] bg-transparent">
-        <div className="relative w-full max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-12 py-6 md:py-8">
+      {/* ------------------------------------------------------------------ */}
+      {/* MAIN HEADER (Z-50, always sits behind the dropdown menu) */}
+      {/* ------------------------------------------------------------------ */}
+      <header className="absolute top-0 left-0 w-full z-[50] bg-transparent text-white mix-blend-difference">
+        <div className="w-full max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-12 py-6 md:py-8">
 
-          {/* LEFT: Hamburger & Desktop Navigation */}
-          <div className="flex items-center gap-8 w-1/3">
-            {/* Universal Hamburger Menu */}
+          <div className="flex items-center w-1/3">
             <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="group flex items-center gap-2.5 text-white hover:text-white/60 transition-all duration-300"
+              onClick={openMenu}
+              className="group flex items-center gap-3 hover:opacity-60 transition-opacity p-2 -ml-2"
               aria-label="Open menu"
             >
-              <Menu size={22} strokeWidth={1} className="transition-transform group-hover:-translate-x-1" />
-              <span className="hidden sm:block text-[11px] font-sans tracking-[0.15em] uppercase mt-0.5">Menu</span>
-            </button>
-
-            {/* Desktop Quick Links */}
-            <nav className="hidden md:flex items-center gap-8 border-l border-white/20 pl-8">
-              <Link href="/view-all" className={navLinkClass}>Shop</Link>
-
-              {/* Categories Dropdown */}
-              <div
-                className="relative group h-full"
-                onMouseEnter={() => setCategoriesDropdownOpen(true)}
-                onMouseLeave={() => setCategoriesDropdownOpen(false)}
-              >
-                <button className={`${navLinkClass} flex items-center gap-1.5`}>
-                  Collections
-                  <ChevronDown size={12} className={`transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${categoriesDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {categoriesDropdownOpen && (
-                  <div className="absolute left-0 top-full pt-4 w-56 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="bg-[#0A0A0A] border border-white/10 p-6 shadow-2xl rounded-none">
-                      <ul className="space-y-4">
-                        <li>
-                          <Link href="/view-all" className="text-[10px] uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors block">
-                            View All Pieces
-                          </Link>
-                        </li>
-                        <div className="h-px w-full bg-white/10 my-2" />
-                        {dynamicCategories.map(cat => (
-                          <li key={cat.id || cat.name}>
-                            <Link
-                              href={`/view-all?category=${encodeURIComponent(cat.name)}`}
-                              className="text-[11px] capitalize tracking-wide text-white/70 hover:text-white transition-colors block font-serif italic"
-                            >
-                              {cat.name}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
+              <div className="flex flex-col gap-[5px] justify-center w-6 h-6 relative">
+                <span className="w-full h-[1px] bg-white block absolute top-[8px] transition-transform duration-300 group-hover:-translate-x-1"></span>
+                <span className="w-full h-[1px] bg-white block absolute top-[16px] transition-transform duration-300 group-hover:translate-x-1"></span>
               </div>
-            </nav>
+              <span className="hidden sm:block text-[11px] font-sans tracking-[0.15em] mt-0.5 uppercase">Menu</span>
+            </button>
           </div>
 
-          {/* CENTER: Logo (Absolute to ensure perfect dead-center alignment) */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center w-1/3 pointer-events-none">
+            <Link href="/" className="font-serif text-xl md:text-2xl tracking-wide text-white pointer-events-auto">
+              U.S Atelier
+            </Link>
+          </div>
 
-          {/* RIGHT: Utilities */}
           <div className="flex items-center justify-end gap-5 md:gap-7 w-1/3">
-            <button onClick={() => setSearchOverlayOpen(true)} className="hidden sm:block text-white hover:text-white/60 transition-colors" aria-label="Open search">
-              <Search size={18} strokeWidth={1} />
-            </button>
-
-            <Link href={user ? "/account" : "/login"} className="hidden md:block text-white hover:text-white/60 transition-colors" aria-label={user ? "Go to my account" : "Sign in"}>
+            <Link href={user ? "/account" : "/login"} className="hidden md:block text-white hover:text-white/60 transition-colors p-2">
               <User size={19} strokeWidth={1} />
             </Link>
-
-            <button onClick={() => router.push('/cart')} className="relative flex items-center gap-2.5 text-white hover:text-white/60 transition-colors" aria-label="View shopping bag">
-              <span className="hidden md:block text-[11px] font-sans tracking-[0.15em] uppercase mt-0.5">Cart</span>
+            <button onClick={() => router.push('/cart')} className="relative flex items-center gap-2 text-white hover:text-white/60 transition-colors p-2 -mr-2">
+              <span className="hidden md:block text-[11px] font-sans tracking-[0.15em] mt-0.5 uppercase">Cart</span>
               <ShoppingBag size={20} strokeWidth={1} />
-              {cartUnseen > 0 ? (
-                <span className="absolute -top-1 -right-1.5 w-4 h-4 bg-white text-black text-[9px] font-sans flex items-center justify-center rounded-full">
+              {cartUnseen > 0 && (
+                <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-white text-black text-[8px] font-sans flex items-center justify-center rounded-full">
                   {cartUnseen}
                 </span>
-              ) : (
-                <span className="hidden md:inline-block text-[11px] font-sans tracking-[0.15em] mt-0.5">(0)</span>
               )}
             </button>
           </div>
         </div>
       </header>
 
-      {/* TOP-TO-DOWN SLIDING FULLSCREEN MENU OVERLAY */}
+      {/* ------------------------------------------------------------------ */}
+      {/* FULLSCREEN GSAP OVERLAY MENU (Z-100) */}
+      {/* ------------------------------------------------------------------ */}
       <div
-        className={`fixed inset-0 z-[1001] bg-[#0A0A0A] overflow-y-auto transform transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] ${mobileMenuOpen ? "translate-y-0" : "-translate-y-full"
-          }`}
+        ref={menuContainerRef}
+        className="fixed top-0 left-0 w-full h-[100dvh] z-[100] bg-[#050505] flex flex-col justify-between overflow-hidden text-white"
       >
-        <div className="min-h-full flex flex-col p-6 md:p-12 relative">
-          {/* Menu Header inside the sliding overlay */}
-          <div className="flex justify-between items-center mb-16 md:mb-24 mt-2">
-            <div className="w-1/3"></div> {/* Spacer to keep logo centered */}
+        {/* Menu Header */}
+        <div className="w-full max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-12 py-6 md:py-8 mt-2 flex-shrink-0">
+          <div className="w-1/3"></div>
 
-            <Link href="/" onClick={() => setMobileMenuOpen(false)} className="w-1/3 text-center font-serif text-xl md:text-2xl tracking-[0.15em] text-white uppercase">
+          <div className="w-1/3 flex justify-center">
+            <span className="text-center font-serif text-xl md:text-2xl tracking-wide text-white reveal-fade">
               U.S Atelier
-            </Link>
+            </span>
+          </div>
 
-            <div className="w-1/3 flex justify-end">
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="group flex items-center gap-2 text-white/60 hover:text-white transition-colors"
-              >
-                <span className="text-[11px] font-sans tracking-[0.15em] uppercase mt-0.5 hidden sm:block">Close</span>
-                <X size={26} strokeWidth={1} className="transition-transform group-hover:rotate-90 duration-300" />
-              </button>
+          <div className="w-1/3 flex justify-end">
+            <button
+              onClick={closeMenu}
+              className="group flex items-center gap-2 text-white/60 hover:text-white transition-colors reveal-fade p-2 -mr-2"
+            >
+              <span className="text-[11px] font-sans tracking-[0.15em] mt-0.5 hidden sm:block uppercase">Close</span>
+              <X size={26} strokeWidth={1} className="transition-transform group-hover:rotate-90 duration-500 ease-[cubic-bezier(0.76,0,0.24,1)]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Main Body Layout */}
+        <div className="flex-1 w-full max-w-screen-2xl mx-auto flex flex-col md:flex-row items-center px-6 md:px-12 gap-8 md:gap-0 h-full overflow-hidden">
+
+          {/* LEFT COLUMN: Dynamic Side Context Panel (Hidden on Mobile) */}
+          <div ref={sidePanelRef} className="hidden md:flex w-1/2 flex-col items-start justify-center h-full reveal-fade">
+            <div className="flex flex-col items-start text-left gap-6 max-w-sm">
+
+              <div className="text-white/20 panel-anim">
+                <ActiveIcon size={50} strokeWidth={0.5} className="w-[70px] h-[70px]" />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="panel-anim font-sans text-[11px] tracking-[0.15em] text-white/40">
+                  {activeData.title}
+                </span>
+                <p className="panel-anim font-serif text-xl text-white/80 italic leading-relaxed h-[70px] flex items-start justify-start">
+                  {activeData.desc}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Menu Links */}
-          <nav className="flex flex-col gap-6 md:gap-10 px-2 md:px-8 max-w-4xl mx-auto w-full">
-            {[
-              { label: 'Shop Now', href: '/view-all' },
-              { label: 'The Atelier', href: '/about' },
-              { label: 'My Account', href: user ? '/account' : '/login' },
-              { label: 'Search', action: () => { setMobileMenuOpen(false); setSearchOverlayOpen(true); } }
-            ].map((link, idx) => (
-              <div key={idx} className="overflow-hidden">
-                {link.href ? (
-                  <Link
-                    href={link.href}
-                    className="group flex items-center gap-6 text-4xl sm:text-6xl md:text-7xl font-serif text-white/80 hover:text-white transition-colors duration-300"
-                  >
-                    <span className="text-[12px] font-sans tracking-[0.2em] text-white/30 group-hover:text-white/60 transition-colors mt-2 md:mt-4">0{idx + 1}</span>
-                    <span className="transform transition-transform duration-500 group-hover:translate-x-4">{link.label}</span>
-                  </Link>
-                ) : (
-                  <button
-                    onClick={link.action}
-                    className="group flex items-center gap-6 text-left text-4xl sm:text-6xl md:text-7xl font-serif text-white/80 hover:text-white transition-colors duration-300 w-full"
-                  >
-                    <span className="text-[12px] font-sans tracking-[0.2em] text-white/30 group-hover:text-white/60 transition-colors mt-2 md:mt-4">0{idx + 1}</span>
-                    <span className="transform transition-transform duration-500 group-hover:translate-x-4">{link.label}</span>
-                  </button>
-                )}
-              </div>
-            ))}
-          </nav>
+          {/* RIGHT COLUMN: Navigation Links (Vertical Roll) */}
+          {/* Centered on mobile, aligned to end on desktop */}
+          <nav className="w-full md:w-1/2 flex flex-col items-center md:items-end justify-center gap-4 md:gap-3 h-full">
+            {navLinks.map((link, index) => {
+              const isDimmed = hoveredLink !== null && hoveredLink !== link.id;
 
-          {/* Menu Footer */}
-          <div className="mt-auto pt-24 px-2 md:px-8 pb-8 max-w-4xl mx-auto w-full">
-            <div className="h-px w-full bg-white/10 mb-8" />
-            <div className="grid grid-cols-2 gap-8">
-              <div className="flex flex-col gap-4">
-                <span className="text-[9px] tracking-[0.3em] text-white/40 uppercase font-sans">Inquiries</span>
-                <a href="mailto:contact@usatelier.in" className="text-[11px] font-sans tracking-[0.15em] text-white/70 hover:text-white transition-colors">
-                  CONTACT@USATELIER.IN
-                </a>
-              </div>
-              <div className="flex flex-col gap-4">
-                <span className="text-[9px] tracking-[0.3em] text-white/40 uppercase font-sans">Social</span>
-                <a href="#" className="text-[11px] font-sans tracking-[0.15em] text-white/70 hover:text-white transition-colors">
-                  INSTAGRAM
-                </a>
-              </div>
+              return (
+                <div
+                  key={link.id}
+                  className="w-full flex justify-center md:justify-end reveal-item"
+                  onMouseEnter={() => setHoveredLink(link.id)}
+                >
+                  <button
+                    onClick={(e) => handleNavigation(e, link.href, link.action)}
+                    className={`group flex items-start gap-4 md:gap-6 cursor-pointer transition-opacity duration-500 w-fit ${isDimmed ? 'opacity-30' : 'opacity-100'}`}
+                  >
+                    <span className="text-[10px] md:text-[11px] font-sans tracking-[0.1em] text-white/40 mt-1 md:mt-3 hidden md:block">0{index + 1}</span>
+
+                    {/* The Mask Container */}
+                    <div className="overflow-hidden p-1">
+                      <div className="reveal-mask-inner relative h-[1.1em] leading-none text-5xl md:text-6xl lg:text-7xl font-serif">
+                        {/* Vertical Roll Content */}
+                        <div className="flex flex-col transition-transform duration-[600ms] ease-[cubic-bezier(0.76,0,0.24,1)] group-hover:-translate-y-1/2 text-left">
+                          {/* Normal State */}
+                          <span className="h-[1.1em] block text-white/80 tracking-tight">
+                            {link.label}
+                          </span>
+                          {/* Hover State */}
+                          <span className="h-[1.1em] block text-white italic tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                            {link.label}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </button>
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Menu Footer */}
+        <div className="w-full max-w-screen-2xl mx-auto px-6 md:px-12 pb-8 md:pb-10 flex-shrink-0">
+          <div className="reveal-fade h-px w-full bg-white/10 mb-6 md:mb-8" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            <div className="reveal-fade flex flex-col gap-1.5 md:gap-2">
+              <span className="text-[9px] tracking-[0.15em] text-white/40 font-sans uppercase">Inquiries</span>
+              <a href="mailto:contact@usatelier.in" className="text-[11px] md:text-[12px] font-sans tracking-wide text-white/80 hover:text-white transition-colors">
+                contact@usatelier.in
+              </a>
+            </div>
+            <div className="reveal-fade flex flex-col gap-1.5 md:gap-2">
+              <span className="text-[9px] tracking-[0.15em] text-white/40 font-sans uppercase">Community</span>
+              <a href="#" className="text-[11px] md:text-[12px] font-sans tracking-wide text-white/80 hover:text-white transition-colors">
+                Instagram
+              </a>
+            </div>
+            <div className="reveal-fade hidden md:flex flex-col gap-1.5 md:gap-2">
+              <span className="text-[9px] tracking-[0.15em] text-white/40 font-sans uppercase">Legal</span>
+              <Link href="/terms" className="text-[11px] md:text-[12px] font-sans tracking-wide text-white/80 hover:text-white transition-colors">
+                Terms of service
+              </Link>
+            </div>
+            <div className="reveal-fade hidden md:flex flex-col gap-1.5 md:gap-2 items-end">
+              <span className="text-[9px] tracking-[0.15em] text-white/40 font-sans uppercase">Studio</span>
+              <span className="text-[11px] md:text-[12px] font-sans tracking-wide text-white/50 text-right leading-relaxed">
+                Designed in Mumbai.
+              </span>
             </div>
           </div>
         </div>
@@ -225,7 +336,6 @@ export function SiteHeader() {
       <SearchOverlay
         isOpen={searchOverlayOpen}
         onClose={() => setSearchOverlayOpen(false)}
-        categories={dynamicCategories}
       />
     </>
   )

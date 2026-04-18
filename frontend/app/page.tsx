@@ -359,18 +359,32 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ── MANIFESTO ────────────────────────────────────────────────────── */}
       <section className="py-28 md:py-40 px-6 md:px-32 bg-[#030303]">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-[8px] sans uppercase tracking-[0.6em] text-gray-600 mb-12">Our Philosophy</p>
-          <p className="highlight-text text-2xl md:text-4xl lg:text-5xl serif leading-[1.45] text-gray-300">
-            {manifesto}
-          </p>
-          <div className="mt-16 flex items-center justify-center gap-8">
-            <div className="h-px w-20 bg-white/10" />
-            <span className="text-[9px] sans uppercase tracking-[0.5em] text-gray-600">U.S Atelier</span>
-            <div className="h-px w-20 bg-white/10" />
+
+        {/* Full-width container aligned to top-right */}
+        <div className="flex justify-end items-start">
+
+          {/* Content block */}
+          <div className="w-full md:w-[55%] text-right">
+
+            <p className="text-[8px] sans uppercase tracking-[0.6em] text-gray-600 mb-8">
+              Our Philosophy
+            </p>
+
+            <p className="highlight-text text-xl md:text-3xl lg:text-4xl serif leading-[1.4] text-gray-300">
+              {manifesto}
+            </p>
+
+            <div className="mt-12 flex items-center justify-end gap-6">
+              <div className="h-px w-16 bg-white/10" />
+              <span className="text-[9px] sans uppercase tracking-[0.5em] text-gray-600">
+                U.S Atelier
+              </span>
+              <div className="h-px w-16 bg-white/10" />
+            </div>
+
           </div>
+
         </div>
       </section>
 

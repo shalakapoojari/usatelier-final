@@ -8,6 +8,7 @@ import { CartProvider } from "@/lib/cart-context"
 import { AuthProvider } from "@/lib/auth-context"
 import { ToastProvider } from "@/lib/toast-context"
 import { ScrollRevealProvider } from "@/components/scroll-reveal-provider"
+import { CookieConsentBanner } from "@/components/cookie-consent-banner"
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -55,6 +56,7 @@ export default function RootLayout({
           </WishlistProvider>
         </AuthProvider>
         <Analytics />
+        <CookieConsentBanner />
       </body>
     </html>
   )

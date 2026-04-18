@@ -51,7 +51,7 @@ function HeroMedia({ slide, fallbackImage }: { slide: HeroSlide | null; fallback
       <img
         src={imgSrc} key={imgSrc}
         className={`w-full h-full object-cover scale-110 hero-bg transition-opacity duration-1000 ${hasVideo && videoLoaded ? "opacity-0" : "opacity-60"}`}
-        alt="Hero" loading="eager"
+        alt={`U.S Atelier editorial hero — current season`} loading="eager"
       />
       {hasVideo && (
         <video
@@ -323,10 +323,10 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Corner text */}
         <div className="absolute bottom-10 left-10 hidden md:block">
           <p className="text-[9px] uppercase tracking-widest leading-relaxed opacity-40 sans">
-            Designed in Paris.<br />Crafted in Milan.<br />Worn in Darkness.
+            Designed. Crafted.<br />Worn in Darkness.<br />
+            <span style={{ opacity: 0.6 }}>Ships from India · Worldwide</span>
           </p>
         </div>
 
@@ -346,8 +346,8 @@ export default function HomePage() {
               <p className="text-[9px] sans uppercase tracking-[0.5em] text-gray-600 mb-3">Curated Selection</p>
               <h2 className="font-serif text-4xl md:text-6xl font-light text-white">Best Sellers</h2>
             </div>
-            <Link href="/view-all" className="hidden md:block text-[9px] sans uppercase tracking-[0.4em] text-gray-500 hover:text-white transition-colors border-b border-white/20 pb-0.5">
-              View All →
+            <Link href="/view-all" className="hidden md:flex items-center text-[9px] sans uppercase tracking-[0.4em] text-gray-500 hover:text-white transition-colors border-b border-white/20 pb-0.5">
+              Explore Best Sellers →
             </Link>
           </div>
 
@@ -372,9 +372,9 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="mt-10 flex justify-center md:hidden">
+          <div className="mt-10 flex justify-center">
             <Link href="/view-all" className="text-[9px] sans uppercase tracking-[0.4em] text-gray-500 hover:text-white transition-colors border-b border-white/20 pb-0.5">
-              View All Products →
+              Explore Best Sellers →
             </Link>
           </div>
         </div>
@@ -409,7 +409,7 @@ export default function HomePage() {
               <h2 className="font-serif text-4xl md:text-6xl font-light text-white">Featured Pieces</h2>
             </div>
             <Link href="/view-all" className="hidden md:block text-[9px] sans uppercase tracking-[0.4em] text-gray-500 hover:text-white transition-colors border-b border-white/20 pb-0.5">
-              Shop All →
+              Explore Collection →
             </Link>
           </div>
 
@@ -453,9 +453,9 @@ export default function HomePage() {
             )}
           </div>
 
-          <div className="mt-12 flex justify-center md:hidden">
+          <div className="mt-12 flex justify-center">
             <Link href="/view-all" className="text-[9px] sans uppercase tracking-[0.4em] text-gray-500 hover:text-white transition-colors border-b border-white/20 pb-0.5">
-              Shop Now →
+              Explore Collection →
             </Link>
           </div>
         </div>

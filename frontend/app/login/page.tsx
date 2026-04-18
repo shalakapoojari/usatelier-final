@@ -14,6 +14,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [step, setStep] = useState<"email" | "otp">("email")
+  const [otpAttempts, setOtpAttempts] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+  const [lockCountdown, setLockCountdown] = useState(0)
 
   const { sendOtp, verifyOtp } = useAuth()
   const router = useRouter()
@@ -21,6 +24,25 @@ export default function LoginPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Lockout countdown ticker
+  useEffect(() => {
+    if (!lockedUntil) return
+    const tick = () => {
+      const remaining = Math.ceil((lockedUntil - Date.now()) / 1000)
+      if (remaining <= 0) {
+        setLockedUntil(null)
+        setLockCountdown(0)
+        setOtpAttempts(0)
+        setError("")
+      } else {
+        setLockCountdown(remaining)
+      }
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [lockedUntil])
 
   const nextUrl =
     typeof window !== "undefined"
@@ -44,6 +66,12 @@ export default function LoginPage() {
     e.preventDefault()
     if (step === "email") return handleSendOtp()
 
+    // Rate limit: block if locked out
+    if (lockedUntil && Date.now() < lockedUntil) {
+      setError(`Too many attempts. Please wait ${lockCountdown}s before trying again.`)
+      return
+    }
+
     setError("")
     setLoading(true)
     const result = await verifyOtp(email, otp)
@@ -52,7 +80,15 @@ export default function LoginPage() {
       const redirectTo = nextUrl || (result.user.role === "admin" ? "/admin" : "/")
       router.push(redirectTo)
     } else {
-      setError(result.message || "Invalid code")
+      const newAttempts = otpAttempts + 1
+      setOtpAttempts(newAttempts)
+      if (newAttempts >= 5) {
+        const lockExpiry = Date.now() + 30_000
+        setLockedUntil(lockExpiry)
+        setError("Too many failed attempts. Please wait 30 seconds before trying again.")
+      } else {
+        setError(result.message || `Invalid code. ${5 - newAttempts} attempt${5 - newAttempts !== 1 ? "s" : ""} remaining.`)
+      }
     }
     setLoading(false)
   }
@@ -196,7 +232,9 @@ export default function LoginPage() {
               By accessing the atelier, you agree to our{" "}
               <Link href="/terms&conditions" className="legal-link">Terms of Service</Link>
               {" "}and{" "}
-              <Link href="/terms&conditions#privacy" className="legal-link">Privacy Policy</Link>.
+              <Link href="/privacy-policy" className="legal-link">Privacy Policy</Link>.
+              {" "}We use cookies as described in our{" "}
+              <Link href="/cookie-policy" className="legal-link">Cookie Policy</Link>.
             </p>
           </div>
         </div>

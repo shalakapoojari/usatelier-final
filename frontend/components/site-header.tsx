@@ -123,15 +123,15 @@ export function SiteHeader() {
 
           {/* RIGHT: Actions */}
           <div className="flex items-center justify-end gap-6 md:gap-8">
-            <button onClick={() => setSearchOverlayOpen(true)} className="text-white/50 hover:text-white transition-colors">
+            <button onClick={() => setSearchOverlayOpen(true)} className="text-white/50 hover:text-white transition-colors" aria-label="Open search">
               <Search size={19} strokeWidth={1.5} />
             </button>
 
-            <Link href={user ? "/account" : "/login"} className="text-white/50 hover:text-white transition-colors">
+            <Link href={user ? "/account" : "/login"} className="text-white/50 hover:text-white transition-colors" aria-label={user ? "Go to my account" : "Sign in"}>
               <User size={20} strokeWidth={1.5} />
             </Link>
 
-            <button onClick={() => router.push('/cart')} className="relative text-white/50 hover:text-white transition-colors">
+            <button onClick={() => router.push('/cart')} className="relative text-white/50 hover:text-white transition-colors" aria-label="View shopping bag">
               <ShoppingBag size={20} strokeWidth={1.5} />
               {cartUnseen > 0 && (
                 <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_white]" />

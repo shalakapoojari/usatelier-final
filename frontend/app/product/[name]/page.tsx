@@ -402,7 +402,7 @@ export default function ProductPage({
       <SiteHeader />
 
       {/* ── BACK LINK ── */}
-      <div className="pt-56 px-6 md:px-12 max-w-350 mx-auto">
+      <div className="pt-32 px-6 md:px-12 max-w-350 mx-auto">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors"
@@ -418,104 +418,42 @@ export default function ProductPage({
 
           {/* ── IMAGES COLUMN ── */}
           <div className="space-y-4">
-            {/* Main image with swipe support */}
-            <div
-              className="relative aspect-3/4 overflow-hidden bg-[#111] select-none"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-            >
-              <Image
-                src={resolveMediaUrl(images[selectedImage])}
-                alt={product.name}
-                fill
-                priority
-                className="object-contain transition-opacity duration-500"
-              />
-              <div className="absolute inset-0 bg-linear-to-b from-transparent to-black/10 pointer-events-none" />
-
-              {/* Badges top-left */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2">
-                {(product.newArrival || product.is_new) && (
-                  <span className="bg-white text-black text-[10px] uppercase tracking-widest px-3 py-1 font-medium flex items-center gap-1">
-                    <Sparkles size={10} />
-                    New
-                  </span>
-                )}
-                {(product.bestseller || product.is_bestseller) && (
-                  <span className="bg-amber-500 text-black text-[10px] uppercase tracking-widest px-3 py-1 font-medium flex items-center gap-1">
-                    <Award size={10} />
-                    Bestseller
-                  </span>
-                )}
-                {!isInStock && (
-                  <span className="bg-white/10 text-white/50 border border-white/20 text-[10px] uppercase tracking-widest px-3 py-1 font-medium">
-                    Out of Stock
-                  </span>
+            {images.map((img: string, idx: number) => (
+              <div key={idx} className="relative w-full overflow-hidden select-none bg-[#111]">
+                <img
+                  src={resolveMediaUrl(img)}
+                  alt={`${product.name} - View ${idx + 1}`}
+                  className="w-full h-auto object-cover block"
+                />
+                
+                {/* Badges top-left (only on first image) */}
+                {idx === 0 && (
+                  <div className="absolute top-4 left-4 flex flex-col gap-2">
+                    {(product.newArrival || product.is_new) && (
+                      <span className="bg-white text-black text-[10px] uppercase tracking-widest px-3 py-1 font-medium flex items-center gap-1">
+                        <Sparkles size={10} />
+                        New
+                      </span>
+                    )}
+                    {(product.bestseller || product.is_bestseller) && (
+                      <span className="bg-amber-500 text-black text-[10px] uppercase tracking-widest px-3 py-1 font-medium flex items-center gap-1">
+                        <Award size={10} />
+                        Bestseller
+                      </span>
+                    )}
+                    {!isInStock && (
+                      <span className="bg-white/10 text-white/50 border border-white/20 text-[10px] uppercase tracking-widest px-3 py-1 font-medium">
+                        Out of Stock
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
-
-              {/* Mobile swipe dots */}
-              {images.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 md:hidden">
-                  {images.map((_: any, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedImage(idx)}
-                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                        selectedImage === idx ? "bg-white w-4" : "bg-white/30"
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Mobile prev/next arrows */}
-              {images.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setSelectedImage((prev) => (prev - 1 + images.length) % images.length)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 md:hidden flex items-center justify-center bg-black/40 backdrop-blur-sm text-white/80"
-                    aria-label="Previous image"
-                  >
-                    <ArrowLeft size={14} />
-                  </button>
-                  <button
-                    onClick={() => setSelectedImage((prev) => (prev + 1) % images.length)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 md:hidden flex items-center justify-center bg-black/40 backdrop-blur-sm text-white/80"
-                    aria-label="Next image"
-                  >
-                    <ArrowLeft size={14} className="rotate-180" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Thumbnails */}
-            {images.length > 1 && (
-              <div className="grid grid-cols-4 gap-3">
-                {images.map((image: string, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`relative aspect-square overflow-hidden transition-all ${selectedImage === index
-                      ? "ring-1 ring-white"
-                      : "opacity-50 hover:opacity-90"
-                      }`}
-                  >
-                    <Image
-                      src={resolveMediaUrl(image)}
-                      alt={`${product.name} view ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
 
           {/* ── DETAILS COLUMN ── */}
-          <div className="space-y-0">
+          <div className="space-y-0 lg:sticky lg:top-32 self-start pb-12">
 
             {/* Category breadcrumb */}
             <Link

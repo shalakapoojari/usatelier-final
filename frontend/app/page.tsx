@@ -81,6 +81,8 @@ function ProductCard({ product, isPlaceholder }: {
     try { return JSON.parse(product.images); } catch { return [product.images]; }
   })();
   const imgUrl = isPlaceholder ? imgs[0] : resolveMediaUrl(imgs?.[0] || "/placeholder.jpg");
+  const imgUrl2 = isPlaceholder ? (imgs[1] || imgs[0]) : resolveMediaUrl(imgs?.[1] || imgs?.[0] || "/placeholder.jpg");
+  const hasSecondImage = imgs?.length > 1;
   const targetUrl = isPlaceholder ? "/view-all" : `/product/${encodeURIComponent(product.name)}`;
 
   return (
@@ -88,8 +90,14 @@ function ProductCard({ product, isPlaceholder }: {
       <div className="relative w-full h-full aspect-[3/4] overflow-hidden">
         <img
           src={imgUrl} key={imgUrl} alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-[900ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
+          className={`w-full h-full object-cover transition-all duration-[900ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105 ${hasSecondImage ? "group-hover:opacity-0" : ""}`}
         />
+        {hasSecondImage && (
+          <img
+            src={imgUrl2} key={imgUrl2} alt={`${product.name} hover`}
+            className="absolute inset-0 w-full h-full object-cover transition-all duration-[900ms] ease-[cubic-bezier(0.25,1,0.5,1)] opacity-0 group-hover:opacity-100 group-hover:scale-105"
+          />
+        )}
 
         {/* Dark Gradient Overlay (Fades in on hover) */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />

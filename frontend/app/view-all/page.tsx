@@ -271,40 +271,42 @@ function ShopContent() {
       {/* ─── MAIN CONTENT ─────────────────────────────────────────────────── */}
       <main className="px-6 md:px-12 pb-32 pt-44 md:pt-48">
 
-        {/* Category filter tabs */}
-        {!loading && !urlSearch && categories.length > 0 && (
-          <div className="mb-8 pb-6 border-b border-white/5 overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-3 min-w-max">
-              <a
-                href="/view-all"
-                className={`px-5 py-2 text-[10px] uppercase tracking-[0.3em] border transition-all duration-300 whitespace-nowrap ${
-                  !urlCategory
-                    ? "border-white/40 text-white bg-white/5"
-                    : "border-white/10 text-white/35 hover:text-white hover:border-white/30"
-                }`}
-              >
-                All
-              </a>
-              {categories.map((cat: any) => (
-                <a
-                  key={cat.id || cat.name}
-                  href={`/view-all?category=${encodeURIComponent(cat.name)}`}
-                  className={`px-5 py-2 text-[10px] uppercase tracking-[0.3em] border transition-all duration-300 whitespace-nowrap ${
-                    urlCategory?.toLowerCase() === cat.name.toLowerCase()
-                      ? "border-white/40 text-white bg-white/5"
-                      : "border-white/10 text-white/35 hover:text-white hover:border-white/30"
-                  }`}
-                >
-                  {cat.name}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ─── HORIZONTAL FILTER BAR ───────────────────────────────────────── */}
+        {/* ─── CATEGORIES & FILTERS BAR ───────────────────────────────────── */}
         {!loading && (
-          <div className="mb-8 flex flex-nowrap items-center gap-3 overflow-x-auto no-scrollbar pb-2 md:flex-wrap md:overflow-visible md:pb-0 w-full relative">
+          <div className="mb-8 flex items-center justify-between gap-4 border-b border-white/5 pb-4 md:pb-6 relative z-30">
+            {/* Category filter tabs */}
+            {!urlSearch && categories.length > 0 && (
+              <div className="flex-1 overflow-x-auto no-scrollbar pr-4">
+                <div className="flex items-center gap-3 min-w-max">
+                  <a
+                    href="/view-all"
+                    className={`px-5 py-2 text-[10px] uppercase tracking-[0.3em] border transition-all duration-300 whitespace-nowrap ${
+                      !urlCategory
+                        ? "border-white/40 text-white bg-white/5"
+                        : "border-white/10 text-white/35 hover:text-white hover:border-white/30"
+                    }`}
+                  >
+                    All
+                  </a>
+                  {categories.map((cat: any) => (
+                    <a
+                      key={cat.id || cat.name}
+                      href={`/view-all?category=${encodeURIComponent(cat.name)}`}
+                      className={`px-5 py-2 text-[10px] uppercase tracking-[0.3em] border transition-all duration-300 whitespace-nowrap ${
+                        urlCategory?.toLowerCase() === cat.name.toLowerCase()
+                          ? "border-white/40 text-white bg-white/5"
+                          : "border-white/10 text-white/35 hover:text-white hover:border-white/30"
+                      }`}
+                    >
+                      {cat.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Filter Dropdowns */}
+            <div className="flex flex-nowrap items-center gap-2 shrink-0 overflow-x-auto no-scrollbar max-w-[60vw] md:max-w-none">
             {/* Gender filter */}
             <FilterDropdown label="Gender" activeCount={selectedGenders.length}>
               <div className="p-4 space-y-2">
@@ -451,6 +453,7 @@ function ShopContent() {
                 {filteredProducts.length} piece{filteredProducts.length !== 1 ? "s" : ""}
               </span>
             )}
+            </div>
           </div>
         )}
 

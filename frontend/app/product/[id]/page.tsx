@@ -70,7 +70,7 @@ export default function ProductPage({
           const allData = await allProductsRes.json()
           setAllProducts(allData)
         }
-        
+
         if (reviewsRes.ok) {
           const rData = await reviewsRes.json()
           setReviews(rData)
@@ -181,7 +181,7 @@ export default function ProductPage({
     }
   })()
 
-  const SIZE_ORDER = ["XXS","XS","S","M","L","XL","XXL","XXXL","2XL","3XL","4XL","Free Size","One Size"]
+  const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "2XL", "3XL", "4XL", "Free Size", "One Size"]
 
   const parseSizes = (sizesField: any) => {
     if (!sizesField) return []
@@ -223,7 +223,7 @@ export default function ProductPage({
   const totalStock = product.stock !== undefined ? product.stock : (product.inStock ? 99 : 0)
   const isInStock = totalStock > 0
   const isLowStock = totalStock > 0 && totalStock < 5
-  
+
   const isSizeAvailable = (size: string) => {
     return getStockForSize(size) > 0
   }
@@ -478,27 +478,8 @@ export default function ProductPage({
             {/* Price */}
             <p className="text-3xl font-light mb-6">₹{product.price.toLocaleString('en-IN')}</p>
 
-            {/* Short description */}
-            <p className="text-gray-400 leading-relaxed text-sm mb-8 max-w-md border-l border-white/10 pl-4">
-              {product.description}
-            </p>
-
             {/* Details grid (fabric, category, stock) */}
             <div className="grid grid-cols-2 gap-3 mb-8 text-xs">
-              <div className="bg-white/5 rounded px-4 py-3">
-                <p className="text-gray-500 uppercase tracking-widest mb-1">Category</p>
-                <p className="text-white">{product.category}</p>
-              </div>
-              <div className="bg-white/5 rounded px-4 py-3">
-                <p className="text-gray-500 uppercase tracking-widest mb-1">Availability</p>
-                <p className={isInStock ? (selectedSize ? (isSizeAvailable(selectedSize) ? "text-white/90" : "text-white/40 line-through") : (isLowStock ? "text-amber-400" : "text-white/90")) : "text-white/40"}>
-                  {isInStock 
-                    ? (selectedSize 
-                        ? (isSizeAvailable(selectedSize) ? "In Stock" : "Size Sold Out") 
-                        : (isLowStock ? `Only ${totalStock} left!` : "In Stock")) 
-                    : "Sold Out"}
-                </p>
-              </div>
               {product.fabric && (
                 <div className="bg-white/5 rounded px-4 py-3">
                   <p className="text-gray-500 uppercase tracking-widest mb-1">Fabric</p>
@@ -532,13 +513,12 @@ export default function ProductPage({
                     <button
                       key={size}
                       onClick={() => available && setSelectedSize(size)}
-                      className={`relative px-5 py-3 text-[10px] tracking-[0.2em] border transition-all duration-300 uppercase font-medium ${
-                        selectedSize === size
+                      className={`relative px-5 py-3 text-[10px] tracking-[0.2em] border transition-all duration-300 uppercase font-medium ${selectedSize === size
                           ? "border-white bg-white text-black"
                           : available
                             ? "border-white/10 text-gray-400 hover:border-white/40 hover:text-white"
                             : "border-white/5 text-gray-700 cursor-not-allowed overflow-hidden"
-                      }`}
+                        }`}
                     >
                       {size}
                       {!available && (
@@ -685,9 +665,9 @@ export default function ProductPage({
                   <div id="size-guide-content" className="pb-10 hidden animate-in fade-in slide-in-from-top-2 duration-500">
                     <div className="mx-auto max-w-md bg-white/2 border border-white/10 p-4 rounded-sm shadow-2xl">
                       <div className="relative overflow-hidden bg-black/40">
-                        <img 
-                          src={resolveMediaUrl(product.sizeGuideImage || product.size_guide_image)} 
-                          alt="Size Guide" 
+                        <img
+                          src={resolveMediaUrl(product.sizeGuideImage || product.size_guide_image)}
+                          alt="Size Guide"
                           className="w-full h-auto max-h-150 object-contain block mx-auto transition-transform duration-700 hover:scale-105"
                         />
                       </div>
@@ -893,13 +873,12 @@ export default function ProductPage({
           <button
             onClick={handleAddToCart}
             disabled={!selectedSize}
-            className={`px-6 py-3 uppercase tracking-widest text-xs font-medium transition-all ${
-              addedToCart
+            className={`px-6 py-3 uppercase tracking-widest text-xs font-medium transition-all ${addedToCart
                 ? "bg-green-500 text-white"
                 : selectedSize
                   ? "bg-white text-black"
                   : "bg-white/20 text-gray-500"
-            } disabled:cursor-not-allowed`}
+              } disabled:cursor-not-allowed`}
           >
             {addedToCart ? "Added ✓" : selectedSize ? "Add to Cart" : "Select Size"}
           </button>

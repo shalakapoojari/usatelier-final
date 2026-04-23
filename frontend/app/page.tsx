@@ -148,21 +148,19 @@ function TouchCarousel({ items, isPlaceholder }: { items: any[] | null; isPlaceh
     return () => cancelAnimationFrame(rafRef.current);
   }, [items, getTrackWidth, setTrackX]);
 
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
+  const handleDragStart = useCallback((clientX: number) => {
     pausedRef.current = true;
     velRef.current = 0;
-    const t = e.touches[0];
-    touchRef.current = { startX: t.clientX, startPos: posRef.current, lastX: t.clientX, lastT: Date.now() };
+    touchRef.current = { startX: clientX, startPos: posRef.current, lastX: clientX, lastT: Date.now() };
   }, []);
 
-  const onTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleDragMove = useCallback((clientX: number) => {
     if (!touchRef.current) return;
-    const t = e.touches[0];
-    const dx = t.clientX - touchRef.current.startX;
+    const dx = clientX - touchRef.current.startX;
     const now = Date.now();
     const dt = now - touchRef.current.lastT;
-    if (dt > 0) velRef.current = (t.clientX - touchRef.current.lastX) / dt * 16;
-    touchRef.current.lastX = t.clientX;
+    if (dt > 0) velRef.current = (clientX - touchRef.current.lastX) / dt * 16;
+    touchRef.current.lastX = clientX;
     touchRef.current.lastT = now;
     let next = touchRef.current.startPos + dx;
     const w = getTrackWidth();
@@ -174,9 +172,8 @@ function TouchCarousel({ items, isPlaceholder }: { items: any[] | null; isPlaceh
     setTrackX(next);
   }, [getTrackWidth, setTrackX]);
 
-  const onTouchEnd = useCallback(() => {
+  const handleDragEnd = useCallback(() => {
     touchRef.current = null;
-    // Resume auto-scroll smoothly (keep velocity momentum then hand off to loop)
     pausedRef.current = false;
   }, []);
 
@@ -194,10 +191,14 @@ function TouchCarousel({ items, isPlaceholder }: { items: any[] | null; isPlaceh
 
   return (
     <div
-      className="w-full overflow-hidden cursor-grab active:cursor-grabbing"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
+      className="w-full overflow-hidden cursor-grab active:cursor-grabbing select-none"
+      onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
+      onTouchMove={(e) => handleDragMove(e.touches[0].clientX)}
+      onTouchEnd={handleDragEnd}
+      onMouseDown={(e) => handleDragStart(e.clientX)}
+      onMouseMove={(e) => handleDragMove(e.clientX)}
+      onMouseUp={handleDragEnd}
+      onMouseLeave={handleDragEnd}
     >
       <div
         ref={trackRef}

@@ -386,6 +386,15 @@ export default function ProductPage({
     router.push("/checkout")
   }
 
+  if (loading || !product) {
+    return (
+      <div className="bg-[#030303] text-[#e8e8e3] min-h-screen flex items-center justify-center">
+        <SiteHeader />
+        <Loader2 className="w-8 h-8 animate-spin text-white/40" />
+      </div>
+    )
+  }
+
   return (
     <div className="bg-[#030303] text-[#e8e8e3] min-h-screen">
       <SiteHeader />

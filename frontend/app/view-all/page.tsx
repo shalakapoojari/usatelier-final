@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ProductCard } from "@/components/product-card"
-import { Loader2, ChevronDown, X, SlidersHorizontal } from "lucide-react"
+import { Loader2, ChevronDown, X, SlidersHorizontal, Users, Ruler, Tag } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { getApiBase, apiFetch } from "@/lib/api-base"
 
@@ -37,7 +37,7 @@ function FilterDropdown({
   activeCount,
   children,
 }: {
-  label: string
+  label: React.ReactNode
   activeCount?: number
   children: React.ReactNode
 }) {
@@ -308,7 +308,7 @@ function ShopContent() {
             {/* Filter Dropdowns */}
             <div className="flex flex-nowrap items-center gap-2 shrink-0 overflow-x-auto no-scrollbar max-w-[60vw] md:max-w-none">
             {/* Gender filter */}
-            <FilterDropdown label="Gender" activeCount={selectedGenders.length}>
+            <FilterDropdown label={<><span className="hidden md:inline">Gender</span><Users size={12} className="md:hidden" /></>} activeCount={selectedGenders.length}>
               <div className="p-4 space-y-2">
                 {["Men", "Women"].map((gender) => (
                   <button
@@ -375,8 +375,8 @@ function ShopContent() {
 
             {/* Size filter */}
             {allSizes.length > 0 && (
-              <FilterDropdown label="Size" activeCount={selectedSizes.length}>
-                <div className="p-4">
+              <FilterDropdown label={<><span className="hidden md:inline">Size</span><Ruler size={12} className="md:hidden" /></>} activeCount={selectedSizes.length}>
+              <div className="p-4 w-64">
                   <div className="flex flex-wrap gap-2 max-w-[220px]">
                     {allSizes.map((size) => (
                       <button
@@ -402,7 +402,7 @@ function ShopContent() {
 
             {/* Price filter */}
             <FilterDropdown
-              label="Price"
+              label={<><span className="hidden md:inline">Price</span><Tag size={12} className="md:hidden" /></>}
               activeCount={priceRange[0] > 0 || priceRange[1] < categoryMaxPrice ? 1 : 0}
             >
               <div className="p-5 w-64">

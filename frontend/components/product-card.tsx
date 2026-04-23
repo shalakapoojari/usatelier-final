@@ -110,11 +110,11 @@ export function ProductCard({ product }: ProductCardProps) {
 
       {/* Text info */}
       <div className="mt-3 space-y-0.5">
-        <p className="text-[10px] uppercase tracking-widest text-gray-500">{product.category}</p>
-        <h3 className="text-xl font-serif text-balance group-hover:text-gray-300 transition-colors leading-snug">
+        <p className="text-[9px] md:text-[10px] uppercase tracking-widest text-gray-500">{product.category}</p>
+        <h3 className="text-sm md:text-lg lg:text-xl font-serif text-balance group-hover:text-gray-300 transition-colors leading-snug">
           {product.name}
         </h3>
-        <p className="text-sm text-gray-400">₹{product.price.toLocaleString('en-IN')}</p>
+        <p className="text-xs md:text-sm text-gray-400">₹{product.price.toLocaleString('en-IN')}</p>
       </div>
     </Link>
   )
